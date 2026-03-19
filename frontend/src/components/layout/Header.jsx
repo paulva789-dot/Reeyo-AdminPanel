@@ -1,18 +1,19 @@
 // src/components/layout/Header.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Bell, 
-  User, 
-  Menu, 
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  Bell,
+  User,
+  Menu,
   Settings,
   LogOut,
   ChevronDown,
   MessageSquare,
   HelpCircle,
-  X
-} from 'lucide-react';
+  X,
+} from "lucide-react";
 
 function Header({ toggleSidebar }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -30,8 +31,8 @@ function Header({ toggleSidebar }) {
       // but the main header shadow is now constant/minimal to prevent jump.
       setIsScrolled(window.scrollY > 10);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close dropdowns when clicking outside
@@ -44,21 +45,40 @@ function Header({ toggleSidebar }) {
         setShowProfileMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Mock notifications
   const notifications = [
-    { id: 1, title: 'New Order #3847', message: 'Customer placed order', time: '2m ago', unread: true },
-    { id: 2, title: 'Vendor Request', message: 'New vendor signup pending', time: '15m ago', unread: true },
-    { id: 3, title: 'Payment Received', message: 'Order #3840 paid', time: '1h ago', unread: false },
+    {
+      id: 1,
+      title: "New Order #3847",
+      message: "Customer placed order",
+      time: "2m ago",
+      unread: true,
+    },
+    {
+      id: 2,
+      title: "Vendor Request",
+      message: "New vendor signup pending",
+      time: "15m ago",
+      unread: true,
+    },
+    {
+      id: 3,
+      title: "Payment Received",
+      message: "Order #3840 paid",
+      time: "1h ago",
+      unread: false,
+    },
   ];
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
+  const navigate = useNavigate();
 
   return (
-    <header 
+    <header
       className={`
         sticky top-0 
         z-40 /* Decreased header Z-index to z-40 so sidebar (z-50) can be on top */
@@ -73,7 +93,7 @@ function Header({ toggleSidebar }) {
           {/* Left Section */}
           <div className="flex items-center gap-4 flex-1">
             {/* Mobile Menu Button */}
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleSidebar}
@@ -81,26 +101,30 @@ function Header({ toggleSidebar }) {
             >
               <Menu className="w-6 h-6 text-gray-700" />
             </motion.button>
-            
+
             {/* Page Title with Gradient */}
             <div className="hidden sm:block">
               <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Dashboard
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">Welcome back, Admin</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Welcome back, Admin
+              </p>
             </div>
 
             {/* Enhanced Search Bar */}
-            <motion.div 
+            <motion.div
               className="relative flex-1 max-w-md"
-              animate={{ 
+              animate={{
                 scale: searchFocused ? 1.02 : 1,
               }}
               transition={{ duration: 0.2 }}
             >
-              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
-                searchFocused ? 'text-blue-500' : 'text-gray-400'
-              }`} />
+              <Search
+                className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
+                  searchFocused ? "text-blue-500" : "text-gray-400"
+                }`}
+              />
               <input
                 type="text"
                 placeholder="Search orders, users, vendors..."
@@ -112,9 +136,10 @@ function Header({ toggleSidebar }) {
                   focus:outline-none text-sm
                   text-gray-900 placeholder-gray-400
                   transition-all duration-200
-                  ${searchFocused 
-                    ? 'border-blue-500 bg-white shadow-md' 
-                    : 'border-transparent hover:bg-gray-100'
+                  ${
+                    searchFocused
+                      ? "border-blue-500 bg-white shadow-md"
+                      : "border-transparent hover:bg-gray-100"
                   }
                 `}
               />
@@ -140,13 +165,16 @@ function Header({ toggleSidebar }) {
               className="hidden md:flex p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
               title="Messages"
             >
-              <MessageSquare className="w-5 h-5 text-gray-600" />
+              <MessageSquare
+                onClick={() => navigate("/chat")}
+                className="w-5 h-5 text-gray-600"
+              />
               <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
             </motion.button>
 
             {/* Notifications Dropdown */}
             <div className="relative" ref={notifRef}>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -155,7 +183,7 @@ function Header({ toggleSidebar }) {
               >
                 <Bell className="w-5 h-5 text-gray-600" />
                 {unreadCount > 0 && (
-                  <motion.span 
+                  <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-white"
@@ -176,8 +204,10 @@ function Header({ toggleSidebar }) {
                     className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
                   >
                     <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
-                      <button 
+                      <h3 className="font-semibold text-gray-900">
+                        Notifications
+                      </h3>
+                      <button
                         onClick={() => setShowNotifications(false)}
                         className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
                       >
@@ -188,17 +218,25 @@ function Header({ toggleSidebar }) {
                       {notifications.map((notif) => (
                         <motion.div
                           key={notif.id}
-                          whileHover={{ backgroundColor: '#f9fafb' }}
+                          whileHover={{ backgroundColor: "#f9fafb" }}
                           className="p-4 border-b border-gray-50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-start gap-3">
-                            <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
-                              notif.unread ? 'bg-blue-500' : 'bg-gray-300'
-                            }`} />
+                            <div
+                              className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                                notif.unread ? "bg-blue-500" : "bg-gray-300"
+                              }`}
+                            />
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-gray-900">{notif.title}</p>
-                              <p className="text-xs text-gray-600 mt-0.5">{notif.message}</p>
-                              <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                              <p className="font-semibold text-sm text-gray-900">
+                                {notif.title}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-0.5">
+                                {notif.message}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {notif.time}
+                              </p>
                             </div>
                           </div>
                         </motion.div>
@@ -226,12 +264,16 @@ function Header({ toggleSidebar }) {
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-semibold text-gray-900">Super Admin</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Super Admin
+                  </p>
                   <p className="text-xs text-gray-500">admin@reeyo.com</p>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${
-                  showProfileMenu ? 'rotate-180' : ''
-                }`} />
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-500 transition-transform ${
+                    showProfileMenu ? "rotate-180" : ""
+                  }`}
+                />
               </motion.button>
 
               {/* Profile Dropdown Menu */}
@@ -250,22 +292,26 @@ function Header({ toggleSidebar }) {
                           <User className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">Super Admin</p>
-                          <p className="text-xs text-gray-600">admin@reeyo.com</p>
+                          <p className="font-semibold text-gray-900">
+                            Super Admin
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            admin@reeyo.com
+                          </p>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-2">
                       <motion.button
-                        whileHover={{ backgroundColor: '#f3f4f6' }}
+                        whileHover={{ backgroundColor: "#f3f4f6" }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-gray-700 transition-colors"
                       >
                         <User className="w-4 h-4" />
                         <span>My Profile</span>
                       </motion.button>
                       <motion.button
-                        whileHover={{ backgroundColor: '#f3f4f6' }}
+                        whileHover={{ backgroundColor: "#f3f4f6" }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-gray-700 transition-colors"
                       >
                         <Settings className="w-4 h-4" />
@@ -275,7 +321,7 @@ function Header({ toggleSidebar }) {
 
                     <div className="p-2 border-t border-gray-100">
                       <motion.button
-                        whileHover={{ backgroundColor: '#fef2f2' }}
+                        whileHover={{ backgroundColor: "#fef2f2" }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-red-600 font-medium transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
@@ -295,20 +341,25 @@ function Header({ toggleSidebar }) {
         {isScrolled && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="border-t border-gray-100 bg-gray-50/50 px-6 py-2 hidden lg:block overflow-hidden"
           >
             <div className="flex items-center gap-6 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-gray-600">System: <span className="font-semibold text-green-600">Online</span></span>
+                <span className="text-gray-600">
+                  System:{" "}
+                  <span className="font-semibold text-green-600">Online</span>
+                </span>
               </div>
               <div className="text-gray-600">
-                Active Orders: <span className="font-semibold text-gray-900">24</span>
+                Active Orders:{" "}
+                <span className="font-semibold text-gray-900">24</span>
               </div>
               <div className="text-gray-600">
-                Online Riders: <span className="font-semibold text-gray-900">18</span>
+                Online Riders:{" "}
+                <span className="font-semibold text-gray-900">18</span>
               </div>
             </div>
           </motion.div>
@@ -319,4 +370,3 @@ function Header({ toggleSidebar }) {
 }
 
 export default Header;
-
