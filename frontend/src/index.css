@@ -1,3 +1,311 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   MODE CLAIR GLOBAL
+   ========================================================================== */
+.light body {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+.light .bg-gray-50,
+.light .bg-slate-50,
+.light .bg-gray-100,
+.light .bg-slate-100 {
+  background-color: #ffffff !important;
+}
+.light .bg-white {
+  background-color: #ffffff !important;
+}
+.light .text-gray-100,
+.light .text-gray-200,
+.light .text-gray-300,
+.light .text-gray-400,
+.light .text-gray-500,
+.light .text-gray-600,
+.light .text-gray-700,
+.light .text-gray-800,
+.light .text-slate-400,
+.light .text-slate-500,
+.light .text-slate-600,
+.light .text-slate-700,
+.light .text-slate-800 {
+  color: #0f172a !important;
+}
+.light .border-gray-100,
+.light .border-slate-100 {
+  border-color: rgba(148, 163, 184, 0.16) !important;
+}
+.light .border-gray-200,
+.light .border-slate-200,
+.light .divide-gray-200,
+.light .divide-slate-200 {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+.light .border-gray-300,
+.light .border-slate-300 {
+  border-color: rgba(148, 163, 184, 0.30) !important;
+}
+.light table,
+.light thead,
+.light tbody,
+.light tr,
+.light th,
+.light td {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+.light .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+.light .shadow-sm {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+}
+.light .shadow-md {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+.light .shadow-lg {
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08) !important;
+}
+.light .shadow-xl {
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10) !important;
+}
+
+/* ==========================================================================
+   INJECTION DU THEME ADAPTATIF POUR DASHBOARD_OVERVIEW (SANS TOUCHER AU CODE)
+   ========================================================================== */
+
+/* 1. Titres et Textes Principaux */
+.dark h1.text-gray-800,
+.dark h2.text-gray-800 {
+  color: #f8fafc !important; /* Ardoise très claire */
+}
+.dark p.text-gray-900,
+.dark p.text-gray-800 {
+  color: #ffffff !important;
+}
+.dark p.text-gray-500,
+.dark span.text-gray-500,
+.dark th.text-gray-500 {
+  color: #94a3b8 !important; /* Gris atténué pour le mode sombre */
+}
+
+/* 2. Les Cartes et Conteneurs de Tableaux (bg-white -> bleu nuit) */
+.dark .bg-white {
+  background-color: #111c3a !important; /* Ton bleu nuit de carte */
+  border-color: #1e293b !important;       /* Bordure sombre discrète */
+}
+
+/* 3. Ajustement des StatCards */
+.dark .bg-white h3.text-gray-500 {
+  color: #94a3b8 !important;
+}
+.dark .bg-white p.text-gray-900 {
+  color: #ffffff !important;
+}
+
+/* 4. Le Tableau des Meilleurs Produits */
+.dark table tr {
+  border-color: #1e293b !important;
+}
+.dark table tbody tr:hover {
+  background-color: #1c284c !important; /* Effet hover bleu nuit légèrement plus clair */
+}
+.dark table td p.text-gray-900,
+.dark table td.text-gray-900 {
+  color: #f1f5f9 !important;
+}
+
+/* 5. Tooltip des Graphiques Recharts */
+.dark .recharts-default-tooltip {
+  background-color: #111c3a !important;
+  border: 1px solid #1e293b !important;
+  color: #ffffff !important;
+}
+.dark .recharts-tooltip-item {
+  color: #f1f5f9 !important;
+}
+
+/* 6. Légende de la section "Sales by Category" */
+.dark .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+.dark .text-gray-900 {
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   INJECTION DU MODE SOMBRE POUR LES VENDORS ET LES SETTINGS (SANS TOUCHER AU CODE)
+   ========================================================================== */
+
+/* --- 1. AJUSTEMENTS POUR LA PAGE VENDOR MANAGEMENT --- */
+
+/* La grande barre de recherche interne */
+.dark input[type="text"].bg-white, 
+.dark .bg-white input {
+  background-color: #111c3a !important;
+  color: #ffffff !important;
+  border-color: #1e293b !important;
+}
+
+/* Les boutons de filtre à côté de la recherche (ex: All Status) */
+.dark .bg-white select,
+.dark button.bg-white {
+  background-color: #111c3a !important;
+  color: #f1f5f9 !important;
+  border-color: #1e293b !important;
+}
+
+/* L'en-tête blanc du tableau (RESTAURANT, COMMISSION, etc.) */
+.dark thead, 
+.dark tr.bg-white,
+.dark .bg-white th {
+  background-color: #1e293b !important; /* Bleu nuit légèrement plus clair pour marquer l'en-tête */
+  color: #cbd5e1 !important;
+}
+
+/* Les textes gris discrets des cellules du tableau */
+.dark td p.text-gray-500,
+.dark td span.text-gray-500,
+.dark td {
+  color: #94a3b8 !important;
+}
+
+
+/* --- 2. AJUSTEMENTS POUR LA PAGE SETTINGS (SYSTEM CONFIGURATION) --- */
+
+/* Les grands blocs blancs d'options (Admin User Roles, API Key, Security Policy) */
+.dark .rounded-xl.bg-white,
+.dark .rounded-lg.bg-white,
+.dark div[class*="bg-white"] {
+  background-color: #111c3a !important;
+  border-color: #1e293b !important;
+}
+
+/* Forcer les titres de sections et descriptions à devenir blancs/clairs */
+.dark .dark\:text-white,
+.dark h2, .dark h3, .dark h4,
+.dark .text-gray-900,
+.dark p.font-semibold {
+  color: #ffffff !important;
+}
+
+.dark .text-gray-600,
+.dark p.text-sm {
+  color: #cbd5e1 !important; /* Gris clair lisible pour les longues descriptions */
+}
+
+/* Ajustement de l'input numérique pour le "Minimum Password Length" */
+.dark input[type="number"],
+.dark .bg-white input[type="password"],
+.dark input {
+  background-color: #0b1329 !important; /* Fond encore plus sombre pour les champs de saisie */
+  color: #ffffff !important;
+  border-color: #1e293b !important;
+}
+
+/* Ajustement des petits textes informatifs atténués */
+.dark .text-gray-400 {
+  color: #64748b !important;
+}
+
+/* ==========================================================================
+   CORRECTIF RADICAL POUR TOUTES LES PAGES DE CONFIGURATION / SETTINGS
+   ========================================================================== */
+
+/* 1. Forcer le fond sombre sur absolument TOUS les blocs internes de settings */
+.dark div[class*="settings"] .bg-white,
+.dark a[href*="settings"] ~ div .bg-white,
+.dark main div .bg-white,
+.dark .rounded-xl,
+.dark .rounded-lg {
+  background-color: #111c3a !important;
+  border-color: #1e293b !important;
+}
+
+/* 2. Ré-ajuster les titres spécifiques qui sont devenus invisibles (Gris très clair) */
+.dark main h3,
+.dark main h2,
+.dark main h1,
+.dark main p,
+.dark main span:not([class*="bg-"]) {
+  color: #ffffff !important;
+}
+
+/* Exception pour les sous-textes ou descriptions pour garder une hiérarchie visuelle */
+.dark main p.text-gray-400,
+.dark main span.text-gray-400,
+.dark main .text-xs {
+  color: #94a3b8 !important; /* Gris ardoise doux */
+}
+
+/* 3. Ajustement des boutons secondaires dans Data & Backup (ex: "View Backup History & Logs") */
+.dark button.border-gray-300,
+.dark .bg-white button:not([class*="bg-blue"]):not([class*="bg-purple"]):not([class*="bg-green"]) {
+  background-color: #1c284c !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+/* 4. Fix pour le bloc spécifique "System Health & Diagnostics" en bas de page */
+.dark .border-b.border-gray-100,
+.dark .border-gray-200 {
+  border-color: #1e293b !important;
+}
+
+/* S'assurer que les indicateurs de performance (ex: "OK (Latency: 2ms)") restent lisibles */
+.dark .text-green-700, 
+.dark .text-green-600 {
+  color: #4ade80 !important; /* Vert brillant pour le mode sombre */
+}
+.dark .text-yellow-700 {
+  color: #facc15 !important; /* Jaune brillant pour le mode sombre */
+}
+
+/* ==========================================================================
+   UNIFICATION DE LA SIDEBAR EN DARK MODE (MÊME BLEU NUIT GLOBAL)
+   ========================================================================== */
+
+/* 1. Passer le fond de la sidebar principale au bleu nuit global */
+.dark aside,
+.dark [class*="sidebar"],
+.dark div[class*="bg-[#006080]"], /* Au cas où tu as codé en dur la couleur océan */
+.dark div[class*="bg-cyan-"] {
+  background-color: #0b1329 !important; /* Le fond bleu nuit identique à ton layout principal */
+  border-right: 1px solid #1e293b !important; /* Une fine ligne de séparation élégante */
+}
+
+/* 2. Harmoniser les boutons de navigation non actifs de la sidebar */
+.dark aside button:not([class*="bg-orange"]),
+.dark aside a:not([class*="bg-orange"]) {
+  background-color: transparent !important; /* Supprime le bloc sombre autour pour épurer */
+  color: #94a3b8 !important; /* Texte gris ardoise doux pour les éléments inactifs */
+}
+
+/* Effet au survol (hover) sur les boutons de la sidebar */
+.dark aside button:not([class*="bg-orange"]):hover,
+.dark aside a:not([class*="bg-orange"]):hover {
+  background-color: #111c3a !important; /* Léger relief bleu de carte au survol */
+  color: #ffffff !important;
+}
+
+/* 3. Ajuster les sous-onglets ouverts (ex: Customers, Riders, All Vendors) */
+.dark aside ul div,
+.dark aside nav div {
+  background-color: transparent !important;
+}
+
+/* 4. Garder le bouton actif orange intact et lumineux */
+.dark [class*="bg-orange"],
+.dark button[class*="bg-orange-600"],
+.dark a[class*="bg-orange-600"] {
+  background-color: #f97316 !important; /* Ton orange vif Reeyo */
+  color: #ffffff !important;
+}
+
+/* 5. Ajuster le petit encadré publicitaire "Boost Sales" tout en bas de la sidebar */
+.dark aside .bg-blue-950,
+.dark aside div[class*="bg-opacity"] {
+  background-color: #111c3a !important; /* Devient une carte bleu nuit classique */
+  border: 1px solid #1e293b !important;
+}

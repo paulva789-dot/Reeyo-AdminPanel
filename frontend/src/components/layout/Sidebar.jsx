@@ -63,7 +63,7 @@ function NavItem({ item, onNavigate }) {
     
     const linkBaseClasses = `w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative`;
     const activeClasses = `bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30`;
-    const inactiveClasses = `text-gray-300 hover:bg-white/10 hover:text-white`;
+    const inactiveClasses = `text-white/80 hover:bg-white/10 hover:text-white`;
 
     // Check if any child is active
     const isParentActive = hasChildren && item.children.some(child => 
@@ -144,7 +144,7 @@ function NavItem({ item, onNavigate }) {
                                                 `flex items-center py-2 px-3 text-sm rounded-lg transition-all duration-200 ${
                                                     isActive 
                                                         ? 'bg-orange-500/20 text-orange-400 font-semibold border-l-2 border-orange-500' 
-                                                        : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                                                        : 'text-white/80 hover:bg-white/20 hover:text-white'
                                                 }`
                                             }
                                         >

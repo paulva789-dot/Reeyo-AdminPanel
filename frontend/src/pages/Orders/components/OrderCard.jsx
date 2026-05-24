@@ -85,9 +85,7 @@ const OrderCard = ({ order }) => {
             <div className="p-4 border-t border-gray-100 dark:border-gray-700">
                 <button 
                     onClick={handleViewDetails}
-                    className={`w-full py-2 rounded-lg font-bold flex items-center justify-center space-x-2 transition-colors duration-200 ${
-                        order.status === 'Pending' ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
+                    className="w-full py-2 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all duration-200 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-200/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
                     <span>{order.status === 'Pending' ? 'Assign Driver' : 'View Details'}</span>
                     <BsChevronRight size={18} />

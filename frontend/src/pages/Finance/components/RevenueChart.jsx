@@ -35,7 +35,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 const RevenueChart = ({ data }) => {
     return (
         <div className="h-96"> {/* Fixed height for the container */}
-            <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 mb-4 border-b pb-2 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 mb-4">
                 Monthly Financial Trends
             </h2>
             

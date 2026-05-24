@@ -54,7 +54,7 @@ const TransactionTable = ({ transactions }) => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-6 pb-4">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">Transaction History</h2>
                 <div className="flex items-center space-x-4">
                     

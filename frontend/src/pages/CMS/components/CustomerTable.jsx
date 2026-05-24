@@ -91,7 +91,7 @@ const CustomerTable = ({ customers, onViewDetails }) => {
 
     return (
         <div>
-            <div className="flex flex-wrap justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+            <div className="flex flex-wrap justify-between items-center mb-6 pb-4">
                 <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100 mb-3 sm:mb-0">All Platform Users ({customers.length})</h2>
                 
                 <div className="flex flex-wrap items-center space-x-3">
