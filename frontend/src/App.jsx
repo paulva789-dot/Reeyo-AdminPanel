@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/routing/ProtectedRoute';
 
 // --- Lazy-loaded page components (Protected & Public) ---
+const AnalyticsPage = React.lazy(() => import('./pages/Analytics/AnalyticsPage.jsx'));
 const DashboardOverview = React.lazy(() => import('./pages/DashboardOverview.jsx'));
 const CustomerManagement = React.lazy(() => import('./pages/Users/Customers/CustomerManagement.jsx'));
 const VendorManagement = React.lazy(() => import('./pages/Users/Vendors/VendorManagement.jsx'));
@@ -18,6 +19,9 @@ const LiveTracker = React.lazy(() => import('./pages/Logistics/LiveTracker/LiveT
 const DeliveryZones = React.lazy(() => import('./pages/Logistics/DeliveryZones/DeliveryZones.jsx'))
 const FinancePage = React.lazy(() => import('./pages/Finance/FinancePage'));
 const AnnouncementsPage = React.lazy(() => import('./pages/Announcements/AnnouncementsPage.jsx'));
+
+// Marketing
+const MarketingPage = React.lazy(() => import('./pages/Marketing/MarketingPage')); 
 
 // Auth Pages
 const LoginPage = React.lazy(() => import('./pages/Auth/LoginPage.jsx'));
@@ -30,6 +34,8 @@ const CMSCustomersPage = React.lazy(() => import('./pages/CMS/CustomersPage.jsx'
 const SettingsPage = React.lazy(() => import('./pages/Settings/SettingsPage.jsx'));
 const UserAccess = React.lazy(() => import('./pages/Settings/components/UserAccess.jsx'));
 const OperationalParameters = React.lazy(() => import('./pages/Settings/components/OperationalParameters.jsx'));
+const Integrations = React.lazy(() => import('./pages/Settings/components/Integrations.jsx'));
+const PlatformServices = React.lazy(() => import('./pages/Settings/components/PlatformServices.jsx'));
 const DataBackup = React.lazy(() => import('./pages/Settings/components/DataBackup.jsx'));
 
 // Support System Import (NEW)
@@ -72,8 +78,9 @@ function App() {
 
         {/* ======================= PROTECTED ROUTES (Requires Layout) ======================= */}
 
-        {/* Main Dashboard Route */}
-        <Route path="/" element={<ProtectedRoute element={DashboardOverview} />} />
+{/* Main Dashboard Route */}
+        <Route path="/" element={<ProtectedRoute element={AnalyticsPage} />} />
+        <Route path="/dashboard" element={<ProtectedRoute element={DashboardOverview} />} />
 
         {/* SETTINGS NESTED ROUTES (FIXED: The correct structure for tabs) */}
         <Route path="/settings" element={<ProtectedRoute element={SettingsPage} />}>
@@ -81,6 +88,8 @@ function App() {
             <Route index element={<Navigate to="access" replace />} />
             <Route path="access" element={<UserAccess />} />
             <Route path="operational" element={<OperationalParameters />} />
+            <Route path="integrations" element={<Integrations />} />
+            <Route path="services" element={<PlatformServices />} />
             <Route path="data" element={<DataBackup />} />
         </Route>
         
@@ -97,9 +106,10 @@ function App() {
         <Route path="/logistics/live" element={<ProtectedRoute element={LiveTracker}/>} />
         <Route path="/logistics/zones" element={<ProtectedRoute element={DeliveryZones} />} />
 
-        {/* Finance & Announcements (Top-Level Routes) */}
-        <Route path="/finance" element={<ProtectedRoute element={FinancePage} />} />
-        <Route path="/announcements" element={<ProtectedRoute element={AnnouncementsPage} />} />
+{/* Finance & Announcements (Top-Level Routes) */}
+         <Route path="/finance" element={<ProtectedRoute element={FinancePage} />} />
+         <Route path="/marketing" element={<ProtectedRoute element={MarketingPage} />} />
+         <Route path="/announcements" element={<ProtectedRoute element={AnnouncementsPage} />} />
 
         {/* Support System Route (NEW)
         <Route path="/support/queue" element={<ProtectedRoute element={LiveQueue} />} /> */}

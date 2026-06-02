@@ -2,7 +2,7 @@
 import React from 'react';
 import { Search, ListFilter } from 'lucide-react';
 
-const statuses = ['All', 'Pending', 'Processing', 'In Transit', 'Delivered', 'Cancelled'];
+const statuses = ['All', 'New', 'Scheduled', 'Accepted', 'Ready for Delivery', 'On the Way', 'Delivered', 'Cancelled', 'Abandoned', 'Delayed'];
 
 const OrderFilterBar = ({ currentFilter, setFilter, searchQuery, setSearchQuery }) => {
     return (

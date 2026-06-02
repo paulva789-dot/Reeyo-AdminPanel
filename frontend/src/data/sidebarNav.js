@@ -1,11 +1,16 @@
 // src/data/sidebarNav.js
-import { LayoutDashboard, Users, Utensils, Bike, Settings, FileText, DollarSign, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, Utensils, Bike, Settings, FileText, DollarSign, Megaphone, Tag } from 'lucide-react';
 
 export const sidebarNav = [
   {
+    title: 'Analytics',
+    icon: BarChart3,
+    path: '/', // Maps to /pages/Analytics/AnalyticsPage.jsx
+  },
+  {
     title: 'Dashboard',
     icon: LayoutDashboard,
-    path: '/', // Maps to /pages/Analytics/AnalyticsPage.jsx
+    path: '/dashboard', // Maps to /pages/DashboardOverview.jsx
   },
   {
     title: 'Order Management',
@@ -43,6 +48,11 @@ export const sidebarNav = [
     title: 'Platform Finance',
     icon: DollarSign,
     path: '/finance', 
+  },
+  { // NEW: Marketing Page
+    title: 'Marketing Hub',
+    icon: Tag,
+    path: '/marketing', 
   },
   { // NEW: Announcements Page
     title: 'System Announcements',

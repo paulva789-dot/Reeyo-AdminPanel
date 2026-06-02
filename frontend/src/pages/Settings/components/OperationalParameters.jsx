@@ -1,6 +1,6 @@
 // src/pages/Settings/components/OperationalParameters.jsx
 import React from 'react';
-import { DollarSign, Percent, Clock, Mail } from 'lucide-react';
+import { DollarSign, Percent, Clock, Mail, Link, Image as ImageIcon } from 'lucide-react';
 
 const OperationalParameters = () => {
     return (
@@ -12,7 +12,14 @@ const OperationalParameters = () => {
             <section className="p-4 border rounded-lg shadow-sm">
                 <h3 className="font-semibold text-xl flex items-center gap-2 mb-4"><Percent size={22} className="text-orange-500"/> Vendor Commission Rates</h3>
                 <p className="text-sm text-gray-600 mb-4">Set the default commission rates applied to vendor sales. Rates can be overridden per vendor contract.</p>
-                <div className="flex space-x-10">
+                <div className="space-y-4">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Commission Types Available:</p>
+                        <div className="flex gap-4 text-xs">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">Percentage (%)</span>
+                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded">Fixed Amount (XAF)</span>
+                        </div>
+                    </div>
                     <div className="flex items-center space-x-4">
                         <label className="text-sm font-medium text-gray-700 w-48">Default Food Vendor Rate (%)</label>
                         <input type="number" defaultValue={15} min={0} max={100} className="mt-1 p-2 border border-gray-300 rounded-md w-24 text-center" />
@@ -20,6 +27,22 @@ const OperationalParameters = () => {
                     <div className="flex items-center space-x-4">
                         <label className="text-sm font-medium text-gray-700 w-48">Default Grocery Rate (%)</label>
                         <input type="number" defaultValue={10} min={0} max={100} className="mt-1 p-2 border border-gray-300 rounded-md w-24 text-center" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <ImageIcon size={16} />
+                                Vendor Storefront Image
+                            </label>
+                            <div className="text-xs text-gray-500">Vendors can upload storefront images when creating accounts</div>
+                        </div>
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                <Link size={16} />
+                                Google Maps Integration
+                            </label>
+                            <div className="text-xs text-gray-500">Add Google Maps address to vendor profiles for accurate location</div>
+                        </div>
                     </div>
                 </div>
             </section>
