@@ -16,6 +16,7 @@ import {
   PieChart,
   CheckCircle
 } from 'lucide-react';
+import DateFilter from '../../components/DateFilter';
 import { motion } from 'framer-motion';
 import {
   LineChart,
@@ -39,6 +40,7 @@ const TABS = {
 
 const AnalyticsPage = () => {
   const [activeTab, setActiveTab] = useState(TABS.OVERVIEW);
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
 
   const leaderboardData = [
     { name: 'Chez Pierre Bistro', value: 1250, type: 'Restaurant' },
@@ -74,6 +76,8 @@ const AnalyticsPage = () => {
           Analytics Dashboard
         </h1>
       </div>
+
+      <DateFilter selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
 
       {/* Tab Navigation */}
       <div className="flex space-x-4 mb-6">

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { initialCustomers, customerKpis, customerOrders } from '../../data/customerMocks';
+import DateFilter from '../../components/DateFilter';
 import StatCardGrid from './components/StatCardGrid';
 import CustomerTable from './components/CustomerTable';
 import CustomerDetails from './components/CustomerDetails';
@@ -9,7 +10,8 @@ import { Users, ArrowLeft } from 'lucide-react';
 
 const CustomersPage = () => {
     const [customers, setCustomers] = useState(initialCustomers);
-    const [selectedCustomer, setSelectedCustomer] = useState(null); // Holds the ID of the customer to view details
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [selectedPeriod, setSelectedPeriod] = useState('today');
     
     // --- Data Handlers (Mocked Actions) ---
     
@@ -69,6 +71,8 @@ const CustomersPage = () => {
                 <Users size={28} className="mr-3 text-indigo-600" />
                 Customer Management Dashboard
             </h1>
+
+            <DateFilter selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
 
             {/* 1. KPI Cards */}
             <StatCardGrid kpis={customerKpis} />
