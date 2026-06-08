@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, Star, DollarSign, Clock, X, Phone, Mail, MapPin, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, Star, DollarSign, Clock, X, Phone, Mail, MapPin, AlertTriangle, Tag, Image as ImageIcon, Link } from 'lucide-react';
 
 // --- START: Mock Data & Utility Functions (Replaces Supabase) ---
 
@@ -16,6 +16,14 @@ const MOCK_VENDORS = [
     status: 'Active',
     created_at: '2022-01-15T10:00:00Z',
     operating_hours: { Mon: '08:00-22:00', Tue: '08:00-22:00', Sat: '09:00-23:00' },
+    search_tags: ['french', 'bistro', 'breakfast', 'douala'],
+    marketing_tags: [
+      { tag: 'In High Demand', startTime: '10:00', endTime: '14:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] },
+      { tag: 'Popular', startTime: '17:00', endTime: '21:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] }
+    ],
+    storefront_image: null,
+    google_maps_address: 'https://maps.google.com/?q=Chez+Pierre+Bistro+Douala',
+    commission_type: 'percentage',
   },
   {
     id: 'v2',
@@ -29,6 +37,12 @@ const MOCK_VENDORS = [
     status: 'Pending',
     created_at: '2023-11-20T14:30:00Z',
     operating_hours: null,
+    search_tags: ['fast food', 'yaounde', 'burgers', 'delivery'],
+    marketing_tags: [],
+    storefront_image: null,
+    google_maps_address: '',
+    commission_type: 'fixed',
+    fixed_commission: 500,
   },
   {
     id: 'v3',
@@ -42,6 +56,13 @@ const MOCK_VENDORS = [
     status: 'Suspended',
     created_at: '2021-05-01T08:45:00Z',
     operating_hours: { Wed: '11:00-20:00', Thu: '11:00-20:00' },
+    search_tags: ['sushi', 'japanese', 'douala', 'seafood'],
+    marketing_tags: [
+      { tag: 'In High Demand', startTime: '12:00', endTime: '15:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] }
+    ],
+    storefront_image: null,
+    google_maps_address: 'https://maps.google.com/?q=The+Sushi+Spot+Douala',
+    commission_type: 'percentage',
   },
 ];
 
@@ -235,7 +256,7 @@ function VendorManagement() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-800 mb-2">Vendor Management</h1>
-        <p className="text-slate-600">Manage restaurants and merchant partners (Using **Mock Data**)</p>
+        <p className="text-slate-600">Manage restaurants and merchant partners</p>
       </div>
 
       {/* --- Error Notification --- */}
@@ -486,6 +507,77 @@ function VendorManagement() {
                         {new Date(selectedVendor.created_at).toLocaleDateString()}
                       </p>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Search Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedVendor.search_tags || []).map((tag, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                      {tag}
+                    </span>
+                  ))}
+                  {(!selectedVendor.search_tags || selectedVendor.search_tags.length === 0) && (
+                    <p className="text-slate-500 italic">No search tags specified</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Marketing Tags</h3>
+                {selectedVendor.marketing_tags && selectedVendor.marketing_tags.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedVendor.marketing_tags.map((mt, idx) => (
+                      <div key={idx} className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Tag size={16} className="text-purple-600" />
+                          <span className="font-medium text-purple-800">{mt.tag}</span>
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          <span className="font-medium">Schedule:</span> {mt.startTime} - {mt.endTime}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          <span className="font-medium">Days:</span> {mt.days.join(', ')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">No marketing tags set</p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Storefront & Location</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-600 mb-2">Storefront Image</p>
+                    {selectedVendor.storefront_image ? (
+                      <img src={selectedVendor.storefront_image} alt="Storefront" className="w-full h-32 object-cover rounded-lg" />
+                    ) : (
+                      <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <ImageIcon size={32} className="text-gray-400" />
+                        <span className="ml-2 text-gray-500">No image uploaded</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600 mb-2">Google Maps Address</p>
+                    {selectedVendor.google_maps_address ? (
+                      <a 
+                        href={selectedVendor.google_maps_address} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 underline break-all"
+                      >
+                        <Link size={16} />
+                        View on Map
+                      </a>
+                    ) : (
+                      <p className="text-slate-500 italic">No Google Maps link provided</p>
+                    )}
                   </div>
                 </div>
               </div>

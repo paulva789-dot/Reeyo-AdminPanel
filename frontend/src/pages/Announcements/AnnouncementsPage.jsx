@@ -82,7 +82,7 @@ const AnnouncementsPage = () => {
 
     return (
         <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-            <div className="flex justify-between items-center mb-4 border-b pb-4 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-4 pb-4">
                 <h1 className="text-3xl font-extrabold text-slate-800 dark:text-gray-100 flex items-center">
                     <Megaphone size={28} className="mr-3 text-indigo-600" />
                     System Management

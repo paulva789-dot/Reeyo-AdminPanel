@@ -40,6 +40,9 @@ const AnnouncementsPage = React.lazy(
 //chat feature
 const ChatPage = React.lazy(() => import("./pages/Chat/ChatPaage.jsx"));
 
+// Marketing
+const MarketingPage = React.lazy(() => import('./pages/Marketing/MarketingPage')); 
+
 // Auth Pages
 const LoginPage = React.lazy(() => import("./pages/Auth/LoginPage.jsx"));
 const ForgetPasswordPage = React.lazy(

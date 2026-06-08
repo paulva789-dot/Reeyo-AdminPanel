@@ -1,16 +1,17 @@
 // src/pages/DashboardOverview.jsx
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Store, 
-  Bike, 
-  ShoppingBag, 
-  TrendingUp, 
+import {
+  Users,
+  Store,
+  Bike,
+  ShoppingBag,
+  TrendingUp,
   TrendingDown,
-  DollarSign, 
-  RefreshCw, 
-  Package 
+  DollarSign,
+  RefreshCw,
+  Package
 } from 'lucide-react';
+import DateFilter from '../components/DateFilter';
 import { motion } from 'framer-motion';
 import {
   LineChart,
@@ -125,6 +126,7 @@ function StatCard({ title, value, change, icon: Icon, trend, changeLabel }) {
 // Main Dashboard Component
 function DashboardOverview() {
   const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
 
   useEffect(() => {
     // Simulate data loading
@@ -149,6 +151,8 @@ function DashboardOverview() {
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Monitor your platform's performance</p>
       </div>
+
+      <DateFilter selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
 
       {/* Top Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
