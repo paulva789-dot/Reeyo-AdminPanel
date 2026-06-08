@@ -23,6 +23,12 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
     description: '',
     deliveryFee: '',
     color: '#10b981',
+    feeType: 'fixed',
+    distanceTiers: [
+      { minKm: 0, maxKm: 5, fee: '' },
+      { minKm: 5, maxKm: 10, fee: '' },
+      { minKm: 10, maxKm: 20, fee: '' },
+    ],
   });
   
   const [errors, setErrors] = useState({});
@@ -236,53 +242,107 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
                       `}
                     />
                   </div>
-                  {errors.deliveryFee && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <AlertCircle size={14} />
-                      {errors.deliveryFee}
-                    </motion.p>
-                  )}
-                </div>
+{errors.deliveryFee && (
+                     <motion.p
+                       initial={{ opacity: 0, y: -10 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                     >
+                       <AlertCircle size={14} />
+                       {errors.deliveryFee}
+                     </motion.p>
+                   )}
+                 </div>
 
-                {/* Color Picker */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    <Palette size={16} />
-                    Zone Color *
-                  </label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {PRESET_COLORS.map((colorOption) => (
-                      <button
-                        key={colorOption.value}
-                        type="button"
-                        onClick={() => handleChange('color', colorOption.value)}
-                        className={`
-                          relative w-full aspect-square rounded-lg transition-all
-                          hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                          ${formData.color === colorOption.value ? 'ring-4 ring-blue-500 scale-110' : ''}
-                        `}
-                        style={{ backgroundColor: colorOption.value }}
-                        title={colorOption.name}
-                      >
-                        {formData.color === colorOption.value && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute inset-0 flex items-center justify-center"
-                          >
-                            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                              <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                 {/* Fee Type Selection */}
+                 <div>
+                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                     <DollarSign size={16} />
+                     Fee Structure
+                   </label>
+                   <div className="flex gap-4 mb-4">
+                     <label className="flex items-center gap-2">
+                       <input
+                         type="radio"
+                         name="feeType"
+                         checked={formData.feeType === 'fixed'}
+                         onChange={() => handleChange('feeType', 'fixed')}
+                         className="w-4 h-4"
+                       />
+                       <span className="text-sm">Fixed Fee</span>
+                     </label>
+                     <label className="flex items-center gap-2">
+                       <input
+                         type="radio"
+                         name="feeType"
+                         checked={formData.feeType === 'tiered'}
+                         onChange={() => handleChange('feeType', 'tiered')}
+                         className="w-4 h-4"
+                       />
+                       <span className="text-sm">Distance Tiers</span>
+                     </label>
+                   </div>
+
+                   {formData.feeType === 'tiered' && (
+                     <div className="space-y-3">
+                       <p className="text-xs text-gray-500">Set delivery fees based on distance</p>
+                       {formData.distanceTiers.map((tier, idx) => (
+                         <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                           <span className="text-xs text-gray-600">
+                             {tier.minKm}km - {tier.maxKm}km
+                           </span>
+                           <input
+                             type="number"
+                             value={tier.fee}
+                             onChange={(e) => {
+                               const newTiers = [...formData.distanceTiers];
+                               newTiers[idx].fee = e.target.value;
+                               setFormData({...formData, distanceTiers: newTiers});
+                             }}
+                             placeholder="Fee (XAF)"
+                             className="w-24 px-2 py-1 border rounded text-sm"
+                           />
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+
+                 {/* Color Picker */}
+                 <div>
+                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                     <Palette size={16} />
+                     Zone Color *
+                   </label>
+                   <div className="grid grid-cols-5 gap-2">
+                     {PRESET_COLORS.map((colorOption) => (
+                       <button
+                         key={colorOption.value}
+                         type="button"
+                         onClick={() => handleChange('color', colorOption.value)}
+                         className={`
+                           relative w-full aspect-square rounded-lg transition-all
+                           hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                           ${formData.color === colorOption.value ? 'ring-4 ring-blue-500 scale-110' : ''}
+                         `}
+                         style={{ backgroundColor: colorOption.value }}
+                         title={colorOption.name}
+                       >
+                         {formData.color === colorOption.value && (
+                           <motion.div
+                             initial={{ scale: 0 }}
+                             animate={{ scale: 1 }}
+                             className="absolute inset-0 flex items-center justify-center"
+                           >
+                             <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                               <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                             </div>
+                           </motion.div>
+                         )}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
 
                 {/* Submit Error */}
                 {errors.submit && (

@@ -1,7 +1,7 @@
 // src/pages/Settings/SettingsPage.jsx
 import React from 'react';
 import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
-import { Shield, Settings, Database } from 'lucide-react';
+import { Shield, Settings, Database, Plug, ToggleLeft } from 'lucide-react';
 
 // Define the tabs for the Settings page
 const settingsTabs = [
@@ -14,6 +14,16 @@ const settingsTabs = [
         name: 'Operational Params', 
         path: 'operational', 
         icon: Settings 
+    },
+    { 
+        name: 'Integrations', 
+        path: 'integrations', 
+        icon: Plug 
+    },
+    { 
+        name: 'Platform Services', 
+        path: 'services', 
+        icon: ToggleLeft 
     },
     { 
         name: 'Data & Backup', 

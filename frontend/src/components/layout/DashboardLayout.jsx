@@ -7,7 +7,8 @@ function DashboardLayout({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-gray-50 transition-colors duration-300">
+    // Correction du fond global de l'application (Light: blanc | Dark: slate-950)
+    <div className="min-h-screen flex bg-white dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
       {/* Sidebar Component */}
       <Sidebar 
         isMobileOpen={isMobileOpen} 
@@ -20,7 +21,7 @@ function DashboardLayout({ children }) {
         <Header toggleSidebar={() => setIsMobileOpen(true)} />
         
         {/* Main Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-white dark:bg-[#0b1329] transition-colors duration-300">
           {children}
         </main>
       </div>
@@ -29,4 +30,3 @@ function DashboardLayout({ children }) {
 }
 
 export default DashboardLayout;
-
