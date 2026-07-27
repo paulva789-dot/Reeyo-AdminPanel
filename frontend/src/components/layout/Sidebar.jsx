@@ -16,11 +16,15 @@ import {
   X,
   Sparkles,
   Shield, // ADDED Shield icon for CMS
+  BarChart3,
+  Tag,
+  AlertOctagon,
 } from "lucide-react";
 
 // Navigation Data - Abbreviated for better UX
 const sidebarNav = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { title: "Analytics", icon: BarChart3, path: "/analytics" },
   { title: "Orders", icon: FileText, path: "/orders" },
   {
     title: "Users",
@@ -55,6 +59,9 @@ const sidebarNav = [
   // chat feature side bar navigation route
   { title: "Chat", icon: MessageSquare, path: "/chat" },
   { title: "Finance", icon: DollarSign, path: "/finance" },
+  { title: "Marketing", icon: Tag, path: "/marketing" },
+  { title: "Engagement", icon: Sparkles, path: "/engagement" },
+  { title: "Disputes", icon: AlertOctagon, path: "/disputes" },
   { title: "Announcements", icon: Megaphone, path: "/announcements" },
   { title: "Settings", icon: Settings, path: "/settings" },
 ];

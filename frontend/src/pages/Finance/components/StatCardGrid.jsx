@@ -35,18 +35,22 @@ const StatCard = ({ title, value, unit, change, color, icon }) => {
             </div>
 
             <div className="text-3xl font-extrabold text-slate-800 dark:text-gray-100 mb-1">
-                {title.includes('Profit') || title.includes('Revenue') ? formatCurrency(value) : (value.toLocaleString() + ' ' + unit)}
+                {title.includes('Profit') || title.includes('Revenue') || title.includes('Commission') || unit === 'XAF'
+                    ? formatCurrency(value)
+                    : (value.toLocaleString() + (unit ? ` ${unit}` : ''))}
             </div>
 
-            <div className="flex items-center mt-auto">
-                <span className={`flex items-center text-sm font-semibold ${trendColor}`}>
-                    <TrendIcon size={16} className="mr-1" />
-                    {change}
-                </span>
-                <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
-                    vs. last period
-                </span>
-            </div>
+            {change && (
+                <div className="flex items-center mt-auto">
+                    <span className={`flex items-center text-sm font-semibold ${trendColor}`}>
+                        <TrendIcon size={16} className="mr-1" />
+                        {change}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
+                        vs. last period
+                    </span>
+                </div>
+            )}
         </div>
     );
 };

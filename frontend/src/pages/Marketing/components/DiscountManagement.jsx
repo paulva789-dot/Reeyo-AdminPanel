@@ -1,271 +1,97 @@
 // src/pages/Marketing/components/DiscountManagement.jsx
-import React, { useState, useCallback } from 'react';
-import { Tag, Plus, X, Edit, Trash2, Percent, ShoppingBag, Store, Package, Truck, Users } from 'lucide-react';
-
-const DISCOUNT_TYPES = ['Percentage', 'Fixed Amount', 'Free Delivery'];
-const ENTITY_TYPES = ['All', 'Food Vendors', 'Shop Vendors', 'Specific Vendors', 'Riders'];
-
-const mockDiscounts = [
-  {
-    id: 'd1',
-    title: 'Summer Sale - All Stores',
-    type: 'Percentage',
-    value: 15,
-    entity_type: 'All',
-    startDate: '2024-06-01',
-    endDate: '2024-08-31',
-    status: 'Active',
-    uses: 452,
-  },
-  {
-    id: 'd2',
-    title: 'Free Delivery - Chez Pierre',
-    type: 'Free Delivery',
-    value: 0,
-    entity_type: 'Specific Vendors',
-    vendors: ['v1'],
-    startDate: '2024-06-10',
-    endDate: '2024-06-20',
-    status: 'Active',
-    uses: 89,
-  },
-];
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Info, Gift, Disc3, RefreshCw, ArrowRight } from 'lucide-react';
+import { apiClient, ApiError } from '../../../services/apiClient';
 
 const DiscountManagement = () => {
-  const [discounts, setDiscounts] = useState(mockDiscounts);
-  const [showForm, setShowForm] = useState(false);
-  const [editingDiscount, setEditingDiscount] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    type: 'Percentage',
-    value: '',
-    entity_type: 'All',
-    vendors: [],
-    startDate: '',
-    endDate: '',
-  });
+  const navigate = useNavigate();
+  const [rewards, setRewards] = useState([]);
+  const [wheels, setWheels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleCreateNew = () => {
-    setEditingDiscount(null);
-    setFormData({
-      title: '',
-      type: 'Percentage',
-      value: '',
-      entity_type: 'All',
-      vendors: [],
-      startDate: '',
-      endDate: '',
-    });
-    setShowForm(true);
-  };
-
-  const handleEdit = (discount) => {
-    setEditingDiscount(discount);
-    setFormData({
-      title: discount.title,
-      type: discount.type,
-      value: discount.value,
-      entity_type: discount.entity_type,
-      vendors: discount.vendors || [],
-      startDate: discount.startDate,
-      endDate: discount.endDate,
-    });
-    setShowForm(true);
-  };
-
-  const handleDelete = (id) => {
-    setDiscounts(prev => prev.filter(d => d.id !== id));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newDiscount = {
-      id: editingDiscount ? editingDiscount.id : `d${Date.now()}`,
-      ...formData,
-      status: 'Scheduled',
-      uses: 0,
-    };
-    
-    if (editingDiscount) {
-      setDiscounts(prev => prev.map(d => d.id === editingDiscount.id ? newDiscount : d));
-    } else {
-      setDiscounts(prev => [newDiscount, ...prev]);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [rewardsRes, wheelsRes] = await Promise.all([
+        apiClient.get('/engagement/loyalty/rewards'),
+        apiClient.get('/engagement/spin-wheels'),
+      ]);
+      setRewards((rewardsRes.data || []).filter((r) => ['DISCOUNT_CODE', 'FREE_DELIVERY'].includes(r.reward_type)));
+      setWheels(wheelsRes.data || []);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load discount-adjacent data.');
+    } finally {
+      setLoading(false);
     }
-    setShowForm(false);
-  };
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const discountSegments = wheels.flatMap((w) =>
+    (w.segments || [])
+      .filter((s) => ['DISCOUNT_PCT', 'DISCOUNT_FIXED', 'PROMO_CODE'].includes(s.reward_type))
+      .map((s) => ({ ...s, wheelName: w.name }))
+  );
 
   return (
-    <div>
-      {!showForm ? (
-        <>
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={handleCreateNew}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-            >
-              <Plus size={18} className="mr-2" />
-              Create New Discount
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full bg-white rounded-lg shadow">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Title</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Value</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Applies To</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Period</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Uses</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {discounts.map((discount) => (
-                  <tr key={discount.id}>
-                    <td className="px-4 py-3 font-medium">{discount.title}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        discount.type === 'Free Delivery' ? 'bg-blue-100 text-blue-800' :
-                        discount.type === 'Percentage' ? 'bg-green-100 text-green-800' :
-                        'bg-purple-100 text-purple-800'
-                      }`}>
-                        {discount.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {discount.type === 'Percentage' ? `${discount.value}%` :
-                       discount.type === 'Fixed Amount' ? `XAF ${discount.value}` : '-'}
-                    </td>
-                    <td className="px-4 py-3">{discount.entity_type}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {discount.startDate} - {discount.endDate}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        discount.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {discount.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{discount.uses}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEdit(discount)} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                          <Edit size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(discount.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ) : (
-        <div className="bg-white rounded-lg p-6 shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">
-              {editingDiscount ? 'Edit Discount' : 'Create New Discount'}
-            </h2>
-            <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded">
-              <X size={20} />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Discount Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                required
-                className="w-full px-3 py-2 border rounded-lg"
-                placeholder="e.g., Summer Sale 2024"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Discount Type</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value})}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  {DISCOUNT_TYPES.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  {formData.type === 'Percentage' ? 'Percentage (%)' :
-                   formData.type === 'Fixed Amount' ? 'Fixed Amount (XAF)' : 'N/A'}
-                </label>
-                <input
-                  type="number"
-                  value={formData.value}
-                  onChange={(e) => setFormData({...formData, value: e.target.value})}
-                  disabled={formData.type === 'Free Delivery'}
-                  className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
-                  placeholder={formData.type === 'Percentage' ? '15' : '1000'}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Applies To</label>
-              <select
-                value={formData.entity_type}
-                onChange={(e) => setFormData({...formData, entity_type: e.target.value})}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                {ENTITY_TYPES.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Start Date</label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                  required
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">End Date</label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                  required
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border rounded-lg">
-                Cancel
-              </button>
-              <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
-                {editingDiscount ? 'Update' : 'Create'} Discount
-              </button>
-            </div>
-          </form>
+    <div className="space-y-6">
+      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <Info size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-gray-700">
+          <p className="font-semibold mb-1">There's no general-purpose "promo code" endpoint on the admin-api.</p>
+          <p>
+            The closest real equivalents are <strong>Loyalty Rewards</strong> (a customer redeems Reecoins for a discount code or
+            free delivery) and <strong>Spin Wheel segments</strong> (a customer wins a discount by chance). Both are shown below,
+            read-only — manage them from Engagement.
+          </p>
         </div>
+      </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>}
+
+      {loading ? (
+        <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" /></div>
+      ) : (
+        <>
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2"><Gift size={18} className="text-purple-600" /> Loyalty Discount Rewards</h3>
+              <button onClick={() => navigate('/engagement')} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                Manage in Engagement <ArrowRight size={14} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {rewards.map((r) => (
+                <div key={r.id} className="border rounded-lg p-3 bg-white">
+                  <p className="font-medium text-sm text-gray-800">{r.name}</p>
+                  <p className="text-xs text-gray-500">{r.reward_type} &middot; {r.points_cost} pts &middot; {r.is_active ? 'Active' : 'Inactive'}</p>
+                </div>
+              ))}
+              {rewards.length === 0 && <p className="col-span-full text-sm text-gray-500 italic">No discount-type loyalty rewards configured yet.</p>}
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2"><Disc3 size={18} className="text-indigo-600" /> Spin Wheel Discount Segments</h3>
+              <button onClick={() => navigate('/engagement')} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                Manage in Engagement <ArrowRight size={14} />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {discountSegments.map((s) => (
+                <div key={s.id} className="border rounded-lg p-3 bg-white">
+                  <p className="font-medium text-sm text-gray-800">{s.label}</p>
+                  <p className="text-xs text-gray-500">{s.reward_type} &middot; on "{s.wheelName}"</p>
+                </div>
+              ))}
+              {discountSegments.length === 0 && <p className="col-span-full text-sm text-gray-500 italic">No discount-type spin wheel segments configured yet.</p>}
+            </div>
+          </section>
+        </>
       )}
     </div>
   );

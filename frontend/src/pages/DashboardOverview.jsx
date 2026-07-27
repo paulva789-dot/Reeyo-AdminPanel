@@ -1,104 +1,29 @@
 // src/pages/DashboardOverview.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Users,
   Store,
   Bike,
   ShoppingBag,
   TrendingUp,
-  TrendingDown,
-  DollarSign,
   RefreshCw,
-  Package
+  Package,
+  Clock3,
 } from 'lucide-react';
-import DateFilter from '../components/DateFilter';
 import { motion } from 'framer-motion';
 import {
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
 } from 'recharts';
+import { apiClient, ApiError } from '../services/apiClient';
 
-// Mock Data for Sales Chart
-const salesData = [
-  { date: 'Mar 12', value: 3200 },
-  { date: 'Mar 13', value: 4100 },
-  { date: 'Mar 14', value: 3800 },
-  { date: 'Mar 15', value: 5350 },
-  { date: 'Mar 16', value: 4900 },
-  { date: 'Mar 17', value: 5200 },
-  { date: 'Mar 18', value: 4800 }
-];
+const formatXAF = (amount) => Number(amount || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 });
 
-// Mock Data for Category Pie Chart
-const categoryData = [
-  { name: 'Fast Food', value: 25, amount: 3020000, products: 1234, color: '#3B82F6' },
-  { name: 'African Cuisine', value: 35, amount: 4228000, products: 1491, color: '#F97316' },
-  { name: 'Drinks', value: 18, amount: 2172000, products: 658, color: '#EAB308' },
-  { name: 'Pastries', value: 15, amount: 1810000, products: 498, color: '#22C55E' },
-  { name: 'Others', value: 7, amount: 845000, products: 348, color: '#EF4444' }
-];
-
-// Mock Data for Top Products Table
-const topProducts = [
-  { 
-    id: 1, 
-    name: 'Poulet DG Special', 
-    vendor: 'Chez Marie', 
-    productId: 'SKU890',
-    price: 3500, 
-    status: 'In Stock', 
-    statusColor: 'bg-green-100 text-green-700',
-    sold: 342, 
-    revenue: 1197000 
-  },
-  { 
-    id: 2, 
-    name: 'Ndole with Plantains', 
-    vendor: 'Mama Kitchen',
-    productId: 'SKU124', 
-    price: 2500, 
-    status: 'Low Stock',
-    statusColor: 'bg-yellow-100 text-yellow-700', 
-    sold: 289, 
-    revenue: 722500 
-  },
-  { 
-    id: 3, 
-    name: 'Koki Beans Bundle', 
-    vendor: 'Traditional Foods',
-    productId: 'SKU567', 
-    price: 1500, 
-    status: 'In Stock',
-    statusColor: 'bg-green-100 text-green-700', 
-    sold: 425, 
-    revenue: 637500 
-  },
-  { 
-    id: 4, 
-    name: 'Fresh Pepper Soup', 
-    vendor: 'Spice Corner',
-    productId: 'SKU901', 
-    price: 2000, 
-    status: 'In Stock',
-    statusColor: 'bg-green-100 text-green-700', 
-    sold: 318, 
-    revenue: 636000 
-  }
-];
-
-// Stat Card Component
-function StatCard({ title, value, change, icon: Icon, trend, changeLabel }) {
-  const isPositive = trend === 'up';
-  
+function StatCard({ title, value, icon: Icon }) {
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -109,29 +34,52 @@ function StatCard({ title, value, change, icon: Icon, trend, changeLabel }) {
         <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
           <Icon className="w-6 h-6 text-blue-600" />
         </div>
-        <span className={`text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 ${
-          isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-        }`}>
-          {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-          {change}
-        </span>
       </div>
       <h3 className="text-sm text-gray-500 mb-1">{title}</h3>
-      <p className="text-3xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-400 mt-2">{changeLabel}</p>
+      <p className="text-3xl font-bold text-gray-900">{value ?? '—'}</p>
     </motion.div>
   );
 }
 
-// Main Dashboard Component
 function DashboardOverview() {
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('today');
+  const [error, setError] = useState('');
+  const [live, setLive] = useState(null);
+  const [revenueSeries, setRevenueSeries] = useState([]);
+  const [topVendors, setTopVendors] = useState([]);
+
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    const today = new Date();
+    const to = today.toISOString().slice(0, 10);
+    const from7 = new Date(today);
+    from7.setDate(from7.getDate() - 6);
+    const from = from7.toISOString().slice(0, 10);
+
+    try {
+      const [liveRes, revenueRes, vendorsRes] = await Promise.all([
+        apiClient.get('/analytics/live'),
+        apiClient.get('/analytics/revenue/daily', { from, to }),
+        apiClient.get('/analytics/top-vendors', { limit: 5, from, to }),
+      ]);
+      setLive(liveRes.data);
+      setRevenueSeries(revenueRes.data || []);
+      setTopVendors(vendorsRes.data || []);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load the dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => setLoading(false), 1000);
-  }, []);
+    fetchDashboard();
+    const interval = setInterval(() => {
+      apiClient.get('/analytics/live').then((res) => setLive(res.data)).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -142,209 +90,72 @@ function DashboardOverview() {
     );
   }
 
-  const totalRevenue = categoryData.reduce((sum, cat) => sum + cat.amount, 0);
-
   return (
     <div>
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Monitor your platform's performance</p>
+        <p className="text-sm text-gray-500 mt-1">Live snapshot of the platform, updated every 15 seconds.</p>
       </div>
 
-      <DateFilter selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
+      )}
 
-      {/* Top Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard 
-          title="TODAY REVENUE" 
-          value="XAF 2,579,000"
-          change="+12%"
-          changeLabel="vs yesterday"
-          icon={DollarSign}
-          trend="up"
-        />
-        <StatCard 
-          title="TODAY VISITORS" 
-          value="312"
-          change="+4%"
-          changeLabel="vs yesterday"
-          icon={Users}
-          trend="up"
-        />
-        <StatCard 
-          title="TODAY TRANSACTIONS" 
-          value="525"
-          change="-0.69%"
-          changeLabel="vs yesterday"
-          icon={ShoppingBag}
-          trend="down"
-        />
-        <StatCard 
-          title="TOTAL PRODUCTS" 
-          value="168"
-          change="+2%"
-          changeLabel="vs yesterday"
-          icon={Package}
-          trend="up"
-        />
+        <StatCard title="Revenue Today" value={live ? formatXAF(live.revenue_today) : undefined} icon={TrendingUp} />
+        <StatCard title="Orders Today" value={live?.orders_today} icon={ShoppingBag} />
+        <StatCard title="Active Orders" value={live?.active_orders} icon={Package} />
+        <StatCard title="Online Riders / Vendors" value={live ? `${live.online_riders} / ${live.online_vendors}` : undefined} icon={Bike} />
       </div>
 
-      {/* Charts Row */}
+      {live?.pending_approvals && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-3 text-sm text-yellow-800">
+          <Clock3 className="w-5 h-5 flex-shrink-0" />
+          <span>
+            Pending approvals: <strong>{live.pending_approvals.vendors}</strong> vendors, <strong>{live.pending_approvals.riders}</strong> riders,{' '}
+            <strong>{live.pending_approvals.payouts}</strong> payouts.
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Sales Analytics Chart */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-800">Sales Analytics</h2>
-            <span className="text-sm text-gray-500">Week 5</span>
+            <h2 className="text-lg font-semibold text-gray-800">Revenue — Last 7 Days</h2>
           </div>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={salesData}>
-              <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F97316" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#F97316" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }}
-                stroke="#999"
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                stroke="#999"
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#F97316" 
-                strokeWidth={3}
-                fill="url(#colorValue)"
-                dot={{ fill: '#F97316', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          {revenueSeries.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={revenueSeries}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="#999" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#999" />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }} formatter={(value) => formatXAF(value)} />
+                <Line type="monotone" dataKey="revenue" stroke="#F97316" strokeWidth={3} dot={{ fill: '#F97316', r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-gray-500 italic">No revenue data for the last 7 days.</p>
+          )}
         </div>
 
-        {/* Sales by Category */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-800">Sales by Category</h2>
-            <span className="text-sm text-gray-500">Week 5</span>
+            <h2 className="text-lg font-semibold text-gray-800">Top Vendors — Last 7 Days</h2>
           </div>
-          <div className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-4 space-y-2">
-            {categoryData.map((cat, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm">
+          <div className="space-y-3">
+            {topVendors.map((entry, idx) => (
+              <div key={entry.vendor.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: cat.color }}
-                  />
-                  <span className="text-gray-700">{cat.name} ({cat.value}%)</span>
+                  <Store className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm text-gray-700">{idx + 1}. {entry.vendor.business_name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-gray-900">
-                    {cat.amount.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 })}
-                  </div>
-                  <div className="text-xs text-gray-500">{cat.products} category products</div>
+                  <p className="font-semibold text-gray-900 text-sm">{formatXAF(entry.revenue)}</p>
+                  <p className="text-xs text-gray-500">{entry.orders} orders</p>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Selling Products */}
-        <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-800">Top Selling</h2>
-            <button className="text-sm text-gray-500 hover:text-gray-700">Sort by ▼</button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Product Name</th>
-                  <th className="text-right py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Price</th>
-                  <th className="text-center py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                  <th className="text-right py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Sold</th>
-                  <th className="text-right py-3 px-2 text-xs font-semibold text-gray-500 uppercase">Total Earning</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-4 px-2">
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{product.name}</p>
-                        <p className="text-xs text-gray-500">PRODUCT ID: {product.productId}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-2 text-right font-semibold text-gray-900">
-                      {product.price.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 })}
-                    </td>
-                    <td className="py-4 px-2 text-center">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${product.statusColor}`}>
-                        {product.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-2 text-right font-semibold text-gray-900">
-                      {product.sold} pcs
-                    </td>
-                    <td className="py-4 px-2 text-right font-bold text-gray-900">
-                      {product.revenue.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Trending Now Card */}
-        <div className="bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl p-6 shadow-sm relative overflow-hidden">
-          <div className="relative z-10">
-            <span className="inline-block px-3 py-1 bg-white rounded-full text-xs font-semibold text-gray-700 mb-4">
-              +12% vs yesterday
-            </span>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Trending Now</h3>
-            <p className="text-2xl font-bold text-gray-900 mb-8">Single Breasted Blazer</p>
-            <p className="text-3xl font-bold text-gray-900">XAF 1,439,000</p>
-          </div>
-          <div className="absolute bottom-0 right-0 w-48 h-48 opacity-30">
-            <div className="w-full h-full bg-gradient-to-tl from-pink-300 to-transparent rounded-tl-full" />
+            {topVendors.length === 0 && <p className="text-gray-500 italic">No vendor activity for this period.</p>}
           </div>
         </div>
       </div>
@@ -353,4 +164,3 @@ function DashboardOverview() {
 }
 
 export default DashboardOverview;
-

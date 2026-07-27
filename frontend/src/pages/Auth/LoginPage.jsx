@@ -1,17 +1,9 @@
-// src/pages/LoginPage.jsx
+// src/pages/Auth/LoginPage.jsx
 import React, { useState } from 'react';
-// 1. IMPORT useNavigate from react-router-dom for redirection
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, LogIn, ChevronRight } from 'lucide-react';
-// 2. IMPORT useAuth for context-based authentication
-import { useAuth } from '../../context/AuthContext'; // Adjust path if needed
-
-// --- Demo Credentials ---
-// NOTE: These are now primarily for display, the logic should use useAuth().login
-const DEMO_EMAIL = 'admin@reeyo.com';
-const DEMO_PASSWORD = 'password123';
-// ------------------------
+import { Mail, Lock, LogIn } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,30 +11,26 @@ function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Initialize hooks
-  const navigate = useNavigate(); // Hook for redirection
-  const { login } = useAuth();    // Hook for context login function
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      setLoading(false);
-      
-      // Use the login function from the AuthContext
-      const loginSuccessful = login(email, password);
-      
-      if (loginSuccessful) {
-        // Successful login: Redirect to the main dashboard route ("/")
-        navigate('/', { replace: true });
-      } else {
-        // Failed login
-        setError('Invalid credentials. Please use the demo email and password.');
-      }
-    }, 1500); // 1.5 second delay
+    const result = await login(email, password);
+    setLoading(false);
+
+    if (result.success) {
+      navigate('/', { replace: true });
+    } else if (result.code === 'ACCOUNT_SUSPENDED') {
+      setError('This admin account has been suspended. Contact a super admin.');
+    } else if (result.code === 'AUTH_INVALID_CREDENTIALS') {
+      setError('Incorrect email or password.');
+    } else {
+      setError(result.message || 'Sign in failed. Please try again.');
+    }
   };
 
   const inputVariants = {
@@ -52,7 +40,7 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      
+
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -69,9 +57,9 @@ function LoginPage() {
 
         {/* Login Form Card */}
         <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200/50">
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
+
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+
             {/* Email Input */}
             <motion.div
               initial="rest"
@@ -85,11 +73,12 @@ function LoginPage() {
                 placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
                 required
-                className="w-full pl-12 pr-4 py-3 bg-white text-gray-800 rounded-xl focus:outline-none"
+                className="w-full pl-12 pr-4 py-3 bg-white text-gray-800 rounded-xl focus:outline-none min-h-[44px]"
               />
             </motion.div>
-            
+
             {/* Password Input */}
             <motion.div
               initial="rest"
@@ -103,25 +92,27 @@ function LoginPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
-                className="w-full pl-12 pr-4 py-3 bg-white text-gray-800 rounded-xl focus:outline-none"
+                className="w-full pl-12 pr-4 py-3 bg-white text-gray-800 rounded-xl focus:outline-none min-h-[44px]"
               />
             </motion.div>
 
             {/* Error Message */}
             <AnimatePresence>
                 {error && (
-                    <motion.p 
+                    <motion.p
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         className="text-sm text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-200"
+                        role="alert"
                     >
                         {error}
                     </motion.p>
                 )}
             </AnimatePresence>
-            
+
             {/* Login Button */}
             <motion.button
               type="submit"
@@ -129,10 +120,10 @@ function LoginPage() {
               whileTap={{ scale: 0.98 }}
               disabled={loading}
               className={`
-                w-full flex items-center justify-center gap-2 py-3 rounded-xl 
+                w-full flex items-center justify-center gap-2 py-3 rounded-xl min-h-[44px]
                 text-white font-semibold text-lg transition-all duration-300
-                ${loading 
-                  ? 'bg-blue-400 cursor-not-allowed' 
+                ${loading
+                  ? 'bg-blue-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/50'
                 }
               `}
@@ -156,32 +147,15 @@ function LoginPage() {
 
           {/* Forgot Password Link */}
           <div className="mt-6 text-center">
-            {/* FIX: Link to the correct forgot-password route */}
             <a href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
               Forgot Password?
             </a>
           </div>
         </div>
 
-        {/* Demo Credentials Box */}
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
-            className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-800 shadow-md"
-        >
-            <p className="font-bold flex items-center mb-1">
-                <ChevronRight className="w-4 h-4 mr-1"/>
-                Demo Credentials:
-            </p>
-            <p className="ml-5">Email: <code className="font-mono bg-blue-100 p-1 rounded">{DEMO_EMAIL}</code></p>
-            <p className="ml-5">Password: <code className="font-mono bg-blue-100 p-1 rounded">{DEMO_PASSWORD}</code></p>
-        </motion.div>
-        
       </motion.div>
     </div>
   );
 }
 
 export default LoginPage;
-

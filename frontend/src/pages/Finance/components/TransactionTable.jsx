@@ -52,6 +52,19 @@ const TransactionTable = ({ transactions }) => {
 
     const transactionTypes = ['All', 'Order', 'Payout', 'Refund'];
 
+    const exportToCSV = () => {
+        const headers = ['ID', 'Type', 'Vendor/Source', 'Date', 'Amount', 'Status'];
+        const rows = filteredTransactions.map((tx) => [tx.id, tx.type, tx.vendor, tx.date, tx.amount, tx.status]);
+        const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'reeyo_transactions.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6 pb-4">
@@ -85,7 +98,7 @@ const TransactionTable = ({ transactions }) => {
                     </div>
 
                     {/* Export Button */}
-                    <button className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition text-sm">
+                    <button onClick={exportToCSV} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition text-sm">
                         <Download size={16} className="mr-2" />
                         Export CSV
                     </button>

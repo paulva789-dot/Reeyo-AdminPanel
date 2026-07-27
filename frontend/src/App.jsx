@@ -5,7 +5,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 // New Imports
 import { useAuth } from "./context/AuthContext";
-import ProtectedRoute from "./components/routing/ProtectedRoute";
+import ProtectedRoute, { RequireSuperAdmin } from "./components/routing/ProtectedRoute";
 
 // --- Lazy-loaded page components (Protected & Public) ---
 const DashboardOverview = React.lazy(
@@ -36,6 +36,15 @@ const FinancePage = React.lazy(() => import("./pages/Finance/FinancePage"));
 const AnnouncementsPage = React.lazy(
   () => import("./pages/Announcements/AnnouncementsPage.jsx"),
 );
+const DisputesPage = React.lazy(
+  () => import("./pages/Disputes/DisputesPage.jsx"),
+);
+const EngagementPage = React.lazy(
+  () => import("./pages/Engagement/EngagementPage.jsx"),
+);
+const AnalyticsPage = React.lazy(
+  () => import("./pages/Analytics/AnalyticsPage.jsx"),
+);
 
 //chat feature
 const ChatPage = React.lazy(() => import("./pages/Chat/ChatPaage.jsx"));
@@ -63,6 +72,18 @@ const UserAccess = React.lazy(
 );
 const OperationalParameters = React.lazy(
   () => import("./pages/Settings/components/OperationalParameters.jsx"),
+);
+const Integrations = React.lazy(
+  () => import("./pages/Settings/components/Integrations.jsx"),
+);
+const PlatformServices = React.lazy(
+  () => import("./pages/Settings/components/PlatformServices.jsx"),
+);
+const FeatureFlags = React.lazy(
+  () => import("./pages/Settings/components/FeatureFlags.jsx"),
+);
+const ApiKeys = React.lazy(
+  () => import("./pages/Settings/components/ApiKeys.jsx"),
 );
 const DataBackup = React.lazy(
   () => import("./pages/Settings/components/DataBackup.jsx"),
@@ -131,6 +152,17 @@ function App() {
           <Route index element={<Navigate to="access" replace />} />
           <Route path="access" element={<UserAccess />} />
           <Route path="operational" element={<OperationalParameters />} />
+          <Route path="integrations" element={<Integrations />} />
+          <Route path="services" element={<PlatformServices />} />
+          <Route path="feature-flags" element={<FeatureFlags />} />
+          <Route
+            path="api-keys"
+            element={
+              <RequireSuperAdmin>
+                <ApiKeys />
+              </RequireSuperAdmin>
+            }
+          />
           <Route path="data" element={<DataBackup />} />
         </Route>
                 {/* User Management Sub-Routes */}       {" "}
@@ -177,6 +209,22 @@ function App() {
         <Route
           path="/announcements"
           element={<ProtectedRoute element={AnnouncementsPage} />}
+        />
+        <Route
+          path="/disputes"
+          element={<ProtectedRoute element={DisputesPage} />}
+        />
+        <Route
+          path="/engagement"
+          element={<ProtectedRoute element={EngagementPage} />}
+        />
+        <Route
+          path="/analytics"
+          element={<ProtectedRoute element={AnalyticsPage} />}
+        />
+        <Route
+          path="/marketing"
+          element={<ProtectedRoute element={MarketingPage} />}
         />
         {/* The chat feature route */}
         <Route path="/chat" element={<ProtectedRoute element={ChatPage} />} />
