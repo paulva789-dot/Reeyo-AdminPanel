@@ -1,116 +1,64 @@
-// src/pages/DeliveryZones/components/ZoneForm.jsx
-
+// src/pages/Logistics/DeliveryZones/components/ZoneForm.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, AlertCircle, Palette, DollarSign, FileText } from 'lucide-react';
-
-const PRESET_COLORS = [
-  { name: 'Green', value: '#10b981' },
-  { name: 'Blue', value: '#3b82f6' },
-  { name: 'Orange', value: '#f59e0b' },
-  { name: 'Purple', value: '#8b5cf6' },
-  { name: 'Red', value: '#ef4444' },
-  { name: 'Cyan', value: '#06b6d4' },
-  { name: 'Pink', value: '#ec4899' },
-  { name: 'Teal', value: '#14b8a6' },
-  { name: 'Indigo', value: '#6366f1' },
-  { name: 'Amber', value: '#f59e0b' },
-];
+import { X, Save, AlertCircle, DollarSign, FileText, Globe } from 'lucide-react';
 
 const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'create' }) => {
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
-    deliveryFee: '',
-    color: '#10b981',
-    feeType: 'fixed',
-    distanceTiers: [
-      { minKm: 0, maxKm: 5, fee: '' },
-      { minKm: 5, maxKm: 10, fee: '' },
-      { minKm: 10, maxKm: 20, fee: '' },
-    ],
+    country_code: '',
+    delivery_fee_override: '',
+    is_active: true,
   });
-  
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load existing zone data when editing
   useEffect(() => {
     if (existingZone && mode === 'edit') {
       setFormData({
         name: existingZone.name || '',
-        description: existingZone.description || '',
-        deliveryFee: existingZone.deliveryFee?.toString() || '',
-        color: existingZone.color || '#10b981',
+        country_code: existingZone.country_code || '',
+        delivery_fee_override: existingZone.delivery_fee_override?.toString() || '',
+        is_active: existingZone.is_active ?? true,
       });
     } else {
-      // Reset form for new zone
-      setFormData({
-        name: '',
-        description: '',
-        deliveryFee: '',
-        color: '#10b981',
-      });
+      setFormData({ name: '', country_code: '', delivery_fee_override: '', is_active: true });
     }
     setErrors({});
   }, [existingZone, mode, isOpen]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
   };
 
   const validate = () => {
     const newErrors = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Zone name is required';
-    } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Zone name must be at least 3 characters';
+    if (!formData.name.trim()) newErrors.name = 'Zone name is required';
+    if (!formData.country_code.trim()) newErrors.country_code = 'Country code is required';
+    if (formData.delivery_fee_override && (isNaN(formData.delivery_fee_override) || Number(formData.delivery_fee_override) < 0)) {
+      newErrors.delivery_fee_override = 'Please enter a valid amount';
     }
-    
-    if (!formData.deliveryFee) {
-      newErrors.deliveryFee = 'Delivery fee is required';
-    } else if (isNaN(formData.deliveryFee) || Number(formData.deliveryFee) < 0) {
-      newErrors.deliveryFee = 'Please enter a valid amount';
-    }
-    
-    if (!formData.color) {
-      newErrors.color = 'Please select a color';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validate()) return;
-    
+
     setIsSubmitting(true);
-    
     try {
       await onSubmit({
-        ...formData,
-        deliveryFee: Number(formData.deliveryFee),
+        name: formData.name,
+        country_code: formData.country_code.toUpperCase(),
+        delivery_fee_override: formData.delivery_fee_override ? Number(formData.delivery_fee_override) : null,
+        is_active: formData.is_active,
       });
-      
-      // Reset form after successful submission
-      setFormData({
-        name: '',
-        description: '',
-        deliveryFee: '',
-        color: '#10b981',
-      });
-      setErrors({});
       onClose();
     } catch (error) {
-      console.error('Failed to submit zone:', error);
-      setErrors({ submit: 'Failed to save zone. Please try again.' });
+      setErrors({ submit: error?.message || 'Failed to save zone. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +68,6 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -129,7 +76,6 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -138,7 +84,6 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
-              {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 p-6 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-white">
@@ -148,17 +93,12 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
                     {mode === 'edit' ? 'Update zone information' : 'Configure your new delivery zone'}
                   </p>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
+                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                   <X className="w-5 h-5 text-white" />
                 </button>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
-                {/* Zone Name */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     <FileText size={16} />
@@ -169,197 +109,70 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
                     value={formData.name}
                     onChange={(e) => handleChange('name', e.target.value)}
                     placeholder="e.g., Akwa Downtown"
-                    className={`
-                      w-full px-4 py-3 rounded-lg border-2 transition-all
-                      bg-gray-50 dark:bg-gray-900
-                      text-gray-900 dark:text-white
-                      placeholder-gray-400 dark:placeholder-gray-500
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
-                      ${errors.name 
-                        ? 'border-red-300 dark:border-red-700' 
-                        : 'border-gray-200 dark:border-gray-700'
-                      }
-                    `}
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'}`}
                   />
                   {errors.name && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <AlertCircle size={14} />
-                      {errors.name}
-                    </motion.p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle size={14} /> {errors.name}
+                    </p>
                   )}
                 </div>
 
-                {/* Description */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    <FileText size={16} />
-                    Description (Optional)
+                    <Globe size={16} />
+                    Country Code *
                   </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    placeholder="Brief description of the zone"
-                    rows={3}
-                    className="
-                      w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700
-                      bg-gray-50 dark:bg-gray-900
-                      text-gray-900 dark:text-white
-                      placeholder-gray-400 dark:placeholder-gray-500
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
-                      transition-all resize-none
-                    "
+                  <input
+                    type="text"
+                    maxLength={2}
+                    value={formData.country_code}
+                    onChange={(e) => handleChange('country_code', e.target.value.toUpperCase())}
+                    placeholder="CM"
+                    className={`w-full px-4 py-3 rounded-lg border-2 uppercase transition-all bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.country_code ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'}`}
                   />
+                  {errors.country_code && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle size={14} /> {errors.country_code}
+                    </p>
+                  )}
                 </div>
 
-                {/* Delivery Fee */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     <DollarSign size={16} />
-                    Delivery Fee (XAF) *
+                    Delivery Fee Override (XAF, optional)
                   </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={formData.deliveryFee}
-                      onChange={(e) => handleChange('deliveryFee', e.target.value)}
-                      placeholder="500"
-                      min="0"
-                      step="50"
-                      className={`
-                        w-full px-4 py-3 rounded-lg border-2 transition-all
-                        bg-gray-50 dark:bg-gray-900
-                        text-gray-900 dark:text-white
-                        placeholder-gray-400 dark:placeholder-gray-500
-                        focus:outline-none focus:ring-2 focus:ring-blue-500
-                        ${errors.deliveryFee 
-                          ? 'border-red-300 dark:border-red-700' 
-                          : 'border-gray-200 dark:border-gray-700'
-                        }
-                      `}
-                    />
-                  </div>
-{errors.deliveryFee && (
-                     <motion.p
-                       initial={{ opacity: 0, y: -10 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                     >
-                       <AlertCircle size={14} />
-                       {errors.deliveryFee}
-                     </motion.p>
-                   )}
-                 </div>
-
-                 {/* Fee Type Selection */}
-                 <div>
-                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                     <DollarSign size={16} />
-                     Fee Structure
-                   </label>
-                   <div className="flex gap-4 mb-4">
-                     <label className="flex items-center gap-2">
-                       <input
-                         type="radio"
-                         name="feeType"
-                         checked={formData.feeType === 'fixed'}
-                         onChange={() => handleChange('feeType', 'fixed')}
-                         className="w-4 h-4"
-                       />
-                       <span className="text-sm">Fixed Fee</span>
-                     </label>
-                     <label className="flex items-center gap-2">
-                       <input
-                         type="radio"
-                         name="feeType"
-                         checked={formData.feeType === 'tiered'}
-                         onChange={() => handleChange('feeType', 'tiered')}
-                         className="w-4 h-4"
-                       />
-                       <span className="text-sm">Distance Tiers</span>
-                     </label>
-                   </div>
-
-                   {formData.feeType === 'tiered' && (
-                     <div className="space-y-3">
-                       <p className="text-xs text-gray-500">Set delivery fees based on distance</p>
-                       {formData.distanceTiers.map((tier, idx) => (
-                         <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                           <span className="text-xs text-gray-600">
-                             {tier.minKm}km - {tier.maxKm}km
-                           </span>
-                           <input
-                             type="number"
-                             value={tier.fee}
-                             onChange={(e) => {
-                               const newTiers = [...formData.distanceTiers];
-                               newTiers[idx].fee = e.target.value;
-                               setFormData({...formData, distanceTiers: newTiers});
-                             }}
-                             placeholder="Fee (XAF)"
-                             className="w-24 px-2 py-1 border rounded text-sm"
-                           />
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-
-                 {/* Color Picker */}
-                 <div>
-                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                     <Palette size={16} />
-                     Zone Color *
-                   </label>
-                   <div className="grid grid-cols-5 gap-2">
-                     {PRESET_COLORS.map((colorOption) => (
-                       <button
-                         key={colorOption.value}
-                         type="button"
-                         onClick={() => handleChange('color', colorOption.value)}
-                         className={`
-                           relative w-full aspect-square rounded-lg transition-all
-                           hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                           ${formData.color === colorOption.value ? 'ring-4 ring-blue-500 scale-110' : ''}
-                         `}
-                         style={{ backgroundColor: colorOption.value }}
-                         title={colorOption.name}
-                       >
-                         {formData.color === colorOption.value && (
-                           <motion.div
-                             initial={{ scale: 0 }}
-                             animate={{ scale: 1 }}
-                             className="absolute inset-0 flex items-center justify-center"
-                           >
-                             <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                               <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                             </div>
-                           </motion.div>
-                         )}
-                       </button>
-                     ))}
-                   </div>
-                 </div>
-
-                {/* Submit Error */}
-                {errors.submit && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                  >
-                    <p className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
-                      <AlertCircle size={16} />
-                      {errors.submit}
+                  <input
+                    type="number"
+                    value={formData.delivery_fee_override}
+                    onChange={(e) => handleChange('delivery_fee_override', e.target.value)}
+                    placeholder="Leave blank to use platform default"
+                    min="0"
+                    step="50"
+                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.delivery_fee_override ? 'border-red-300 dark:border-red-700' : 'border-gray-200 dark:border-gray-700'}`}
+                  />
+                  {errors.delivery_fee_override && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle size={14} /> {errors.delivery_fee_override}
                     </p>
-                  </motion.div>
+                  )}
+                </div>
+
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.is_active} onChange={(e) => handleChange('is_active', e.target.checked)} className="w-4 h-4" />
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Active</span>
+                </label>
+
+                {errors.submit && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
+                      <AlertCircle size={16} /> {errors.submit}
+                    </p>
+                  </div>
                 )}
               </form>
 
-              {/* Footer Actions */}
               <div className="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex gap-3">
                 <button
                   type="button"
@@ -397,4 +210,3 @@ const ZoneForm = ({ isOpen, onClose, onSubmit, existingZone = null, mode = 'crea
 };
 
 export default ZoneForm;
-

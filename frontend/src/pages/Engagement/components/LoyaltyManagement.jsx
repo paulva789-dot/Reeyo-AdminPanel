@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, RefreshCw, Search } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
+import ImageUploadField from '../../../components/ImageUploadField';
 
 const REWARD_TYPES = ['DISCOUNT_CODE', 'FREE_DELIVERY', 'WALLET_TOPUP', 'FREE_ITEM', 'MERCH'];
 const SUB_TABS = { RULES: 'Rules', REWARDS: 'Rewards', LOOKUP: 'Account Lookup' };
 
 const DEFAULT_RULE = { event_type: 'ORDER_DELIVERED', points_per_unit: 1, unit_amount: 500, country_code: '' };
-const DEFAULT_REWARD = { name: '', description: '', points_cost: 100, reward_type: 'DISCOUNT_CODE', reward_value: '{"pct":10,"max":2000}', country_code: '' };
+const DEFAULT_REWARD = { name: '', description: '', image_url: '', points_cost: 100, reward_type: 'DISCOUNT_CODE', reward_value: '{"pct":10,"max":2000}', country_code: '' };
 
 function RulesPanel() {
   const [rules, setRules] = useState([]);
@@ -135,6 +136,7 @@ function RewardsPanel() {
       const res = await apiClient.post('/engagement/loyalty/rewards', {
         name: form.name,
         description: form.description,
+        image_url: form.image_url || undefined,
         points_cost: form.points_cost,
         reward_type: form.reward_type,
         reward_value: rewardValue,
@@ -180,6 +182,9 @@ function RewardsPanel() {
           {REWARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
         <input value={form.reward_value} onChange={(e) => setForm({ ...form, reward_value: e.target.value })} className="p-2 border rounded-lg text-sm font-mono md:col-span-1" placeholder='{"pct":10}' />
+        <div className="md:col-span-3">
+          <ImageUploadField label="Reward Image (optional)" value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} />
+        </div>
         <button type="submit" disabled={submitting || !form.name.trim()} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50 flex items-center justify-center gap-1">
           <Plus size={14} /> Add Reward
         </button>
@@ -191,8 +196,11 @@ function RewardsPanel() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {rewards.map((reward) => (
             <div key={reward.id} className="border rounded-lg p-3">
-              <div className="flex justify-between items-start">
-                <div>
+              <div className="flex justify-between items-start gap-3">
+                {reward.image_url && (
+                  <img src={reward.image_url} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-gray-800">{reward.name}</p>
                   <p className="text-xs text-gray-500">{reward.description}</p>
                   <p className="text-xs font-mono text-gray-400 mt-1">{reward.reward_type} &middot; {reward.points_cost} pts</p>

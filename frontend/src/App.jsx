@@ -85,6 +85,9 @@ const FeatureFlags = React.lazy(
 const ApiKeys = React.lazy(
   () => import("./pages/Settings/components/ApiKeys.jsx"),
 );
+const AdminUsers = React.lazy(
+  () => import("./pages/Settings/components/AdminUsers.jsx"),
+);
 const DataBackup = React.lazy(
   () => import("./pages/Settings/components/DataBackup.jsx"),
 );
@@ -155,6 +158,14 @@ function App() {
           <Route path="integrations" element={<Integrations />} />
           <Route path="services" element={<PlatformServices />} />
           <Route path="feature-flags" element={<FeatureFlags />} />
+          <Route
+            path="admin-users"
+            element={
+              <RequireSuperAdmin>
+                <AdminUsers />
+              </RequireSuperAdmin>
+            }
+          />
           <Route
             path="api-keys"
             element={

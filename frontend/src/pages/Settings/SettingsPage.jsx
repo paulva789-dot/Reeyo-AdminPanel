@@ -31,6 +31,11 @@ const settingsTabs = [
         icon: ToggleLeft
     },
     {
+        name: 'Admin Users',
+        path: 'admin-users',
+        icon: Shield
+    },
+    {
         name: 'API Keys',
         path: 'api-keys',
         icon: Key

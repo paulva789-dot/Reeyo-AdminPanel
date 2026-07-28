@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { motion } from 'framer-motion';
 import { X, Check, Undo } from 'lucide-react';
+import { colorForZoneId, formatDeliveryFee } from '../../../../data/zoneMocks';
 
 // Fix Leaflet default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -56,13 +57,14 @@ const DrawingTool = ({ isDrawing, onPointAdd, currentPoints, onComplete, onCance
 const ZonePolygon = ({ zone, isSelected, onClick }) => {
   const opacity = isSelected ? 0.5 : 0.3;
   const weight = isSelected ? 3 : 2;
+  const color = colorForZoneId(zone.id);
 
   return (
     <Polygon
-      positions={zone.coordinates}
+      positions={zone.polygon}
       pathOptions={{
-        color: zone.color,
-        fillColor: zone.color,
+        color,
+        fillColor: color,
         fillOpacity: opacity,
         weight: weight,
       }}
@@ -85,7 +87,7 @@ const ZonePolygon = ({ zone, isSelected, onClick }) => {
       <Tooltip direction="center" permanent={isSelected}>
         <div className="text-center">
           <strong className="block text-sm">{zone.name}</strong>
-          <span className="text-xs">{zone.deliveryFee} XAF</span>
+          <span className="text-xs">{formatDeliveryFee(zone.delivery_fee_override)}</span>
         </div>
       </Tooltip>
     </Polygon>
@@ -152,7 +154,7 @@ const ZoneMap = ({
 
   // Calculate map bounds to fit all zones
   const mapBounds = zones.length > 0
-    ? zones.flatMap(zone => zone.coordinates)
+    ? zones.flatMap(zone => zone.polygon)
     : null;
 
   return (
@@ -232,28 +234,18 @@ const ZoneMap = ({
                 <div className="flex items-center gap-2 mb-2">
                   <div
                     className="w-4 h-4 rounded"
-                    style={{ backgroundColor: zone.color }}
+                    style={{ backgroundColor: colorForZoneId(zone.id) }}
                   />
                   <h3 className="font-bold text-gray-900 dark:text-white">
                     {zone.name}
                   </h3>
                 </div>
-                {zone.description && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                    {zone.description}
-                  </p>
-                )}
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{zone.country_code}</p>
                 <div className="text-sm space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Delivery Fee:</span>
                     <span className="font-bold text-gray-900 dark:text-white">
-                      {zone.deliveryFee} XAF
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Avg Time:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {zone.averageDeliveryTime}
+                      {formatDeliveryFee(zone.delivery_fee_override)}
                     </span>
                   </div>
                 </div>

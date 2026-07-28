@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, RefreshCw, BarChart2 } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
+import ImageUploadField from '../../../components/ImageUploadField';
 
 const AUDIENCES = ['ALL', 'NEW_USERS', 'RETURNING', 'INACTIVE', 'VIP'];
 const TRIGGERS = ['HOME_OPEN', 'POST_ORDER', 'PRE_CHECKOUT', 'APP_OPEN', 'INACTIVE_7D', 'MANUAL'];
 
 const DEFAULT_FORM = {
-  title: '', body: '', cta_label: '', cta_link: '', cta_link_type: 'SCREEN',
+  title: '', body: '', image_url: '', cta_label: '', cta_link: '', cta_link_type: 'SCREEN',
   trigger: 'HOME_OPEN', country_code: '', audience: 'ALL', max_displays_per_user: 1, priority: 10,
 };
 
@@ -89,6 +90,9 @@ const Popups = () => {
             {TRIGGERS.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <textarea required placeholder="Body" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} rows={2} className="p-2 border rounded-lg text-sm md:col-span-3" />
+          <div className="md:col-span-3">
+            <ImageUploadField label="Popup Image (optional)" value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} />
+          </div>
           <input placeholder="CTA Label" value={form.cta_label} onChange={(e) => setForm({ ...form, cta_label: e.target.value })} className="p-2 border rounded-lg text-sm" />
           <input placeholder="CTA Link" value={form.cta_link} onChange={(e) => setForm({ ...form, cta_link: e.target.value })} className="p-2 border rounded-lg text-sm" />
           <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} className="p-2 border rounded-lg text-sm">

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Plus, X, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
+import ImageUploadField from '../../../components/ImageUploadField';
 
 const DEFAULT_FORM = {
   slot: 'PRIMARY',
@@ -224,16 +225,11 @@ const BannerManagement = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Image URL</label>
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
+            <ImageUploadField
+              label="Banner Image"
+              value={formData.image_url}
+              onChange={(url) => setFormData({ ...formData, image_url: url })}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div>

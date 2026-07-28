@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, Star, DollarSign, X, Phone, Mail, MapPin, AlertTriangle, Tag, Image as ImageIcon, Link, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, Star, DollarSign, X, Phone, Mail, MapPin, AlertTriangle, Tag, Image as ImageIcon, Link, ChevronLeft, ChevronRight, ShoppingBag, Pencil, Save, Sparkles } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
 
 const formatCurrency = (amount) =>
@@ -43,6 +43,17 @@ function ReasonModal({ title, actionLabel, onCancel, onConfirm, submitting }) {
   );
 }
 
+const PROFILE_FIELDS = [
+  { key: 'business_name', label: 'Business Name' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'email', label: 'Email' },
+  { key: 'address', label: 'Address' },
+  { key: 'city', label: 'City' },
+  { key: 'description', label: 'Description', multiline: true },
+  { key: 'mobile_money_number', label: 'Mobile Money Number' },
+  { key: 'bank_account_number', label: 'Bank Account Number' },
+];
+
 function VendorManagement() {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,8 +69,14 @@ function VendorManagement() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [vendorOrders, setVendorOrders] = useState([]);
   const [vendorPayouts, setVendorPayouts] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [reasonAction, setReasonAction] = useState(null); // { vendor, type: 'reject' | 'suspend' }
   const [actionSubmitting, setActionSubmitting] = useState(false);
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileDraft, setProfileDraft] = useState({});
+  const [commissionDraft, setCommissionDraft] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -97,17 +114,22 @@ function VendorManagement() {
     setSelectedVendor(vendor);
     setShowDetailsModal(true);
     setDetailsLoading(true);
+    setIsEditingProfile(false);
     setVendorOrders([]);
     setVendorPayouts([]);
+    setMenuItems([]);
     try {
-      const [detailRes, ordersRes, payoutsRes] = await Promise.all([
+      const [detailRes, ordersRes, payoutsRes, menuRes] = await Promise.all([
         apiClient.get(`/vendors/${vendor.id}`),
         apiClient.get(`/vendors/${vendor.id}/orders`, { page: 1, limit: 10 }),
         apiClient.get('/payouts/history', { type: 'VENDOR', page: 1, limit: 50 }),
+        apiClient.get(`/vendors/${vendor.id}/menu-items`),
       ]);
       setSelectedVendor(detailRes.data);
       setVendorOrders(ordersRes.data || []);
       setVendorPayouts((payoutsRes.data || []).filter((p) => p.vendor_id === vendor.id));
+      setMenuItems(menuRes.data || []);
+      setCommissionDraft(((detailRes.data.commission_rate || 0) * 100).toFixed(1));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load vendor details.');
     } finally {
@@ -120,6 +142,8 @@ function VendorManagement() {
     setSelectedVendor(null);
     setVendorOrders([]);
     setVendorPayouts([]);
+    setMenuItems([]);
+    setIsEditingProfile(false);
   };
 
   const applyStatusUpdate = (vendorId, patch) => {
@@ -169,6 +193,58 @@ function VendorManagement() {
       applyStatusUpdate(vendor.id, { badges: res.data.badges });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not update badges.');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const startEditingProfile = () => {
+    setProfileDraft(
+      PROFILE_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: selectedVendor[f.key] || '' }), {}),
+    );
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setProfileSaving(true);
+    setError(null);
+    try {
+      const res = await apiClient.patch(`/vendors/${selectedVendor.id}`, profileDraft);
+      setSelectedVendor((prev) => ({ ...prev, ...res.data }));
+      setVendors((prev) => prev.map((v) => (v.id === selectedVendor.id ? { ...v, ...res.data } : v)));
+      setIsEditingProfile(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not save vendor profile.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleSaveCommission = async () => {
+    const rate = parseFloat(commissionDraft);
+    if (isNaN(rate) || rate < 0 || rate > 100) {
+      setError('Commission rate must be between 0 and 100.');
+      return;
+    }
+    setProfileSaving(true);
+    setError(null);
+    try {
+      const res = await apiClient.patch(`/vendors/${selectedVendor.id}/commission`, { commissionRate: rate / 100 });
+      applyStatusUpdate(selectedVendor.id, { commission_rate: res.data?.commission_rate ?? rate / 100 });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not save commission rate.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const toggleUpsell = async (item) => {
+    setActionSubmitting(true);
+    try {
+      const res = await apiClient.patch(`/engagement/menu-items/${item.id}/upsell`, { is_upsell: !item.is_upsell });
+      setMenuItems((prev) => prev.map((m) => (m.id === item.id ? { ...m, is_upsell: res.data.is_upsell } : m)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not update upsell flag.');
     } finally {
       setActionSubmitting(false);
     }
@@ -338,33 +414,78 @@ function VendorManagement() {
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Restaurant Information</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-orange-600 font-bold text-xl">{selectedVendor.business_name?.charAt(0) || '?'}</span>
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="text-lg font-semibold text-slate-800">Restaurant Information</h3>
+                    {!isEditingProfile ? (
+                      <button onClick={startEditingProfile} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
+                        <Pencil size={14} /> Edit
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setIsEditingProfile(false)} className="text-sm text-slate-500">Cancel</button>
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={profileSaving}
+                          className="flex items-center gap-1 text-sm bg-blue-600 text-white px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          <Save size={14} /> {profileSaving ? 'Saving...' : 'Save'}
+                        </button>
                       </div>
-                      <div>
-                        <p className="font-semibold text-slate-800 text-lg">{selectedVendor.business_name}</p>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">{parseFloat(selectedVendor.average_rating || 0).toFixed(1)} ({selectedVendor.total_ratings || 0} ratings)</span>
+                    )}
+                  </div>
+
+                  {!isEditingProfile ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-orange-600 font-bold text-xl">{selectedVendor.business_name?.charAt(0) || '?'}</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800 text-lg">{selectedVendor.business_name}</p>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">{parseFloat(selectedVendor.average_rating || 0).toFixed(1)} ({selectedVendor.total_ratings || 0} ratings)</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Mail className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{selectedVendor.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Phone className="w-4 h-4 flex-shrink-0" />
+                        <span>{selectedVendor.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span>{selectedVendor.address || selectedVendor.city || 'Not specified'}</span>
+                      </div>
+                      {selectedVendor.description && <p className="text-sm text-slate-500 italic">{selectedVendor.description}</p>}
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Mail className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{selectedVendor.email}</span>
+                  ) : (
+                    <div className="space-y-3">
+                      {PROFILE_FIELDS.map((field) => (
+                        <div key={field.key}>
+                          <label className="text-xs font-medium text-slate-600 block mb-1">{field.label}</label>
+                          {field.multiline ? (
+                            <textarea
+                              rows={2}
+                              value={profileDraft[field.key] || ''}
+                              onChange={(e) => setProfileDraft((d) => ({ ...d, [field.key]: e.target.value }))}
+                              className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={profileDraft[field.key] || ''}
+                              onChange={(e) => setProfileDraft((d) => ({ ...d, [field.key]: e.target.value }))}
+                              className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Phone className="w-4 h-4 flex-shrink-0" />
-                      <span>{selectedVendor.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
-                      <span>{selectedVendor.address || selectedVendor.city || 'Not specified'}</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -383,7 +504,22 @@ function VendorManagement() {
                     </div>
                     <div>
                       <p className="text-sm text-slate-600 mb-1">Commission Rate</p>
-                      <p className="font-medium text-slate-800">{((selectedVendor.commission_rate || 0) * 100).toFixed(0)}% (set via platform config)</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number" min={0} max={100} step={0.5}
+                          value={commissionDraft}
+                          onChange={(e) => setCommissionDraft(e.target.value)}
+                          className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        <span className="text-slate-600">%</span>
+                        <button
+                          onClick={handleSaveCommission}
+                          disabled={profileSaving || commissionDraft === ((selectedVendor.commission_rate || 0) * 100).toFixed(1)}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:bg-green-300"
+                        >
+                          Update
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm text-slate-600 mb-1">Member Since</p>
@@ -456,6 +592,56 @@ function VendorManagement() {
                   </div>
                 ) : (
                   <p className="text-slate-500 italic">No business hours specified</p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
+                  <ShoppingBag size={18} /> Menu ({menuItems.length})
+                </h3>
+                {detailsLoading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+                ) : menuItems.length > 0 ? (
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700">Item</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700">Category</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700">Price</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700">Available</th>
+                          <th className="px-4 py-2 text-left text-xs font-semibold text-slate-700">Upsell</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {menuItems.map((item) => (
+                          <tr key={item.id}>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.name}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{item.category || '—'}</td>
+                            <td className="px-4 py-3 text-sm font-semibold text-green-600">{formatCurrency(item.price)}</td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${item.is_available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                                {item.is_available ? 'Yes' : 'No'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => toggleUpsell(item)}
+                                disabled={actionSubmitting}
+                                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors disabled:opacity-50 ${
+                                  item.is_upsell ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                              >
+                                <Sparkles size={12} /> {item.is_upsell ? 'Upsell' : 'Mark upsell'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">No menu items found.</p>
                 )}
               </div>
 

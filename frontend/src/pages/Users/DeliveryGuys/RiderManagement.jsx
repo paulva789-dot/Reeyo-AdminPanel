@@ -1,6 +1,6 @@
 // src/pages/Users/DeliveryGuys/RiderManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, MapPin, Star, TrendingUp, Package, X, Phone, Mail, FileCheck, FileX, RefreshCw, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, MapPin, Star, TrendingUp, Package, X, Phone, Mail, FileCheck, FileX, RefreshCw, ChevronLeft, ChevronRight, AlertTriangle, Pencil, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { apiClient, ApiError } from '../../../services/apiClient';
 
@@ -22,6 +22,14 @@ const onlineClasses = (onlineStatus) =>
   onlineStatus === 'ONLINE'
     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
     : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
+
+const PROFILE_FIELDS = [
+  { key: 'name', label: 'Full Name' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'email', label: 'Email' },
+  { key: 'vehicle_type', label: 'Vehicle Type' },
+  { key: 'vehicle_plate', label: 'Vehicle Plate' },
+];
 
 function ReasonModal({ title, actionLabel, onCancel, onConfirm, submitting }) {
   const [reason, setReason] = useState('');
@@ -68,6 +76,9 @@ function RiderManagement() {
   const [reasonAction, setReasonAction] = useState(null); // { rider, type: 'reject' | 'suspend' }
   const [docReject, setDocReject] = useState(null); // document_type pending a rejection reason
   const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileDraft, setProfileDraft] = useState({});
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -105,6 +116,7 @@ function RiderManagement() {
     setSelectedRider(rider);
     setShowDetailsModal(true);
     setDetailsLoading(true);
+    setIsEditingProfile(false);
     setRiderPayouts([]);
     try {
       const [detailRes, payoutsRes] = await Promise.all([
@@ -149,6 +161,27 @@ function RiderManagement() {
       setError(err instanceof ApiError ? err.message : `Could not ${type} rider.`);
     } finally {
       setActionSubmitting(false);
+    }
+  };
+
+  const startEditingProfile = () => {
+    setProfileDraft(
+      PROFILE_FIELDS.reduce((acc, f) => ({ ...acc, [f.key]: selectedRider[f.key] || '' }), {}),
+    );
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setProfileSaving(true);
+    setError('');
+    try {
+      const res = await apiClient.patch(`/riders/${selectedRider.id}`, profileDraft);
+      applyStatusUpdate(selectedRider.id, res.data);
+      setIsEditingProfile(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not save rider profile.');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -330,37 +363,88 @@ function RiderManagement() {
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Personal & Contact</h3>
-                  <div className="space-y-3">
-                    <p className="font-semibold text-gray-800 dark:text-white text-lg">{selectedRider.name}</p>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Mail className="w-4 h-4 text-blue-500" />
-                      <span>{selectedRider.email || 'No email on file'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Phone className="w-4 h-4 text-blue-500" />
-                      <span>{selectedRider.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <MapPin className="w-4 h-4 text-blue-500" />
-                      <span>
-                        {selectedRider.current_latitude && selectedRider.current_longitude
-                          ? `${selectedRider.current_latitude}, ${selectedRider.current_longitude}`
-                          : 'Location unavailable'}
-                      </span>
-                    </div>
-                    {selectedRider.rejection_reason && (
-                      <p className="text-xs text-red-600 dark:text-red-400">Rejection reason: {selectedRider.rejection_reason}</p>
+                  <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Personal & Contact</h3>
+                    {!isEditingProfile ? (
+                      <button onClick={startEditingProfile} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                        <Pencil size={14} /> Edit
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setIsEditingProfile(false)} className="text-sm text-gray-500 dark:text-gray-400">Cancel</button>
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={profileSaving}
+                          className="flex items-center gap-1 text-sm bg-blue-600 text-white px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          <Save size={14} /> {profileSaving ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {!isEditingProfile ? (
+                    <div className="space-y-3">
+                      <p className="font-semibold text-gray-800 dark:text-white text-lg">{selectedRider.name}</p>
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <span>{selectedRider.email || 'No email on file'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <Phone className="w-4 h-4 text-blue-500" />
+                        <span>{selectedRider.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <MapPin className="w-4 h-4 text-blue-500" />
+                        <span>
+                          {selectedRider.current_latitude && selectedRider.current_longitude
+                            ? `${selectedRider.current_latitude}, ${selectedRider.current_longitude}`
+                            : 'Location unavailable'}
+                        </span>
+                      </div>
+                      {selectedRider.rejection_reason && (
+                        <p className="text-xs text-red-600 dark:text-red-400">Rejection reason: {selectedRider.rejection_reason}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {PROFILE_FIELDS.slice(0, 3).map((field) => (
+                        <div key={field.key}>
+                          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">{field.label}</label>
+                          <input
+                            type="text"
+                            value={profileDraft[field.key] || ''}
+                            onChange={(e) => setProfileDraft((d) => ({ ...d, [field.key]: e.target.value }))}
+                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Vehicle & Documents</h3>
                   <div className="space-y-3">
-                    <p className="font-medium text-gray-800 dark:text-white">
-                      {selectedRider.vehicle_type || 'N/A'} &middot; {selectedRider.vehicle_plate || 'No plate on file'}
-                    </p>
+                    {!isEditingProfile ? (
+                      <p className="font-medium text-gray-800 dark:text-white">
+                        {selectedRider.vehicle_type || 'N/A'} &middot; {selectedRider.vehicle_plate || 'No plate on file'}
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {PROFILE_FIELDS.slice(3).map((field) => (
+                          <div key={field.key}>
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">{field.label}</label>
+                            <input
+                              type="text"
+                              value={profileDraft[field.key] || ''}
+                              onChange={(e) => setProfileDraft((d) => ({ ...d, [field.key]: e.target.value }))}
+                              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {selectedRider.id_image_url ? (
                       <a href={selectedRider.id_image_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
                         View ID document ({selectedRider.id_type || 'unspecified type'})

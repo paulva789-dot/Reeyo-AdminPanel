@@ -33,12 +33,12 @@ export function setUnauthorizedHandler(handler) {
 let refreshPromise = null;
 
 function isAuthEndpoint(path) {
-  return path.startsWith('/auth/login') || path.startsWith('/auth/refresh');
+  return path.startsWith('/auth/login') || path.startsWith('/auth/refresh-token');
 }
 
 async function refreshSession() {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh-token`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -107,10 +107,36 @@ async function request(method, path, { body, params, signal } = {}, _isRetry = f
   return payload;
 }
 
+async function upload(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch(`${API_BASE_URL}/uploads`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  const payload = await parseBody(response);
+
+  if (!response.ok || payload?.success === false) {
+    const error = payload?.error;
+    throw new ApiError(
+      error?.code || 'INTERNAL_ERROR',
+      error?.message || response.statusText || 'Upload failed',
+      response.status,
+      error?.details,
+    );
+  }
+
+  return payload;
+}
+
 export const apiClient = {
   get(path, params, opts) {
     return request('GET', path, { params, ...opts });
   },
+  upload,
   post(path, body, opts) {
     return request('POST', path, { body, ...opts });
   },

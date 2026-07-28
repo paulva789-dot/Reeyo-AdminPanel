@@ -1,35 +1,50 @@
-// src/pages/DeliveryZones/DeliveryZones.jsx
-
-import React, { useState, useCallback } from 'react';
+// src/pages/Logistics/DeliveryZones/DeliveryZones.jsx
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Layers, Settings } from 'lucide-react';
+import { MapPin, RefreshCw } from 'lucide-react';
 import ZoneMap from './components/ZoneMap';
 import ZoneSidebar from './components/ZoneSidebar';
 import ZoneForm from './components/ZoneForm';
-import { deliveryZones as initialZones, generateZoneId, getRandomZoneColor } from '../../../data/zoneMocks';
+import { apiClient, ApiError } from '../../../services/apiClient';
 
 const DeliveryZones = () => {
-  const [zones, setZones] = useState(initialZones);
+  const [zones, setZones] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState(null);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
+  const [formMode, setFormMode] = useState('create');
   const [editingZone, setEditingZone] = useState(null);
   const [pendingCoordinates, setPendingCoordinates] = useState(null);
 
-  // Handle zone selection
+  const fetchZones = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await apiClient.get('/logistics/zones');
+      setZones(res.data || []);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load delivery zones.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchZones();
+  }, [fetchZones]);
+
   const handleSelectZone = useCallback((zoneId) => {
     setSelectedZoneId(zoneId);
   }, []);
 
-  // Initiate creating a new zone
   const handleCreateZone = useCallback(() => {
     setIsDrawingMode(true);
     setSelectedZoneId(null);
     setPendingCoordinates(null);
   }, []);
 
-  // Handle drawing completion
   const handleDrawingComplete = useCallback((coordinates) => {
     setPendingCoordinates(coordinates);
     setIsDrawingMode(false);
@@ -38,88 +53,62 @@ const DeliveryZones = () => {
     setIsFormOpen(true);
   }, []);
 
-  // Handle drawing cancellation
   const handleDrawingCancel = useCallback(() => {
     setIsDrawingMode(false);
     setPendingCoordinates(null);
   }, []);
 
-  // Handle zone form submission
-  const handleZoneSubmit = useCallback((formData) => {
+  const handleZoneSubmit = useCallback(async (formData) => {
     if (formMode === 'create' && pendingCoordinates) {
-      // Create new zone
-      const newZone = {
-        id: generateZoneId(),
+      const res = await apiClient.post('/logistics/zones', {
         ...formData,
-        coordinates: pendingCoordinates,
-        isActive: true,
-        totalOrders: 0,
-        activeDrivers: 0,
-        averageDeliveryTime: 'N/A',
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-
-      setZones(prev => [...prev, newZone]);
-      setSelectedZoneId(newZone.id);
+        polygon: pendingCoordinates,
+      });
+      setZones((prev) => [...prev, res.data]);
+      setSelectedZoneId(res.data.id);
       setPendingCoordinates(null);
-      
-      // Success notification (you can integrate your notification system here)
-      console.log('✅ Zone created successfully:', newZone.name);
     } else if (formMode === 'edit' && editingZone) {
-      // Update existing zone
-      setZones(prev =>
-        prev.map(zone =>
-          zone.id === editingZone.id
-            ? { ...zone, ...formData }
-            : zone
-        )
-      );
-      
+      const res = await apiClient.patch(`/logistics/zones/${editingZone.id}`, formData);
+      setZones((prev) => prev.map((zone) => (zone.id === editingZone.id ? res.data : zone)));
       setEditingZone(null);
-      console.log('✅ Zone updated successfully');
     }
-
     setIsFormOpen(false);
   }, [formMode, pendingCoordinates, editingZone]);
 
-  // Handle zone edit
   const handleEditZone = useCallback((zone) => {
     setEditingZone(zone);
     setFormMode('edit');
     setIsFormOpen(true);
   }, []);
 
-  // Handle zone deletion
-  const handleDeleteZone = useCallback((zoneId) => {
-    setZones(prev => prev.filter(zone => zone.id !== zoneId));
-    
-    if (selectedZoneId === zoneId) {
-      setSelectedZoneId(null);
+  const handleDeleteZone = useCallback(async (zoneId) => {
+    setError('');
+    try {
+      await apiClient.delete(`/logistics/zones/${zoneId}`);
+      setZones((prev) => prev.filter((zone) => zone.id !== zoneId));
+      setSelectedZoneId((prev) => (prev === zoneId ? null : prev));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not delete zone.');
     }
-    
-    console.log('🗑️ Zone deleted');
-  }, [selectedZoneId]);
+  }, []);
 
-  // Close form
   const handleFormClose = useCallback(() => {
     setIsFormOpen(false);
     setPendingCoordinates(null);
     setEditingZone(null);
   }, []);
 
-  // Calculate statistics
   const stats = {
     total: zones.length,
-    active: zones.filter(z => z.isActive).length,
-    totalOrders: zones.reduce((sum, z) => sum + (z.totalOrders || 0), 0),
-    avgFee: zones.length > 0
-      ? Math.round(zones.reduce((sum, z) => sum + z.deliveryFee, 0) / zones.length)
-      : 0,
+    active: zones.filter(z => z.is_active).length,
   };
+  const zonesWithOverride = zones.filter(z => z.delivery_fee_override != null);
+  const avgOverride = zonesWithOverride.length > 0
+    ? Math.round(zonesWithOverride.reduce((sum, z) => sum + z.delivery_fee_override, 0) / zonesWithOverride.length)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-      {/* Page Header */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -129,37 +118,22 @@ const DeliveryZones = () => {
                 Delivery Zones
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage delivery areas, pricing, and coverage zones
+                Manage delivery areas and per-zone fee overrides
               </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Map/List View Toggle */}
-              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                <button className="px-3 py-1.5 bg-white dark:bg-gray-600 rounded-md text-sm font-semibold text-gray-900 dark:text-white shadow-sm">
-                  <Layers size={16} className="inline mr-1" />
-                  Map
-                </button>
-                <button className="px-3 py-1.5 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                  <Settings size={16} className="inline mr-1" />
-                  Settings
-                </button>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Stats Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700"
-          >
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Zones</p>
@@ -169,12 +143,7 @@ const DeliveryZones = () => {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Active Zones</p>
@@ -184,70 +153,47 @@ const DeliveryZones = () => {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Orders</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalOrders}</p>
-              </div>
-              <div className="text-3xl">📦</div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Fee</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.avgFee} XAF</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg Fee Override</p>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{avgOverride !== null ? `${avgOverride} XAF` : '—'}</p>
               </div>
               <div className="text-3xl">💰</div>
             </div>
           </motion.div>
         </div>
 
-        {/* Main Layout: Sidebar + Map */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-280px)] min-h-[600px]"
-        >
-          {/* Sidebar */}
-          <ZoneSidebar
-            zones={zones}
-            selectedZoneId={selectedZoneId}
-            onSelectZone={handleSelectZone}
-            onCreateZone={handleCreateZone}
-            onEditZone={handleEditZone}
-            onDeleteZone={handleDeleteZone}
-            isDrawingMode={isDrawingMode}
-          />
-
-          {/* Map Container */}
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <ZoneMap
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+          </div>
+        ) : (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-280px)] min-h-[600px]">
+            <ZoneSidebar
               zones={zones}
               selectedZoneId={selectedZoneId}
-              onZoneSelect={handleSelectZone}
+              onSelectZone={handleSelectZone}
+              onCreateZone={handleCreateZone}
+              onEditZone={handleEditZone}
+              onDeleteZone={handleDeleteZone}
               isDrawingMode={isDrawingMode}
-              onDrawingComplete={handleDrawingComplete}
-              onDrawingCancel={handleDrawingCancel}
             />
-          </div>
-        </motion.div>
+
+            <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+              <ZoneMap
+                zones={zones}
+                selectedZoneId={selectedZoneId}
+                onZoneSelect={handleSelectZone}
+                isDrawingMode={isDrawingMode}
+                onDrawingComplete={handleDrawingComplete}
+                onDrawingCancel={handleDrawingCancel}
+              />
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      {/* Zone Form Modal */}
       <ZoneForm
         isOpen={isFormOpen}
         onClose={handleFormClose}
@@ -260,4 +206,3 @@ const DeliveryZones = () => {
 };
 
 export default DeliveryZones;
-
