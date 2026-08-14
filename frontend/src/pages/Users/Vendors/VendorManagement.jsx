@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, Star, DollarSign, X, Phone, Mail, MapPin, AlertTriangle, Tag, Image as ImageIcon, Link, ChevronLeft, ChevronRight, ShoppingBag, Pencil, Save, Sparkles } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
+import { useAuth } from '../../../context/AuthContext';
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('fr-CM', { style: 'currency', currency: 'XAF', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
@@ -55,6 +56,7 @@ const PROFILE_FIELDS = [
 ];
 
 function VendorManagement() {
+  const { isSuperAdmin } = useAuth();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -533,6 +535,7 @@ function VendorManagement() {
                 <h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2">
                   <Tag size={18} /> Badges
                 </h3>
+                {!isSuperAdmin && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">Only a Super Admin can change badges.</p>}
                 <div className="flex flex-wrap gap-2">
                   {BADGE_OPTIONS.map((badge) => {
                     const active = (selectedVendor.badges || []).includes(badge);
@@ -540,8 +543,8 @@ function VendorManagement() {
                       <button
                         key={badge}
                         onClick={() => toggleBadge(selectedVendor, badge)}
-                        disabled={actionSubmitting}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors disabled:opacity-50 ${
+                        disabled={actionSubmitting || !isSuperAdmin}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                           active ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >
@@ -627,8 +630,9 @@ function VendorManagement() {
                             <td className="px-4 py-3">
                               <button
                                 onClick={() => toggleUpsell(item)}
-                                disabled={actionSubmitting}
-                                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors disabled:opacity-50 ${
+                                disabled={actionSubmitting || !isSuperAdmin}
+                                title={!isSuperAdmin ? 'Only a Super Admin can change this' : undefined}
+                                className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                                   item.is_upsell ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                               >

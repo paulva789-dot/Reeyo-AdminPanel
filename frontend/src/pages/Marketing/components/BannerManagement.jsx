@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Image as ImageIcon, Plus, X, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
 import ImageUploadField from '../../../components/ImageUploadField';
+import { useAuth } from '../../../context/AuthContext';
 
 const DEFAULT_FORM = {
   slot: 'PRIMARY',
@@ -27,6 +28,7 @@ function bannerStatus(banner) {
 }
 
 const BannerManagement = () => {
+  const { isSuperAdmin } = useAuth();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -114,18 +116,25 @@ const BannerManagement = () => {
 
   return (
     <div>
+      {!isSuperAdmin && (
+        <p className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          You have read-only access to banners. Only a Super Admin can create, edit, or delete them.
+        </p>
+      )}
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
       )}
 
       {!showForm ? (
         <>
-          <div className="flex justify-end mb-4">
-            <button onClick={handleCreateNew} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-              <Plus size={18} className="mr-2" />
-              Create New Banner
-            </button>
-          </div>
+          {isSuperAdmin && (
+            <div className="flex justify-end mb-4">
+              <button onClick={handleCreateNew} className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                <Plus size={18} className="mr-2" />
+                Create New Banner
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-16"><RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" /></div>
@@ -153,14 +162,16 @@ const BannerManagement = () => {
                       <div className="flex items-center gap-2 mt-2">
                         <span className={`px-2 py-1 rounded text-xs ${status.classes}`}>{status.label}</span>
                       </div>
-                      <div className="flex justify-end gap-2 mt-4">
-                        <button onClick={() => handleEdit(banner)} className="p-2 text-blue-600 hover:bg-blue-50 rounded">
-                          <Edit size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(banner.id)} className="p-2 text-red-600 hover:bg-red-50 rounded">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      {isSuperAdmin && (
+                        <div className="flex justify-end gap-2 mt-4">
+                          <button onClick={() => handleEdit(banner)} className="p-2 text-blue-600 hover:bg-blue-50 rounded">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(banner.id)} className="p-2 text-red-600 hover:bg-red-50 rounded">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

@@ -6,9 +6,14 @@
 //
 // Auth is cookie-based (HTTP-only access/refresh cookies set by the backend on
 // /auth/login), so every request is sent with credentials: 'include' and no
-// token is ever read or stored by this client. On a 401 (other than from the
-// auth endpoints themselves) we attempt a single silent refresh via
-// /auth/refresh and retry the original request once before giving up.
+// token is ever read or stored by this client. We never send an Authorization
+// header either — authenticateAdmin checks that first and falls back to the
+// cookie, so omitting it makes the cookie the actual auth path used by this
+// panel. On a 401 (other than from the auth endpoints themselves) we attempt
+// a single silent refresh via /auth/refresh and retry the original request
+// once before giving up. (admin-api was standardized to this path — matching
+// the other 3 apps — in backend commit 07786f7; /auth/refresh-token was
+// correct only before that change.)
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 

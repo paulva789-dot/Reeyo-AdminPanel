@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaMapMarkerAlt } from 'react-icons/fa';
-import { BsX, BsBoxSeam, BsPerson, BsBicycle, BsCurrencyDollar, BsClock, BsCalendar, BsCheckCircle, BsGeoAlt } from 'react-icons/bs';
+import { BsX, BsBoxSeam, BsPerson, BsBicycle, BsCurrencyDollar, BsClock, BsCalendar, BsCheckCircle, BsGeoAlt, BsTruck } from 'react-icons/bs';
 import { AiOutlineShop } from 'react-icons/ai';
 import { RefreshCw } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
@@ -27,6 +27,7 @@ const getStatusColor = (status) => {
 };
 
 const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'];
+const ASSIGNABLE_STATUSES = ['CONFIRMED', 'PREPARING', 'READY'];
 
 const OrderDetailsModal = ({ isOpen, onClose, orderId, onCancelled }) => {
     const [order, setOrder] = useState(null);
@@ -34,14 +35,20 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, onCancelled }) => {
     const [error, setError] = useState('');
     const [showCancelForm, setShowCancelForm] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
-    const [refund, setRefund] = useState(true);
     const [cancelling, setCancelling] = useState(false);
+
+    const [showAssignForm, setShowAssignForm] = useState(false);
+    const [availableRiders, setAvailableRiders] = useState([]);
+    const [ridersLoading, setRidersLoading] = useState(false);
+    const [selectedRiderId, setSelectedRiderId] = useState('');
+    const [assigning, setAssigning] = useState(false);
 
     useEffect(() => {
         if (!isOpen || !orderId) return;
         setLoading(true);
         setError('');
         setShowCancelForm(false);
+        setShowAssignForm(false);
         apiClient
             .get(`/orders/${orderId}`)
             .then((res) => setOrder(res.data))
@@ -49,10 +56,42 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, onCancelled }) => {
             .finally(() => setLoading(false));
     }, [isOpen, orderId]);
 
+    const openAssignForm = async () => {
+        setShowAssignForm(true);
+        setRidersLoading(true);
+        try {
+            const res = await apiClient.get('/riders', { status: 'APPROVED', limit: 100 });
+            setAvailableRiders(res.data || []);
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Could not load riders.');
+        } finally {
+            setRidersLoading(false);
+        }
+    };
+
+    const handleAssignRider = async () => {
+        if (!selectedRiderId) return;
+        setAssigning(true);
+        setError('');
+        try {
+            const res = await apiClient.post(`/orders/${orderId}/assign-rider`, { riderId: selectedRiderId });
+            setOrder((prev) => ({ ...prev, rider: res.data?.rider || prev.rider, status: res.data?.status || prev.status }));
+            setShowAssignForm(false);
+            setSelectedRiderId('');
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Could not assign rider.');
+        } finally {
+            setAssigning(false);
+        }
+    };
+
     const handleCancel = async () => {
         setCancelling(true);
         try {
-            const res = await apiClient.post(`/orders/${orderId}/cancel`, { reason: cancelReason, refund });
+            // Cancelling never issues a refund on its own — there is no direct
+            // refund endpoint. A refund can only be processed by resolving a
+            // dispute for this order (POST /disputes/:disputeId/resolve).
+            const res = await apiClient.post(`/orders/${orderId}/cancel`, { reason: cancelReason });
             setOrder((prev) => ({ ...prev, status: res.data.status }));
             onCancelled?.(orderId, res.data.status);
             setShowCancelForm(false);
@@ -129,7 +168,17 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, onCancelled }) => {
                                         <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/50 shadow-inner">
                                             <h3 className="text-lg font-semibold mb-3 text-indigo-600 dark:text-indigo-300">Summary</h3>
                                             <DetailRow icon={BsPerson} label="Customer" value={order.user?.name} />
-                                            <DetailRow icon={BsBicycle} label="Rider" value={order.rider?.name || 'Unassigned'} />
+                                            <div className="flex items-start justify-between space-x-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                                                <DetailRow icon={BsBicycle} label="Rider" value={order.rider?.name || 'Unassigned'} />
+                                                {!order.rider && ASSIGNABLE_STATUSES.includes(order.status) && (
+                                                    <button
+                                                        onClick={openAssignForm}
+                                                        className="mt-2 flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex-shrink-0"
+                                                    >
+                                                        <BsTruck size={12} /> Assign
+                                                    </button>
+                                                )}
+                                            </div>
                                             <DetailRow icon={BsCurrencyDollar} label="Payment" value={`${order.payment_method}${order.payment ? ` (${order.payment.status})` : ''}`} />
                                             <DetailRow icon={BsClock} label="Est. Delivery" value={order.estimated_delivery_mins ? `${order.estimated_delivery_mins} min` : '—'} />
                                             <DetailRow icon={BsCalendar} label="Actual Delivery" value={order.actual_delivery_mins ? `${order.actual_delivery_mins} min` : '—'} />
@@ -153,6 +202,38 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, onCancelled }) => {
                                     </div>
                                 </div>
 
+                                {showAssignForm && (
+                                    <div className="mx-5 mb-5 p-4 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 space-y-3">
+                                        <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Assign a Rider</h4>
+                                        {ridersLoading ? (
+                                            <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                                        ) : (
+                                            <select
+                                                value={selectedRiderId}
+                                                onChange={(e) => setSelectedRiderId(e.target.value)}
+                                                className="w-full p-2 border border-indigo-300 dark:border-indigo-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
+                                            >
+                                                <option value="">Select a rider...</option>
+                                                {availableRiders.map((r) => (
+                                                    <option key={r.id} value={r.id}>
+                                                        {r.name} — {r.online_status} ({r.vehicle_type})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => setShowAssignForm(false)} className="px-3 py-1.5 border rounded-lg text-sm">Cancel</button>
+                                            <button
+                                                onClick={handleAssignRider}
+                                                disabled={!selectedRiderId || assigning}
+                                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50"
+                                            >
+                                                {assigning ? 'Assigning...' : 'Confirm Assignment'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {showCancelForm && CANCELLABLE_STATUSES.includes(order.status) && (
                                     <div className="mx-5 mb-5 p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 space-y-3">
                                         <textarea
@@ -162,10 +243,9 @@ const OrderDetailsModal = ({ isOpen, onClose, orderId, onCancelled }) => {
                                             placeholder="Cancellation reason"
                                             className="w-full p-2 border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
                                         />
-                                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                            <input type="checkbox" checked={refund} onChange={(e) => setRefund(e.target.checked)} />
-                                            Refund the customer
-                                        </label>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
+                                            This only cancels the order — no refund is issued. To refund the customer, resolve a dispute for this order from the Disputes queue.
+                                        </p>
                                     </div>
                                 )}
 

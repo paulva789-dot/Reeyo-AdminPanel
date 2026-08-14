@@ -1,176 +1,130 @@
 # Backend Endpoint Requests — Admin Panel
 
-Compiled after wiring the full admin panel against `Admin API — Integration
-Reference`. Everything the reference doc covers is now live in the panel.
-This is what's left: features the panel has UI for for that the backend
-doesn't support yet, plus a few structural gaps inside the existing spec.
+## Status: most of the original list is resolved
 
-Grouped by priority so the backend dev can triage.
+Everything under "Blocking" and "High priority" in the original version of
+this doc (menu items/approval queue, live rider locations, delivery zones,
+generic vendor/rider profile editing, per-vendor commission, image upload,
+admin user management) shipped in the backend's `INTEGRATION-ADMIN.md`
+update and is now wired into the panel. Thank you.
 
----
-
-## Blocking — panel is unusable in these areas without them
-
-### 1. Menu items (list + CRUD + approval queue)
-Nothing in the spec lets the admin panel see a vendor's menu at all. This
-blocks two things:
-- **Menu Approvals** page (`/users/vendors/approvals`) — currently pure
-  mock data. Needs a pending-changes queue (new item / price update) with
-  approve/reject.
-- **`PATCH /engagement/menu-items/:itemId/upsell`** — this endpoint exists
-  in the reference doc, but with no way to list menu items there's no way
-  to get an `itemId` to call it with. It's dead on arrival without a list
-  endpoint.
-
-Requested:
-```
-GET  /vendors/:vendorId/menu-items          — list items + current status
-GET  /menu-approvals?status=PENDING          — cross-vendor pending queue
-POST /menu-approvals/:id/approve
-POST /menu-approvals/:id/reject   { reason }
-```
-
-### 2. Rider live locations (bulk)
-Rider detail (`GET /riders/:riderId`) returns `current_latitude`/
-`current_longitude` for one rider, but Live Tracker needs all active
-riders on a map at once. Polling per-rider doesn't scale.
-
-Requested:
-```
-GET /riders/live-locations?country=CM   — [{ rider_id, name, lat, lng, status, current_order_id }]
-```
-(A websocket/SSE feed would be better than polling if that's on the table.)
-
-### 3. Delivery zones (CRUD)
-The Delivery Zones page has a polygon-drawing UI (`leaflet-draw` is
-already a dependency) with nothing to save to. Needs zone geometry,
-per-zone fee overrides referenced in `OperationalParameters`'s "Zone-specific
-fee adjustments are managed in Logistics" note.
-
-Requested:
-```
-GET    /logistics/zones
-POST   /logistics/zones     { name, country_code, polygon: [[lat,lng],...], delivery_fee_override?, is_active }
-PATCH  /logistics/zones/:id
-DELETE /logistics/zones/:id
-```
+What's below is new: findings from auditing the panel against
+`infrastructure-overview.md` (2026-08-14, code-verified). Most of the panel
+matches that doc cleanly — this is the list of what didn't, split into
+"please confirm" (conflicts between sources) and "still open" (real gaps,
+carried over from before).
 
 ---
 
-## High priority — real gaps in day-to-day admin ops
+## Please confirm — conflicting or incomplete documentation
 
-### 4. Generic vendor/rider profile editing
-The spec only exposes `approve` / `reject` / `suspend` / `feature` (vendors)
-and `approve` / `reject` / `suspend` / `verify-documents` (riders). There's
-no way to fix a typo in a vendor's phone number or update a rider's vehicle
-plate without one of those status-change actions.
+### 1. Refresh token path: `/auth/refresh` vs `/auth/refresh-token`
+`infrastructure-overview.md`'s admin-api endpoint table lists `POST
+/refresh`. But your earlier message (the one that shipped the
+`INTEGRATION-ADMIN.md` endpoints) explicitly said: *"the real refresh path
+is `/auth/refresh-token`, not `/auth/refresh` (if you had it wrong, that's
+on us — the old doc said the same)."*
 
-Requested:
-```
-PATCH /vendors/:vendorId   { business_name?, phone?, email?, address?, ... }
-PATCH /riders/:riderId     { name?, phone?, vehicle_plate?, vehicle_model?, ... }
-```
+The panel currently calls `/auth/refresh-token`, trusting the more specific
+correction over the audit table (which lists `/refresh` identically across
+all 4 apps, suggesting it may not have been re-verified per-app for this
+one field). **Please confirm which is actually correct for admin-api** —
+if the panel has this wrong, every session silently stops auto-refreshing
+after the access token expires.
 
-### 5. Per-vendor commission override
-`GET /vendors/:vendorId` returns a `commission_rate`, and `/config` sets
-*global* `commission_rate_food` / `commission_rate_mart` — but there's no
-endpoint to override commission for one specific vendor's contract, which
-the original UI design assumed existed.
+### 2. Rider `reject` and `verify-documents` — missing from the new endpoint table
+The original `Admin API — Integration Reference` doc (with full
+request/response JSON) documented both:
+```
+POST /riders/:riderId/reject            { reason }
+POST /riders/:riderId/verify-documents  { decisions: [{ document_type, status, reason? }] }
+```
+`infrastructure-overview.md`'s rider table only lists `approve` and
+`suspend` — no `reject`, no `verify-documents`. The vendor table, by
+contrast, *does* still list `reject`. Riders missing the same action their
+vendor counterpart has looks more like an incomplete table row than an
+intentional removal (the endpoint tables in that doc aren't cited to
+file:line the way the prose sections are).
 
-Requested:
-```
-PATCH /vendors/:vendorId/commission   { commission_rate }
-```
-(Could fold into #4's generic PATCH instead — backend's call.)
+The panel still calls both endpoints (rider rejection, and the two-document
+verification flow in the rider detail modal). **Please confirm whether
+these still exist** — if they were genuinely removed, that's real admin
+capability lost (no way to reject a pending rider, no way to verify their
+ID/license) and the panel needs a different flow, not just an endpoint
+rename.
 
-### 6. Image upload
-Banners, popups, and vendor storefronts all take an `image_url` string.
-Right now the admin has to host images somewhere else first and paste a
-URL. A direct upload (or at least a presigned-URL flow) would remove that
-friction.
+### 3. `GET /orders/search` — also missing from the new table
+The original spec had `GET /orders/search?q=...` for the order-number
+search box (`§5.4`). It's absent from `infrastructure-overview.md`'s orders
+table (`GET /`, `GET /:orderId`, `GET /:orderId/timeline`, `POST
+/:orderId/assign-rider`, `POST /:orderId/cancel` only). Same caveat as #2 —
+possibly just an incomplete row. The panel still calls it for the search
+bar in Order Management. Please confirm it's still live.
 
-Requested:
-```
-POST /uploads   (multipart) -> { url }
-```
-or
-```
-POST /uploads/presign   { filename, content_type } -> { uploadUrl, publicUrl }
-```
-
-### 7. Admin user management
-`/auth/me` and `/auth/change-password` only cover the logged-in admin's own
-account. There's no way to list other admins, invite one, change someone's
-role, or suspend an admin account — a real gap for a multi-admin team.
-
-Requested:
-```
-GET    /admin-users
-POST   /admin-users           { email, name, role }   — invite
-PATCH  /admin-users/:id       { role?, status? }
-DELETE /admin-users/:id
-```
+### 4. `POST /orders/:orderId/assign-rider` — request body shape unknown
+This endpoint is confirmed real in the new doc (I'd previously assumed it
+didn't exist and removed the UI for it — restored now). But I don't have
+the request/response JSON for it, so I guessed `{ riderId }` (camelCase, to
+match `commissionRate` from the vendor-commission endpoint). **Please
+confirm the actual field name** and whether the response returns the
+updated order (with `rider` populated) or just a status.
 
 ---
 
-## Needs clarification, not new endpoints
+## Fixed this pass — frontend bugs, not backend asks
 
-### 8. Cookie auth details
-The integration checklist says store tokens in **HTTP-only cookies**, but
-`POST /auth/login` and `POST /auth/refresh` both also return the tokens in
-the JSON response body — which only makes sense for a mobile client
-reading them directly. For the admin panel specifically, please confirm:
-- Does `/auth/login` set `Set-Cookie` for `accessToken`/`refreshToken`?
-- What `SameSite`/`Secure` attributes, given the admin panel and
-  `admin-api` may be on different subdomains in production?
-- Is CORS configured with `Access-Control-Allow-Credentials: true` and an
-  explicit allowed origin (not `*`) for the admin panel's domain?
+For visibility, since these were real bugs on our side, already corrected:
 
-We built the client assuming yes to all three (`credentials: 'include'`,
-refresh-on-401 via cookie) — if that's wrong, the auth flow needs rework.
+- **Phantom direct refund**: the order-cancel dialog had a "Refund the
+  customer" checkbox that sent a `refund: true` flag to `POST
+  /orders/:orderId/cancel`. Per your doc, no such capability exists on that
+  endpoint — refunds only happen via `POST /disputes/:disputeId/resolve`.
+  Removed the checkbox; the cancel dialog now says plainly that cancelling
+  doesn't refund, and points admins to Disputes instead.
+- **`/users/:userId/activate` → `/users/:userId/unsuspend`**: the panel was
+  calling a made-up `/activate` path (from the original spec). Your table
+  confirmed the real path is `/unsuspend`. Fixed.
+- **Missing SuperAdmin gating on `/engagement/*` writes**: your doc says
+  (and the very first spec said, under §13: *"SUPER_ADMIN required for
+  writes"*) that all engagement mutations — banners, tracking facts,
+  preference tags, loyalty rules/rewards, spin wheels, popups, vendor
+  badges, menu-item upsell — require SuperAdmin. The panel had built these
+  pages without that gate. Fixed across all of them: regular admins now see
+  read-only views with a clear "Only a Super Admin can..." message instead
+  of a raw 403 from a create/edit/delete action they shouldn't have been
+  able to trigger in the first place.
 
-### 9. Dispute status/category enum
-Only `OPEN` and `RESOLVED` appear in the reference doc's examples. What's
-the full `status` enum (e.g. is there an `IN_PROGRESS`?) and the full
-`category` enum? The panel's filter dropdown is currently guessing.
-
-### 10. Referenced-but-missing docs
-The reference doc links to `FRONTEND-INTEGRATION.md` and
-`FEATURE-FLAGS.md` as separate files. We don't have either — if they exist,
-please send them; they may already answer #8 and give the canonical list
-of feature flag keys (right now the Feature Flags editor just shows
-whatever `GET /config/feature-flags` returns, so flags need to be seeded
-for it to be useful).
-
----
-
-## Nice to have — dropped from the panel, can restore if endpoints show up
-
-- **Customer behavior analytics** (new customers, activation rate, referral
-  rate, cart abandonment) — no endpoint, was removed from the Analytics
-  page rather than faked.
-- **Fleet-wide ops metrics** (on-time %, avg prep time across all vendors,
-  CSAT) — only per-rider (`/analytics/riders`) and per-vendor
-  (`average_prep_time` field) numbers exist today, nothing aggregated.
-- **General discount/promo-code campaigns** ("15% off all orders this
-  weekend", applied at checkout) — the closest things that exist are
-  Loyalty Rewards (redeemed with points) and Spin Wheel segments (won by
-  chance). If you want a real promo-code system independent of both,
-  that's a new resource.
-- **App version gating** (min/latest version per client app) — no
-  endpoint; `AppVersionControl.jsx` is still local-only mock state.
-- **Security policy config** (password rules, 2FA requirement) — no
-  endpoint.
-- **Chat/messaging** — no endpoints at all in the reference doc. If this
-  is meant to be real-time support chat, it likely needs its own service
-  (websocket) rather than fitting the REST pattern here.
+One byproduct worth flagging: with that gating now correctly in place,
+**a regular (non-super) admin genuinely cannot refund a customer at all**
+if the order has no existing dispute — there's no direct refund endpoint,
+and (per the endpoint table) creating a new dispute isn't an admin-api
+capability either, only `POST /disputes/:disputeId/resolve` on an
+already-existing one. If refunding orders without a pre-existing dispute is
+supposed to be possible for admins, that's a product gap worth a look —
+not something the frontend can work around.
 
 ---
 
-## Already fine, just flagging for awareness
-- `min_payout` in `/config` is keyed by currency (`XAF`, `NGN`, `KES`,
-  `GHS`) — confirmed working, no action needed.
-- Payout `entity_name` in `/payouts/pending` and `/payouts/history` isn't
-  guaranteed present in every example — worth double-checking it's always
-  populated, since the UI falls back to raw `vendor_id`/`rider_id` when
-  it's missing.
+## Still open from before
+
+- **`GET /riders/:riderId/deliveries`** is confirmed real in the new doc
+  but not yet used anywhere in the panel — would be a good parity addition
+  to the rider detail modal (mirroring the vendor detail's "Recent Orders"
+  section). Not wired up yet, just noting it's available.
+- **`DELETE /users/:userId`** is a real endpoint per the new doc that the
+  panel has never surfaced any UI for. Before adding a delete button:
+  please confirm whether this is a soft delete (reversible, GDPR-style
+  anonymization) or an actual hard delete — the UI treatment (confirmation
+  copy, whether it's reversible) depends entirely on which.
+- **Dispute status/category enum** — still only know `OPEN`/`RESOLVED` from
+  examples; the filter dropdown is a guess.
+- **`FRONTEND-INTEGRATION.md` / `FEATURE-FLAGS.md`** — referenced by the
+  original spec, never received. May already answer #1 above and give the
+  canonical feature-flag key list (the Feature Flags editor only shows
+  whatever `GET /config/feature-flags` currently returns, so flags need to
+  be seeded to be useful).
+- **Customer behavior analytics, fleet-wide ops metrics (on-time %, CSAT),
+  general discount/promo-code campaigns independent of Loyalty/Spin Wheel,
+  app version gating, admin security policy config, chat/messaging** — no
+  endpoints for any of these per either doc. Still not built into the
+  panel; happy to if/when they exist.

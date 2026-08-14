@@ -140,7 +140,7 @@ function CustomerManagement() {
   const handleActivate = async (customer) => {
     setActionSubmitting(true);
     try {
-      await apiClient.post(`/users/${customer.id}/activate`);
+      await apiClient.post(`/users/${customer.id}/unsuspend`);
       setCustomers((prev) => prev.map((c) => (c.id === customer.id ? { ...c, status: 'ACTIVE' } : c)));
       if (selectedCustomer?.id === customer.id) {
         setSelectedCustomer((prev) => ({ ...prev, status: 'ACTIVE' }));

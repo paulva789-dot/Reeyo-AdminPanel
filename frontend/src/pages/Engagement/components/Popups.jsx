@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, RefreshCw, BarChart2 } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
 import ImageUploadField from '../../../components/ImageUploadField';
+import { useAuth } from '../../../context/AuthContext';
 
 const AUDIENCES = ['ALL', 'NEW_USERS', 'RETURNING', 'INACTIVE', 'VIP'];
 const TRIGGERS = ['HOME_OPEN', 'POST_ORDER', 'PRE_CHECKOUT', 'APP_OPEN', 'INACTIVE_7D', 'MANUAL'];
@@ -13,6 +14,7 @@ const DEFAULT_FORM = {
 };
 
 const Popups = () => {
+  const { isSuperAdmin } = useAuth();
   const [popups, setPopups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,13 +79,15 @@ const Popups = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">In-app popups shown to customers on specific triggers.</p>
-        <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">
-          <Plus size={14} /> New Popup
-        </button>
+        {isSuperAdmin && (
+          <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">
+            <Plus size={14} /> New Popup
+          </button>
+        )}
       </div>
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
 
-      {showForm && (
+      {showForm && isSuperAdmin && (
         <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-dashed rounded-lg p-3">
           <input required placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="p-2 border rounded-lg text-sm md:col-span-2" />
           <select value={form.trigger} onChange={(e) => setForm({ ...form, trigger: e.target.value })} className="p-2 border rounded-lg text-sm">
@@ -118,7 +122,9 @@ const Popups = () => {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button onClick={() => loadStats(popup.id)} className="text-indigo-600 hover:text-indigo-800"><BarChart2 size={16} /></button>
-                  <button onClick={() => handleDelete(popup.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                  {isSuperAdmin && (
+                    <button onClick={() => handleDelete(popup.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                  )}
                 </div>
               </div>
               {stats[popup.id] && !stats[popup.id].error && (

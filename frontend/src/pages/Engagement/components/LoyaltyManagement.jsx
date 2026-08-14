@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, RefreshCw, Search } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
 import ImageUploadField from '../../../components/ImageUploadField';
+import { useAuth } from '../../../context/AuthContext';
 
 const REWARD_TYPES = ['DISCOUNT_CODE', 'FREE_DELIVERY', 'WALLET_TOPUP', 'FREE_ITEM', 'MERCH'];
 const SUB_TABS = { RULES: 'Rules', REWARDS: 'Rewards', LOOKUP: 'Account Lookup' };
@@ -11,6 +12,7 @@ const DEFAULT_RULE = { event_type: 'ORDER_DELIVERED', points_per_unit: 1, unit_a
 const DEFAULT_REWARD = { name: '', description: '', image_url: '', points_cost: 100, reward_type: 'DISCOUNT_CODE', reward_value: '{"pct":10,"max":2000}', country_code: '' };
 
 function RulesPanel() {
+  const { isSuperAdmin } = useAuth();
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -60,27 +62,29 @@ function RulesPanel() {
       <p className="text-sm text-gray-600">Rules that award Reecoins for platform events (e.g. 1 point per 500 XAF spent).</p>
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
 
-      <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end border border-dashed rounded-lg p-3">
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Event Type</label>
-          <input required value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Points per Unit</label>
-          <input type="number" value={form.points_per_unit} onChange={(e) => setForm({ ...form, points_per_unit: Number(e.target.value) })} className="w-full p-2 border rounded-lg text-sm" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Unit Amount (XAF)</label>
-          <input type="number" value={form.unit_amount} onChange={(e) => setForm({ ...form, unit_amount: Number(e.target.value) })} className="w-full p-2 border rounded-lg text-sm" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">Country (optional)</label>
-          <input maxLength={2} value={form.country_code} onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} className="w-full p-2 border rounded-lg text-sm uppercase" />
-        </div>
-        <button type="submit" disabled={submitting} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50 flex items-center justify-center gap-1">
-          <Plus size={14} /> Add Rule
-        </button>
-      </form>
+      {isSuperAdmin && (
+        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end border border-dashed rounded-lg p-3">
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Event Type</label>
+            <input required value={form.event_type} onChange={(e) => setForm({ ...form, event_type: e.target.value })} className="w-full p-2 border rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Points per Unit</label>
+            <input type="number" value={form.points_per_unit} onChange={(e) => setForm({ ...form, points_per_unit: Number(e.target.value) })} className="w-full p-2 border rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Unit Amount (XAF)</label>
+            <input type="number" value={form.unit_amount} onChange={(e) => setForm({ ...form, unit_amount: Number(e.target.value) })} className="w-full p-2 border rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">Country (optional)</label>
+            <input maxLength={2} value={form.country_code} onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} className="w-full p-2 border rounded-lg text-sm uppercase" />
+          </div>
+          <button type="submit" disabled={submitting} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50 flex items-center justify-center gap-1">
+            <Plus size={14} /> Add Rule
+          </button>
+        </form>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 text-indigo-500 animate-spin" /></div>
@@ -89,7 +93,9 @@ function RulesPanel() {
           {rules.map((rule) => (
             <div key={rule.id} className="flex items-center justify-between border rounded-lg p-3 text-sm">
               <p>{rule.points_per_unit} point(s) per {rule.unit_amount} XAF on <span className="font-mono">{rule.event_type}</span> {rule.country_code ? `(${rule.country_code})` : '(global)'}</p>
-              <button onClick={() => handleDelete(rule.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+              {isSuperAdmin && (
+                <button onClick={() => handleDelete(rule.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+              )}
             </div>
           ))}
           {rules.length === 0 && <p className="text-center text-gray-500 py-6">No loyalty rules yet.</p>}
@@ -100,6 +106,7 @@ function RulesPanel() {
 }
 
 function RewardsPanel() {
+  const { isSuperAdmin } = useAuth();
   const [rewards, setRewards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -174,21 +181,23 @@ function RewardsPanel() {
       <p className="text-sm text-gray-600">Rewards customers can redeem with Reecoins.</p>
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
 
-      <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-dashed rounded-lg p-3">
-        <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="p-2 border rounded-lg text-sm" />
-        <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="p-2 border rounded-lg text-sm" />
-        <input type="number" placeholder="Points cost" value={form.points_cost} onChange={(e) => setForm({ ...form, points_cost: Number(e.target.value) })} className="p-2 border rounded-lg text-sm" />
-        <select value={form.reward_type} onChange={(e) => setForm({ ...form, reward_type: e.target.value })} className="p-2 border rounded-lg text-sm">
-          {REWARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <input value={form.reward_value} onChange={(e) => setForm({ ...form, reward_value: e.target.value })} className="p-2 border rounded-lg text-sm font-mono md:col-span-1" placeholder='{"pct":10}' />
-        <div className="md:col-span-3">
-          <ImageUploadField label="Reward Image (optional)" value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} />
-        </div>
-        <button type="submit" disabled={submitting || !form.name.trim()} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50 flex items-center justify-center gap-1">
-          <Plus size={14} /> Add Reward
-        </button>
-      </form>
+      {isSuperAdmin && (
+        <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-dashed rounded-lg p-3">
+          <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="p-2 border rounded-lg text-sm" />
+          <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="p-2 border rounded-lg text-sm" />
+          <input type="number" placeholder="Points cost" value={form.points_cost} onChange={(e) => setForm({ ...form, points_cost: Number(e.target.value) })} className="p-2 border rounded-lg text-sm" />
+          <select value={form.reward_type} onChange={(e) => setForm({ ...form, reward_type: e.target.value })} className="p-2 border rounded-lg text-sm">
+            {REWARD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <input value={form.reward_value} onChange={(e) => setForm({ ...form, reward_value: e.target.value })} className="p-2 border rounded-lg text-sm font-mono md:col-span-1" placeholder='{"pct":10}' />
+          <div className="md:col-span-3">
+            <ImageUploadField label="Reward Image (optional)" value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} />
+          </div>
+          <button type="submit" disabled={submitting || !form.name.trim()} className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-50 flex items-center justify-center gap-1">
+            <Plus size={14} /> Add Reward
+          </button>
+        </form>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 text-indigo-500 animate-spin" /></div>
@@ -206,10 +215,15 @@ function RewardsPanel() {
                   <p className="text-xs font-mono text-gray-400 mt-1">{reward.reward_type} &middot; {reward.points_cost} pts</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <button onClick={() => toggleActive(reward)} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${reward.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  <span
+                    onClick={isSuperAdmin ? () => toggleActive(reward) : undefined}
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isSuperAdmin ? 'cursor-pointer' : ''} ${reward.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}
+                  >
                     {reward.is_active ? 'Active' : 'Inactive'}
-                  </button>
-                  <button onClick={() => handleDelete(reward.id)} className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                  </span>
+                  {isSuperAdmin && (
+                    <button onClick={() => handleDelete(reward.id)} className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                  )}
                 </div>
               </div>
             </div>

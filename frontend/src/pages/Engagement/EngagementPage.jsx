@@ -7,6 +7,7 @@ import LoyaltyManagement from './components/LoyaltyManagement';
 import SpinWheels from './components/SpinWheels';
 import Popups from './components/Popups';
 import SharedCarts from './components/SharedCarts';
+import { useAuth } from '../../context/AuthContext';
 
 const TABS = [
   { id: 'facts', label: 'Tracking Facts', icon: Info, Component: TrackingFacts },
@@ -20,6 +21,7 @@ const TABS = [
 const EngagementPage = () => {
   const [activeTab, setActiveTab] = useState(TABS[0].id);
   const ActiveComponent = TABS.find((t) => t.id === activeTab)?.Component;
+  const { isSuperAdmin } = useAuth();
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -27,6 +29,12 @@ const EngagementPage = () => {
         <Sparkles size={28} className="mr-3 text-indigo-600" />
         Engagement
       </h1>
+
+      {!isSuperAdmin && (
+        <p className="mb-6 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          You have read-only access to Engagement management. Only a Super Admin can create, edit, or delete items here.
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-6">
         {TABS.map((tab) => (

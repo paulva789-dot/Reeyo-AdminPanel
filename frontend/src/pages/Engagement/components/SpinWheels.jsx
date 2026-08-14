@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { apiClient, ApiError } from '../../../services/apiClient';
+import { useAuth } from '../../../context/AuthContext';
 
 const SEGMENT_REWARD_TYPES = ['DISCOUNT_PCT', 'DISCOUNT_FIXED', 'FREE_DELIVERY', 'REECOINS', 'PROMO_CODE', 'NOTHING'];
 
@@ -56,7 +57,7 @@ function SegmentForm({ wheelId, onAdded }) {
   );
 }
 
-function WheelRow({ wheel, onDeleted, onSegmentAdded, onSegmentRemoved }) {
+function WheelRow({ wheel, onDeleted, onSegmentAdded, onSegmentRemoved, isSuperAdmin }) {
   const [expanded, setExpanded] = useState(false);
   const [results, setResults] = useState(null);
 
@@ -87,7 +88,9 @@ function WheelRow({ wheel, onDeleted, onSegmentAdded, onSegmentRemoved }) {
             {wheel.is_active ? 'Active' : 'Inactive'}
           </span>
           <button onClick={loadResults} className="text-indigo-600 hover:text-indigo-800"><Eye size={16} /></button>
-          <button onClick={() => onDeleted(wheel.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+          {isSuperAdmin && (
+            <button onClick={() => onDeleted(wheel.id)} className="text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+          )}
         </div>
       </div>
 
@@ -96,10 +99,12 @@ function WheelRow({ wheel, onDeleted, onSegmentAdded, onSegmentRemoved }) {
           {(wheel.segments || []).map((seg) => (
             <div key={seg.id} className="flex items-center justify-between text-xs p-2 rounded" style={{ backgroundColor: `${seg.color}22` }}>
               <span>{seg.label} — {seg.reward_type} &middot; win chance: {totalWeight ? Math.round((seg.probability_weight / totalWeight) * 100) : 0}%</span>
-              <button onClick={() => onSegmentRemoved(wheel.id, seg.id)} className="text-red-500 hover:text-red-700"><Trash2 size={12} /></button>
+              {isSuperAdmin && (
+                <button onClick={() => onSegmentRemoved(wheel.id, seg.id)} className="text-red-500 hover:text-red-700"><Trash2 size={12} /></button>
+              )}
             </div>
           ))}
-          <SegmentForm wheelId={wheel.id} onAdded={(seg) => onSegmentAdded(wheel.id, seg)} />
+          {isSuperAdmin && <SegmentForm wheelId={wheel.id} onAdded={(seg) => onSegmentAdded(wheel.id, seg)} />}
 
           {results !== null && (
             <div className="mt-2">
@@ -120,6 +125,7 @@ function WheelRow({ wheel, onDeleted, onSegmentAdded, onSegmentRemoved }) {
 }
 
 const SpinWheels = () => {
+  const { isSuperAdmin } = useAuth();
   const [wheels, setWheels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -183,13 +189,15 @@ const SpinWheels = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">Gamified spin-to-win wheels shown at checkout or other triggers.</p>
-        <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">
-          <Plus size={14} /> New Wheel
-        </button>
+        {isSuperAdmin && (
+          <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">
+            <Plus size={14} /> New Wheel
+          </button>
+        )}
       </div>
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
 
-      {showForm && (
+      {showForm && isSuperAdmin && (
         <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-dashed rounded-lg p-3">
           <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="p-2 border rounded-lg text-sm" />
           <input placeholder="Trigger (CHECKOUT)" value={form.trigger} onChange={(e) => setForm({ ...form, trigger: e.target.value })} className="p-2 border rounded-lg text-sm" />
@@ -206,7 +214,7 @@ const SpinWheels = () => {
       ) : (
         <div className="space-y-3">
           {wheels.map((wheel) => (
-            <WheelRow key={wheel.id} wheel={wheel} onDeleted={handleDelete} onSegmentAdded={handleSegmentAdded} onSegmentRemoved={handleSegmentRemoved} />
+            <WheelRow key={wheel.id} wheel={wheel} onDeleted={handleDelete} onSegmentAdded={handleSegmentAdded} onSegmentRemoved={handleSegmentRemoved} isSuperAdmin={isSuperAdmin} />
           ))}
           {wheels.length === 0 && <p className="text-center text-gray-500 py-6">No spin wheels yet.</p>}
         </div>
