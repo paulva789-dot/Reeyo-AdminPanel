@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AlertOctagon, Search, RefreshCw, X, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiClient, ApiError } from '../../services/apiClient';
 
-const STATUS_OPTIONS = ['All', 'OPEN', 'RESOLVED'];
+const STATUS_OPTIONS = ['All', 'OPEN', 'RESOLVED', 'REJECTED'];
 
 const PRIORITY_CLASSES = {
   HIGH: 'bg-red-100 text-red-800',
@@ -22,6 +22,9 @@ function DisputeDetail({ disputeId, onClose, onResolved }) {
   const [refundAmount, setRefundAmount] = useState('');
   const [refundToWallet, setRefundToWallet] = useState(true);
   const [resolving, setResolving] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true);
@@ -75,6 +78,22 @@ function DisputeDetail({ disputeId, onClose, onResolved }) {
     }
   };
 
+  const handleReject = async (e) => {
+    e.preventDefault();
+    setRejecting(true);
+    setError('');
+    try {
+      const res = await apiClient.post(`/disputes/${disputeId}/reject`, { reason: rejectReason });
+      setDispute((prev) => ({ ...prev, status: res.data?.status || 'REJECTED' }));
+      onResolved(disputeId, res.data?.status || 'REJECTED');
+      setShowRejectForm(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reject dispute.');
+    } finally {
+      setRejecting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -122,7 +141,7 @@ function DisputeDetail({ disputeId, onClose, onResolved }) {
               {(dispute.messages || []).length === 0 && <p className="text-sm text-gray-500 italic">No messages yet.</p>}
             </div>
 
-            {dispute.status !== 'RESOLVED' && (
+            {dispute.status === 'OPEN' && (
               <>
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                   <input
@@ -137,11 +156,37 @@ function DisputeDetail({ disputeId, onClose, onResolved }) {
                   </button>
                 </form>
 
-                {!showResolveForm ? (
-                  <button onClick={() => setShowResolveForm(true)} className="w-full py-2 bg-green-600 text-white rounded-lg font-semibold">
-                    Resolve Dispute
-                  </button>
-                ) : (
+                {!showResolveForm && !showRejectForm && (
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowResolveForm(true)} className="flex-1 py-2 bg-green-600 text-white rounded-lg font-semibold">
+                      Resolve Dispute
+                    </button>
+                    <button onClick={() => setShowRejectForm(true)} className="flex-1 py-2 bg-red-600 text-white rounded-lg font-semibold">
+                      Reject Dispute
+                    </button>
+                  </div>
+                )}
+
+                {showRejectForm && (
+                  <form onSubmit={handleReject} className="p-3 border border-red-200 bg-red-50 rounded-lg space-y-2">
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Reason for rejecting this dispute"
+                      required
+                      rows={2}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => setShowRejectForm(false)} className="px-3 py-1.5 border rounded-lg text-sm">Cancel</button>
+                      <button type="submit" disabled={rejecting || !rejectReason.trim()} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm disabled:opacity-50">
+                        {rejecting ? 'Rejecting...' : 'Confirm Rejection'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {showResolveForm && (
                   <form onSubmit={handleResolve} className="p-3 border border-green-200 bg-green-50 rounded-lg space-y-2">
                     <textarea
                       value={resolution}

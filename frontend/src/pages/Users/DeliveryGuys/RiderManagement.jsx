@@ -1,16 +1,12 @@
 // src/pages/Users/DeliveryGuys/RiderManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, Eye, CheckCircle, XCircle, Pause, Play, MapPin, Star, TrendingUp, Package, X, Phone, Mail, FileCheck, FileX, RefreshCw, ChevronLeft, ChevronRight, AlertTriangle, Pencil, Save } from 'lucide-react';
+import { Search, Filter, Download, Eye, CheckCircle, Pause, Play, MapPin, Star, TrendingUp, Package, X, Phone, Mail, RefreshCw, ChevronLeft, ChevronRight, AlertTriangle, Pencil, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { apiClient, ApiError } from '../../../services/apiClient';
 
 const formatXAF = (amount) => Number(amount || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'XAF', minimumFractionDigits: 0 });
 
 const STATUS_OPTIONS = ['All', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SUSPENDED'];
-const DOCUMENT_TYPES = [
-  { key: 'NATIONAL_ID', label: 'National ID' },
-  { key: 'DRIVERS_LICENSE', label: "Driver's License" },
-];
 
 const statusClasses = (status) => {
   if (status === 'APPROVED') return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';
@@ -73,8 +69,7 @@ function RiderManagement() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [riderPayouts, setRiderPayouts] = useState([]);
-  const [reasonAction, setReasonAction] = useState(null); // { rider, type: 'reject' | 'suspend' }
-  const [docReject, setDocReject] = useState(null); // document_type pending a rejection reason
+  const [suspendTarget, setSuspendTarget] = useState(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileDraft, setProfileDraft] = useState({});
@@ -149,16 +144,15 @@ function RiderManagement() {
     }
   };
 
-  const handleReasonConfirm = async (reason) => {
-    if (!reasonAction) return;
-    const { rider, type } = reasonAction;
+  const handleSuspendConfirm = async (reason) => {
+    if (!suspendTarget) return;
     setActionSubmitting(true);
     try {
-      const res = await apiClient.post(`/riders/${rider.id}/${type}`, { reason });
-      applyStatusUpdate(rider.id, res.data);
-      setReasonAction(null);
+      const res = await apiClient.post(`/riders/${suspendTarget.id}/suspend`, { reason });
+      applyStatusUpdate(suspendTarget.id, res.data);
+      setSuspendTarget(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : `Could not ${type} rider.`);
+      setError(err instanceof ApiError ? err.message : 'Could not suspend rider.');
     } finally {
       setActionSubmitting(false);
     }
@@ -182,21 +176,6 @@ function RiderManagement() {
       setError(err instanceof ApiError ? err.message : 'Could not save rider profile.');
     } finally {
       setProfileSaving(false);
-    }
-  };
-
-  const submitDocumentDecision = async (documentType, status, reason) => {
-    if (!selectedRider) return;
-    setActionSubmitting(true);
-    try {
-      await apiClient.post(`/riders/${selectedRider.id}/verify-documents`, {
-        decisions: [{ document_type: documentType, status, ...(reason ? { reason } : {}) }],
-      });
-      setDocReject(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not submit document decision.');
-    } finally {
-      setActionSubmitting(false);
     }
   };
 
@@ -302,17 +281,12 @@ function RiderManagement() {
                           <Eye className="w-4 h-4" />
                         </button>
                         {rider.status === 'PENDING_APPROVAL' && (
-                          <>
-                            <button onClick={() => handleApprove(rider)} disabled={actionSubmitting} className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50" title="Approve">
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setReasonAction({ rider, type: 'reject' })} className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Reject">
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
+                          <button onClick={() => handleApprove(rider)} disabled={actionSubmitting} className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50" title="Approve">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
                         )}
                         {rider.status === 'APPROVED' && (
-                          <button onClick={() => setReasonAction({ rider, type: 'suspend' })} className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Suspend">
+                          <button onClick={() => setSuspendTarget(rider)} className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Suspend">
                             <Pause className="w-4 h-4" />
                           </button>
                         )}
@@ -361,6 +335,11 @@ function RiderManagement() {
             </div>
 
             <div className="p-6 space-y-6">
+              {selectedRider.status === 'PENDING_APPROVAL' && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
+                  Rejecting a pending rider isn't available from the backend yet — only Approve. Reach out to the applicant directly if they shouldn't be approved.
+                </p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -453,29 +432,10 @@ function RiderManagement() {
                       <p className="text-sm text-gray-500 dark:text-gray-400 italic">No ID document uploaded</p>
                     )}
 
-                    {DOCUMENT_TYPES.map((doc) => (
-                      <div key={doc.key} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                          <FileCheck className="w-4 h-4" />
-                          <span className="font-medium text-sm">{doc.label}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => submitDocumentDecision(doc.key, 'APPROVED')}
-                            disabled={actionSubmitting}
-                            className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => setDocReject(doc)}
-                            className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
+                      Per-document approve/reject isn't available from the backend yet — review the document above manually.
+                      Approving the rider overall is still done via the Approve action.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -538,22 +498,12 @@ function RiderManagement() {
         </motion.div>
       )}
 
-      {reasonAction && (
+      {suspendTarget && (
         <ReasonModal
-          title={reasonAction.type === 'reject' ? `Reject ${reasonAction.rider.name}?` : `Suspend ${reasonAction.rider.name}?`}
-          actionLabel={reasonAction.type === 'reject' ? 'Reject' : 'Suspend'}
-          onCancel={() => setReasonAction(null)}
-          onConfirm={handleReasonConfirm}
-          submitting={actionSubmitting}
-        />
-      )}
-
-      {docReject && (
-        <ReasonModal
-          title={`Reject ${docReject.label}?`}
-          actionLabel="Reject Document"
-          onCancel={() => setDocReject(null)}
-          onConfirm={(reason) => submitDocumentDecision(docReject.key, 'REJECTED', reason)}
+          title={`Suspend ${suspendTarget.name}?`}
+          actionLabel="Suspend"
+          onCancel={() => setSuspendTarget(null)}
+          onConfirm={handleSuspendConfirm}
           submitting={actionSubmitting}
         />
       )}

@@ -1,6 +1,6 @@
 // src/pages/Users/Customers/CustomerManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, Eye, Ban, CheckCircle, X, Mail, Phone, MapPin, ShoppingBag, Award, RefreshCw, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
+import { Search, Filter, Download, Eye, Ban, CheckCircle, X, Mail, Phone, MapPin, ShoppingBag, Award, RefreshCw, ChevronLeft, ChevronRight, Wallet, Trash2, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { apiClient, ApiError } from '../../../services/apiClient';
 
@@ -68,6 +68,44 @@ function SuspendReasonModal({ user, onCancel, onConfirm, submitting }) {
   );
 }
 
+function DeleteAccountModal({ user, onCancel, onConfirm, submitting }) {
+  const [confirmText, setConfirmText] = useState('');
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] p-4">
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="flex items-start gap-3 mb-3">
+          <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Delete {user.name}'s account?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              This will deactivate the account and permanently remove their contact info (email/phone are anonymized).
+              The account record itself isn't erased, but the original contact details cannot be recovered afterward.
+            </p>
+          </div>
+        </div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Type DELETE to confirm</label>
+        <input
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+        />
+        <div className="mt-4 flex justify-end gap-3">
+          <button onClick={onCancel} className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-white">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={confirmText !== 'DELETE' || submitting}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+          >
+            {submitting ? 'Deleting...' : 'Delete Account'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function CustomerManagement() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +121,7 @@ function CustomerManagement() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [customerOrders, setCustomerOrders] = useState([]);
   const [suspendTarget, setSuspendTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [actionSubmitting, setActionSubmitting] = useState(false);
 
   // Debounce free-text search before it triggers a refetch.
@@ -164,6 +203,24 @@ function CustomerManagement() {
       setSuspendTarget(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not suspend customer.');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setActionSubmitting(true);
+    try {
+      await apiClient.delete(`/users/${deleteTarget.id}`);
+      setCustomers((prev) => prev.map((c) => (c.id === deleteTarget.id ? { ...c, status: 'DELETED' } : c)));
+      if (selectedCustomer?.id === deleteTarget.id) {
+        setSelectedCustomer((prev) => ({ ...prev, status: 'DELETED' }));
+        setShowDetailsModal(false);
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not delete customer account.');
     } finally {
       setActionSubmitting(false);
     }
@@ -424,6 +481,18 @@ function CustomerManagement() {
                   <p className="text-gray-500 dark:text-gray-400 italic">No recent order history found.</p>
                 )}
               </div>
+
+              {selectedCustomer.status !== 'DELETED' && (
+                <div className="pt-4 border-t border-red-100 dark:border-red-900/40">
+                  <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">Danger Zone</h3>
+                  <button
+                    onClick={() => setDeleteTarget(selectedCustomer)}
+                    className="flex items-center gap-2 px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete Account
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>
@@ -434,6 +503,15 @@ function CustomerManagement() {
           user={suspendTarget}
           onCancel={() => setSuspendTarget(null)}
           onConfirm={handleSuspendConfirm}
+          submitting={actionSubmitting}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteAccountModal
+          user={deleteTarget}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={handleDeleteConfirm}
           submitting={actionSubmitting}
         />
       )}

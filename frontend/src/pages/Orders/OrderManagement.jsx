@@ -1,5 +1,5 @@
 // src/pages/Orders/OrderManagement.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, ChevronLeft, ChevronRight, AlertTriangle, X } from 'lucide-react';
 import OrderFilterBar from './components/OrderFilterBar';
 import OrderStatsCards from './components/OrderStatsCards';
@@ -13,46 +13,40 @@ const OrderManagement = () => {
     const [breakdown, setBreakdown] = useState(null);
     const [filter, setFilter] = useState('All');
     const [searchInput, setSearchInput] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
-
-    useEffect(() => {
-        const handle = setTimeout(() => {
-            setSearchQuery(searchInput);
-            setPage(1);
-        }, 400);
-        return () => clearTimeout(handle);
-    }, [searchInput]);
 
     const fetchOrders = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
-            if (searchQuery) {
-                const res = await apiClient.get('/orders/search', { q: searchQuery });
-                setOrders(res.data || []);
-                setMeta({ total: (res.data || []).length, totalPages: 1 });
-            } else {
-                const res = await apiClient.get('/orders', {
-                    page,
-                    limit: 20,
-                    status: filter === 'All' ? undefined : filter,
-                });
-                setOrders(res.data || []);
-                setMeta(res.meta || { total: 0, totalPages: 1 });
-            }
+            const res = await apiClient.get('/orders', {
+                page,
+                limit: 20,
+                status: filter === 'All' ? undefined : filter,
+            });
+            setOrders(res.data || []);
+            setMeta(res.meta || { total: 0, totalPages: 1 });
         } catch (err) {
             setError(err instanceof ApiError ? err.message : 'Could not load orders.');
             setOrders([]);
         } finally {
             setLoading(false);
         }
-    }, [page, filter, searchQuery]);
+    }, [page, filter]);
 
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+
+    // There's no backend search-by-order-number endpoint (confirmed removed,
+    // not just undocumented) — this filters only the currently loaded page
+    // rather than the whole order set.
+    const visibleOrders = useMemo(() => {
+        if (!searchInput.trim()) return orders;
+        const q = searchInput.trim().toLowerCase();
+        return orders.filter((o) => o.order_number?.toLowerCase().includes(q));
+    }, [orders, searchInput]);
 
     useEffect(() => {
         apiClient
@@ -87,6 +81,11 @@ const OrderManagement = () => {
                 searchQuery={searchInput}
                 setSearchQuery={setSearchInput}
             />
+            {searchInput.trim() && (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
+                    There's no order-number search on the backend yet — this only filters the orders already loaded on this page. Use the status filter or paginate to find orders elsewhere.
+                </p>
+            )}
 
             {loading ? (
                 <div className="flex items-center justify-center py-24">
@@ -94,8 +93,8 @@ const OrderManagement = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
-                    {orders.length > 0 ? (
-                        orders.map(order => (
+                    {visibleOrders.length > 0 ? (
+                        visibleOrders.map(order => (
                             <OrderCard key={order.id} order={order} onCancelled={handleCancelled} />
                         ))
                     ) : (
@@ -106,23 +105,21 @@ const OrderManagement = () => {
                 </div>
             )}
 
-            {!searchQuery && (
-                <div className="mt-6 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <div>
-                        Page <span className="font-semibold text-gray-800 dark:text-white">{page}</span> of{' '}
-                        <span className="font-semibold text-gray-800 dark:text-white">{meta.totalPages || 1}</span> &middot;{' '}
-                        <span className="font-semibold text-gray-800 dark:text-white">{meta.total ?? 0}</span> total orders
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="p-2 border rounded-lg disabled:opacity-40 dark:border-gray-600">
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))} disabled={page >= (meta.totalPages || 1)} className="p-2 border rounded-lg disabled:opacity-40 dark:border-gray-600">
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
+            <div className="mt-6 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                <div>
+                    Page <span className="font-semibold text-gray-800 dark:text-white">{page}</span> of{' '}
+                    <span className="font-semibold text-gray-800 dark:text-white">{meta.totalPages || 1}</span> &middot;{' '}
+                    <span className="font-semibold text-gray-800 dark:text-white">{meta.total ?? 0}</span> total orders
                 </div>
-            )}
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="p-2 border rounded-lg disabled:opacity-40 dark:border-gray-600">
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))} disabled={page >= (meta.totalPages || 1)} className="p-2 border rounded-lg disabled:opacity-40 dark:border-gray-600">
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

@@ -38,12 +38,12 @@ export function setUnauthorizedHandler(handler) {
 let refreshPromise = null;
 
 function isAuthEndpoint(path) {
-  return path.startsWith('/auth/login') || path.startsWith('/auth/refresh-token');
+  return path.startsWith('/auth/login') || path.startsWith('/auth/refresh');
 }
 
 async function refreshSession() {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh-token`, {
+    refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
