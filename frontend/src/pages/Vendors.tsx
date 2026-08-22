@@ -13,7 +13,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/AppState';
 import { money, initials } from '../lib/format';
-import { vendors, menus } from '../data/seed';
+import { menus } from '../data/seed';
 import type { Vendor, MenuCategory } from '../data/types';
 
 function Avatar({ name, token }: { name: string; token: string }) {
@@ -254,6 +254,7 @@ function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void
 }
 
 export default function Vendors() {
+  const { vendors } = useAppState();
   const [vertical, setVertical] = useState('all');
   const [query, setQuery] = useState('');
   const [menuFor, setMenuFor] = useState<Vendor | null>(null);
@@ -266,7 +267,7 @@ export default function Vendors() {
     if (!q) return byVertical;
     return byVertical.filter((v) => [v.name, v.category, v.zone, v.id]
       .join(' ').toLowerCase().includes(q));
-  }, [vertical, query]);
+  }, [vertical, query, vendors]);
 
   const columns: Column<Vendor>[] = [
     {

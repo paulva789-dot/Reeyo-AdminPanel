@@ -1,4 +1,5 @@
-import { riders, riderPositions } from '../../data/seed';
+import { riderPositions } from '../../data/seed';
+import { useAppState } from '../../state/AppState';
 
 const STATE_TOKEN: Record<string, string> = {
   'on a delivery': 'emerald',
@@ -14,6 +15,14 @@ const LEGEND = [
 
 /** Section 8.3 — dark forest panel, SVG grid, three roads, halo'd rider dots. */
 export default function RiderMap() {
+  const { riders } = useAppState();
+
+  // The backend serves no rider coordinates, so positions come from the seed
+  // layout and are matched to whichever riders are actually loaded.
+  const placed = riders.slice(0, riderPositions.length).map((rider, i) => ({
+    rider, pos: riderPositions[i],
+  }));
+
   return (
     <div>
       <div
@@ -50,13 +59,11 @@ export default function RiderMap() {
           />
         </svg>
 
-        {riderPositions.map((pos) => {
-          const rider = riders.find((r) => r.id === pos.riderId);
-          if (!rider) return null;
+        {placed.map(({ rider, pos }) => {
           const token = STATE_TOKEN[rider.state] ?? 'calm';
           return (
             <div
-              key={pos.riderId}
+              key={rider.id}
               style={{
                 position: 'absolute',
                 left: `${pos.x}%`, top: `${pos.y}%`,

@@ -8,7 +8,7 @@ import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
 import { money } from '../lib/format';
-import { customers } from '../data/seed';
+import { useAppState } from '../state/AppState';
 import type { Customer } from '../data/types';
 
 /** Segments are not order states, so they carry their own tokens. */
@@ -20,6 +20,7 @@ const SEGMENT_TOKEN: Record<string, string> = {
 };
 
 export default function Customers() {
+  const { customers } = useAppState();
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
@@ -27,7 +28,7 @@ export default function Customers() {
     if (!q) return customers;
     return customers.filter((c) => [c.name, c.zone, c.segment, c.id]
       .join(' ').toLowerCase().includes(q));
-  }, [query]);
+  }, [query, customers]);
 
   const spend = customers.reduce((sum, c) => sum + c.spend, 0);
   const loyal = customers.filter((c) => c.segment === 'loyal').length;

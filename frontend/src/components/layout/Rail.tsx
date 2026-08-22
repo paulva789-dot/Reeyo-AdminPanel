@@ -5,8 +5,21 @@ import {
   AnalyticsIcon, SettingsIcon, CloseIcon,
 } from './icons';
 import { initials } from '../../lib/format';
+import { useAuth } from '../../state/AuthContext';
 
 type IconComponent = (props: { size?: number }) => React.ReactElement;
+
+function SignOutIcon() {
+  return (
+    <svg
+      width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
+}
 
 interface NavItem {
   label: string;
@@ -27,9 +40,14 @@ interface RailProps {
   onClose: () => void;
 }
 
-const ADMIN = { name: 'Adrian Nkeng', role: 'Platform admin', city: 'Buea' };
-
 export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }: RailProps) {
+  const { admin, isSample, logout } = useAuth();
+
+  // Show whoever is actually signed in, never a hardcoded identity — the
+  // defect audit/bugs-and-gaps.md recorded on the previous panel.
+  const displayName = admin?.name || admin?.email || 'Signed in';
+  const displayRole = isSample ? 'Sample data' : (admin?.role || 'Admin');
+
   const nav: NavGroup[] = [
     {
       group: 'Operate',
@@ -201,21 +219,39 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
               fontSize: 11, fontWeight: 600, flexShrink: 0,
             }}
           >
-            {initials(ADMIN.name)}
+            {initials(displayName)}
           </div>
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
                 color: 'var(--on-brand)', fontSize: 12.5, fontWeight: 700,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}
             >
-              {ADMIN.name}
+              {displayName}
             </div>
-            <div style={{ color: 'var(--on-dark-2)', fontSize: 11 }}>
-              {ADMIN.role} · {ADMIN.city}
+            <div
+              style={{
+                color: 'var(--on-dark-2)', fontSize: 11,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}
+            >
+              {displayRole}
             </div>
           </div>
+          <button
+            onClick={logout}
+            aria-label="Sign out"
+            title="Sign out"
+            style={{
+              width: 30, height: 30, borderRadius: 'var(--r-ctrl)', flexShrink: 0,
+              border: 'none', background: 'var(--dark-fill)',
+              color: 'var(--on-dark-1)', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <SignOutIcon />
+          </button>
         </div>
       </aside>
     </>

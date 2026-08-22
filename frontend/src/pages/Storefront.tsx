@@ -11,8 +11,38 @@ const THUMB_GRADIENT: Record<string, string> = {
   Parcel: 'linear-gradient(135deg, var(--parcel-soft) 0%, var(--parcel-vivid) 100%)',
 };
 
+function MoveButton({
+  direction, disabled, onClick, label,
+}: { direction: -1 | 1; disabled: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      style={{
+        width: 24, height: 22, borderRadius: 6, flexShrink: 0,
+        border: '1px solid var(--line)', background: 'var(--card)',
+        color: disabled ? 'var(--text-3)' : 'var(--text-2)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.45 : 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <svg
+        width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+        style={{ transform: direction === 1 ? 'rotate(180deg)' : undefined }}
+      >
+        <path d="M12 19V5M5 12l7-7 7 7" />
+      </svg>
+    </button>
+  );
+}
+
 export default function Storefront() {
-  const { banners, toggleBanner, reorderBanners, sections, toggleSection } = useAppState();
+  const {
+    banners, toggleBanner, reorderBanners, moveBanner, sections, toggleSection,
+  } = useAppState();
   const [dragging, setDragging] = useState<number | null>(null);
 
   return (
@@ -22,7 +52,8 @@ export default function Storefront() {
       <div className="reeyo-split-even">
         <Card title="Home banners">
           <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-2)' }}>
-            Drag to reorder. The first active banner is what a customer sees first.
+            Drag, or use the arrows, to reorder. The first active banner is what
+            a customer sees first.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -59,6 +90,21 @@ export default function Storefront() {
                     {b.vertical} · {b.zone} ·{' '}
                     <span className="mono">{b.taps.toLocaleString('fr-FR')}</span> taps
                   </div>
+                </div>
+                {/* Keyboard equivalent of the drag handle — section 11 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <MoveButton
+                    direction={-1}
+                    disabled={index === 0}
+                    onClick={() => moveBanner(b.id, -1)}
+                    label={`Move ${b.name} up`}
+                  />
+                  <MoveButton
+                    direction={1}
+                    disabled={index === banners.length - 1}
+                    onClick={() => moveBanner(b.id, 1)}
+                    label={`Move ${b.name} down`}
+                  />
                 </div>
                 <Toggle
                   checked={b.active}

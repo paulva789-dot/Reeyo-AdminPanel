@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Rail from './Rail';
 import Topbar from './Topbar';
+import SampleBanner from './SampleBanner';
 
 interface ShellProps {
   openOrders: number;
@@ -44,6 +45,7 @@ export default function Shell({ openOrders, pendingPayouts }: ShellProps) {
       >
         <Topbar onOpenNav={() => setMobileOpen(true)} />
         <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--gutter)' }}>
+          <SampleBanner />
           <Outlet />
         </main>
       </div>

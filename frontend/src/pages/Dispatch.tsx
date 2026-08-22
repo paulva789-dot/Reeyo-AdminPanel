@@ -9,7 +9,7 @@ import type { Column } from '../components/ui/DataTable';
 import RiderMap from '../components/domain/RiderMap';
 import { useAppState } from '../state/AppState';
 import { money } from '../lib/format';
-import { riders, zoneStats, teams } from '../data/seed';
+import { zoneStats, teams } from '../data/seed';
 import type { Team, Rider } from '../data/types';
 
 /** Capacity thresholds from section 8.3: green under 50, amber 50–75, red above. */
@@ -161,6 +161,7 @@ function Fees() {
 }
 
 export default function Dispatch() {
+  const { riders } = useAppState();
   const [tab, setTab] = useState('map');
 
   const riderColumns: Column<Rider>[] = [

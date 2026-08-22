@@ -9,11 +9,11 @@ import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
 import { useAppState } from '../state/AppState';
 import { money } from '../lib/format';
-import { riders } from '../data/seed';
+
 import type { Rider } from '../data/types';
 
 export default function Riders() {
-  const { pushToast } = useAppState();
+  const { riders, pushToast } = useAppState();
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
@@ -21,7 +21,7 @@ export default function Riders() {
     if (!q) return riders;
     return riders.filter((r) => [r.name, r.zone, r.vehicle, r.id, r.state]
       .join(' ').toLowerCase().includes(q));
-  }, [query]);
+  }, [query, riders]);
 
   const owed = riders.reduce((sum, r) => sum + r.owed, 0);
   const onShift = riders.filter((r) => r.state !== 'idle').length;

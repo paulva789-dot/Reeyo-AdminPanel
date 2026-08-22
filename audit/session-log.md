@@ -152,8 +152,74 @@ Three CDP probes were written rather than trusting screenshots (see the lesson i
 
 Responsive holds with no horizontal scroll at 360 / 420 / 768 / 860 / 1080 / 1440 / 1920.
 
-### Still open
+### Still open at the end of Part 4
 
 - The Phase 2 component gallery route, as noted above.
-- §8.7's banner reordering is implemented with the native HTML drag-and-drop API, which is keyboard-inaccessible. §11 requires full keyboard reach, so this needs keyboard-operable move controls before it can honestly be ticked off.
+- §8.7's banner reordering is implemented with the native HTML drag-and-drop API, which is keyboard-inaccessible. §11 requires full keyboard reach, so this needs keyboard-operable move controls before it can honestly be ticked off. **Closed in Part 5.**
 - Phase 7's polish pass has been partly absorbed into the work above (reduced-motion, focus rings, empty states, the responsive sweep) but has not been run as a deliberate end-to-end pass.
+
+---
+
+## Part 5 — Auth, the real backend, and the sign-in screen
+
+The request was to make everything work, connect to the backend properly, and polish the login page. `CLAUDE.md` §1 says "no backend, no API calls" — but §16, written in Part 3, always framed that as a scope boundary rather than a permanent decision, and kept the seed data behind `src/data/` so the swap would be a data-layer change. This is that swap.
+
+### The backend is real, and probing it first changed the design
+
+Rather than wiring against the old panel's assumptions, the deployed API was probed directly. It is live and returns exactly the envelope the audited client was built for. Three findings materially changed the wiring:
+
+- **Customers are at `/users`, not `/customers`** — `/customers` is a 404. This matches the `DELETE /users/:userId` reference in `docs/BACKEND_ENDPOINT_REQUESTS.md`.
+- **`/orders/search` now exists**, though that document tracked it as a real missing capability.
+- **Offers, banners, announcements, zones, teams and fee rules have no routes at all.** Marketing and Storefront therefore cannot be backed today, and are not presented as though they are.
+
+The full map is in [../docs/BACKEND_INTEGRATION.md](../docs/BACKEND_INTEGRATION.md).
+
+### The blocker worth escalating
+
+Sign-in failed from the browser with a `500 INTERNAL_SERVER_ERROR`, while the identical request via `curl` returned a correct `401 Invalid credentials`. Rather than accept the difference, it was isolated by varying one header at a time.
+
+**The deployed API returns 500 for any request carrying a non-allowlisted `Origin`.** Allowlisted origins (`https://admin.usereeyo.com`, `https://usereeyo.com`) behave correctly; `http://localhost:*` returns 500. Since browsers attach `Origin` to every cross-origin request and to same-origin non-GET requests, **no developer running the console locally could sign in at all**, and the failure looked like a server fault rather than a configuration problem.
+
+This is a backend defect and is written up as the first item in `docs/BACKEND_INTEGRATION.md`. The console works around it in the **dev proxy only** — `vite.config.ts` rewrites the outgoing `Origin` to an allowlisted value when proxying to a remote backend. The workaround does not ship in the production build and should be deleted once the backend rejects origins cleanly.
+
+Probing also produced the real error codes, which did not match the ones assumed from the old panel: wrong passwords return `AUTH_TOKEN_INVALID` (not `AUTH_INVALID_CREDENTIALS`), and validation failures return `VALIDATION_FAILED` (not `VALIDATION_ERROR`). Since `AUTH_TOKEN_INVALID` covers both "no session" and "wrong password", the console normalises on status instead: a 401 from `/auth/login` can only mean rejected credentials.
+
+### Live and sample, without pretending
+
+The console now runs in one of two modes, and never hides which.
+
+**Sample mode is never entered by a failure.** It is chosen explicitly on the sign-in screen, and while in it every page carries a banner and the rail footer reads "Sample data". If a *live* load fails, the page keeps its seed rows so it still reads, but the banner names the actual error and offers a retry. A console that silently falls back to fake data while looking connected is worse than one that fails visibly.
+
+### Two defects from the old panel, designed out
+
+`audit/bugs-and-gaps.md` recorded a sign-out button with no handler and a header showing a hardcoded `Super Admin / admin@reeyo.com`. Both are structurally impossible here: the rail footer reads `admin` from `AuthContext` and its sign-out button calls `logout()`, and both are covered by the automated flow check below.
+
+### Polish beyond the login page
+
+- **A bounded session check.** `/auth/me` against the remote backend took nearly five seconds, leaving the app on a near-blank screen with one line of small text. The boot state now carries the brand and a moving progress bar, and the request has an 8-second timeout so an unreachable API falls through to sign-in instead of hanging forever.
+- **Keyboard-operable banner reordering**, closing the §11 gap left open in Part 4. Drag still works; arrow buttons now do the same job.
+
+### The inline-style trap, twice more
+
+The login layout first rendered stacked instead of side by side, and then with a duplicated logo. Both were the *same bug already recorded in Part 3*: **an inline style silently outranks a media query**. `gridTemplateColumns`, `display: none` and `display: flex` were all set inline, so the `min-width: 860px` rules could never win. Fixed by moving the layout into `layout.css`.
+
+Three occurrences of one mistake across two sessions is a pattern, not bad luck. **Any property a breakpoint needs to change belongs in CSS, never in a `style` prop.**
+
+### Verification
+
+A CDP flow test drives the real browser against the real backend, and all nine checks pass:
+
+- a protected route redirects to sign-in, and the session check calls `/auth/me`
+- an empty submit is caught client-side with zero network calls
+- a sign-in attempt reaches the live backend and its rejection is shown as *"That email and password do not match"*
+- sample mode enters the console, is labelled on screen, and makes **no** API calls
+- sign-out returns to the sign-in screen
+
+All eleven pages then walk clean via in-app navigation, with no console errors, no missing accessible names, no emoji, no placeholder copy. No document-level horizontal scroll from 360px to 1920px — the only overflow reported is inside tables' own scroll containers, which §11 explicitly permits.
+
+### Still open
+
+- The Phase 2 component gallery route.
+- **Backend:** the origin-handling defect, and confirmation of the authenticated response shapes so `adapters.ts` can be narrowed from "several plausible keys" to the real ones.
+- **Backend:** the four mutation contracts the console calls were inferred from the API's own patterns and could not be exercised without a valid session. They are listed in `docs/BACKEND_INTEGRATION.md` for confirmation.
+- **Product:** whether Marketing, Storefront, zones, teams and fee rules should get endpoints or stay console-local.

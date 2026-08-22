@@ -11,7 +11,7 @@ import { FilterInput } from '../components/ui/Field';
 import { Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/AppState';
 import { money } from '../lib/format';
-import { payments, vendors, riders } from '../data/seed';
+
 import type { Payment, PayoutRequest } from '../data/types';
 
 const COMMISSION = 0.15;
@@ -35,6 +35,7 @@ function Deduction({ label, value }: { label: string; value: number }) {
 }
 
 function Ledger() {
+  const { payments } = useAppState();
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
@@ -42,7 +43,7 @@ function Ledger() {
     if (!q) return payments;
     return payments.filter((p) => [p.id, p.from, p.to, p.method, p.reason]
       .join(' ').toLowerCase().includes(q));
-  }, [query]);
+  }, [query, payments]);
 
   const columns: Column<Payment>[] = [
     {
@@ -91,6 +92,7 @@ function Ledger() {
 }
 
 function VendorSettlements() {
+  const { vendors } = useAppState();
   return (
     <div
       style={{
@@ -134,6 +136,7 @@ function VendorSettlements() {
 }
 
 function RiderSettlements() {
+  const { riders } = useAppState();
   return (
     <div
       style={{
@@ -271,7 +274,7 @@ function Requests() {
 }
 
 export default function Payments() {
-  const { payouts } = useAppState();
+  const { payouts, payments } = useAppState();
   const [tab, setTab] = useState('ledger');
 
   const pending = payouts.filter((p) => p.status === 'pending');
