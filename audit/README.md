@@ -3,10 +3,13 @@
 Date: 2026-08-22
 Scope: `frontend/` (Vite + React admin panel). No `Reeyo-Backend` repo was present to cross-check; findings about the API are based on the frontend's contract with it (`frontend/src/services/apiClient.js`) and `docs/BACKEND_ENDPOINT_REQUESTS.md`.
 
+> **Status note.** This audit describes the app as it stood on `main` at commit `e34f0ff`. That app has since been replaced in place by a ground-up rebuild — the reeyo Operations Console, specified in the root `CLAUDE.md` — on the `rebuild/operations-console` branch. **This folder is deliberately kept.** The auth design in [security.md](security.md) is worth re-using verbatim when the new console needs a backend, and the defects in [bugs-and-gaps.md](bugs-and-gaps.md) are the specific failure modes to design out from the start. See [session-log.md](session-log.md) for the full account.
+
 ## How to read this folder
 
 | File | Covers |
 |---|---|
+| [session-log.md](session-log.md) | Everything done on 2026-08-22 — the audit, the fixes applied, and the rebuild decision |
 | [architecture.md](architecture.md) | Stack, folder structure, routing, state management |
 | [api-integration.md](api-integration.md) | Backend wiring status page-by-page — what's live, what's still mock |
 | [security.md](security.md) | Auth flow, session handling, role gating, secrets |

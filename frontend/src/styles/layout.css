@@ -1,0 +1,58 @@
+/* Frame responsiveness — section 6 */
+
+.reeyo-rail {
+  transform: translateX(0);
+}
+
+.reeyo-nav-item:hover {
+  background: #ffffff12;
+}
+
+/* Kept in CSS, not inline, so the narrow-width override below can win */
+.reeyo-search {
+  max-width: 300px;
+}
+
+/* < 860px — rail becomes an overlay behind a menu button; keyboard hints hide */
+@media (max-width: 859px) {
+  .reeyo-rail {
+    transform: translateX(-100%);
+  }
+
+  .reeyo-rail.is-open {
+    transform: translateX(0);
+  }
+
+  .reeyo-rail-close {
+    display: block !important;
+  }
+
+  .reeyo-nav-toggle {
+    display: flex !important;
+  }
+
+  .reeyo-content {
+    margin-left: 0 !important;
+  }
+
+  .reeyo-kbd {
+    display: none;
+  }
+
+  .reeyo-search {
+    max-width: none;
+  }
+
+  /* Search already carries the label; the spacer would only squeeze it */
+  .reeyo-spacer {
+    display: none;
+  }
+}
+
+/* The location pill is the first thing to go when width runs out — the search
+   field and the alert controls are load-bearing, it is not. */
+@media (max-width: 700px) {
+  .reeyo-location {
+    display: none !important;
+  }
+}

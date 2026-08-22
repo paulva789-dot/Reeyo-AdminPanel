@@ -3,7 +3,10 @@
 ## Do first (small, high-impact fixes)
 
 1. **Wire up Sign Out.** `frontend/src/components/layout/Header.jsx` — import `useAuth`, call `logout()` from the "Sign Out" button's `onClick`, redirect to `/login` after. See [bugs-and-gaps.md](bugs-and-gaps.md) #1.
-2. **Fix the ESLint glob.** `frontend/eslint.config.js:11` — change `files: ['**/*.{ts,tsx}']` to include `.js`/`.jsx`. Run `npm run lint` afterward and expect a real (possibly nontrivial) list of findings, since this is the first time it will have actually run against the app. See [code-quality.md](code-quality.md).
+2. ~~**Fix the ESLint glob.**~~ **Done** — `frontend/eslint.config.js` now covers `.js`/`.jsx`. First real run produced **591 problems (588 errors, 3 warnings)**. Roughly 580 are one systemic issue: literal non-breaking-space characters used as indentation in `App.jsx` and `ThemeToggle.jsx` (a rich-text paste). The substantive remainder, still open:
+   - **`Chatwindow.jsx` — React hooks called conditionally after an early return** (`react-hooks/rules-of-hooks`). A real latent crash risk, and the highest-value item in the whole lint run. Fix this one even if the rest is deferred.
+   - Unused imports and dead variables in `ZoneMap.jsx`, `TrackingOrderCard.jsx`, `MarketingPage.jsx`.
+   - The whitespace mass is best fixed with a single find-and-replace of U+00A0 → space across those two files, not by hand.
 3. **Make the header show the real admin.** Read `admin`/`role`/`isSuperAdmin` from `useAuth()` in `Header.jsx` instead of the hardcoded "Super Admin / admin@reeyo.com" strings. See [bugs-and-gaps.md](bugs-and-gaps.md) #2.
 4. **Rewrite the root `README.md` migration-status line.** It currently tells every new reader the app is mock-only; that's the most visible piece of stale documentation in the repo.
 
