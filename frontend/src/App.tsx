@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Shell from './components/layout/Shell';
+import ToastHost from './components/ui/Toast';
+import { AppStateProvider, useAppState } from './state/AppState';
 import Overview from './pages/Overview';
 import Orders from './pages/Orders';
 import Dispatch from './pages/Dispatch';
@@ -12,11 +14,10 @@ import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 
-export default function App() {
-  // Phase 3 replaces these with counts derived from seed state, so changing an
-  // order status or approving a payout moves the badge — section 14.
-  const openOrders = 6;
-  const pendingPayouts = 3;
+function Routed() {
+  // Badges read live state, so a status change or a payout approval moves them
+  // in the same tick as the page that caused it — section 14.
+  const { openOrders, pendingPayouts } = useAppState();
 
   return (
     <Routes>
@@ -34,5 +35,14 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <AppStateProvider>
+      <Routed />
+      <ToastHost />
+    </AppStateProvider>
   );
 }

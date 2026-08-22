@@ -27,6 +27,23 @@
   --stop:#BC3C2A;  --stop-soft:#FAE7E3;   /* cancelled, delayed, failed, suspended */
   --calm:#55706B;  --calm-soft:#EAF0EC;   /* idle, archived, metadata */
 
+  /* Surface and control values named by section 5. These live here rather than
+     inline so section 14's "no raw hex outside tokens.css" holds; the values
+     themselves are the spec's, not invented. */
+  --on-brand:#FFFFFF;              /* text/icons on forest and emerald fills */
+  --destructive-line:#EFCDC7;      /* 5.1 destructive border */
+  --table-head:#F5F9F5;            /* 5.4 table header background */
+  --row-hover:#F7FBF8;             /* 5.4 row hover */
+  --veil:#06383166;                /* 5.6 overlay veil */
+  --focus-ring:#00BF631F;          /* 5.7 focus ring */
+  --toggle-off:#CBD8D0;            /* 5.7 toggle track, off */
+
+  /* Layers over the forest rail and dark panels */
+  --on-dark-1:#FFFFFFB8;  --on-dark-2:#FFFFFF8A;  --on-dark-3:#FFFFFF66;
+  --dark-line:#FFFFFF1A;  --dark-fill:#FFFFFF14;  --dark-fill-2:#FFFFFF1F;
+  --dark-label:#0000004D;
+  --nav-active:#00BF6320;          /* active nav row on the rail */
+
   /* Geometry */
   --r-card:14px; --r-ctrl:10px; --r-pill:999px;
   --shadow:0 1px 2px rgba(6,56,49,.05), 0 10px 26px -16px rgba(6,56,49,.25);

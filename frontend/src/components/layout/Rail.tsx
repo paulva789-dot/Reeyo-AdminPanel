@@ -74,7 +74,7 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
           onClick={onClose}
           style={{
             position: 'fixed', inset: 0, zIndex: 40,
-            background: '#06383166', backdropFilter: 'blur(3px)',
+            background: 'var(--veil)', backdropFilter: 'blur(3px)',
           }}
         />
       )}
@@ -98,7 +98,7 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
         >
           <span
             style={{
-              color: '#fff', fontSize: 19, fontWeight: 800,
+              color: 'var(--on-brand)', fontSize: 19, fontWeight: 800,
               letterSpacing: '-0.03em',
             }}
           >
@@ -109,7 +109,7 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
             aria-label="Close navigation"
             className="reeyo-rail-close"
             style={{
-              background: 'none', border: 'none', color: '#fff',
+              background: 'none', border: 'none', color: 'var(--on-brand)',
               opacity: 0.7, cursor: 'pointer', padding: 4, display: 'none',
             }}
           >
@@ -117,14 +117,14 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
           </button>
         </div>
 
-        <div style={{ height: 1, background: '#FFFFFF1A', margin: '0 18px 12px' }} />
+        <div style={{ height: 1, background: 'var(--dark-line)', margin: '0 18px 12px' }} />
 
         <nav style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}>
           {nav.map(({ group, items }) => (
             <div key={group} style={{ marginBottom: 16 }}>
               <div
                 className="eyebrow"
-                style={{ color: '#FFFFFF66', padding: '0 10px', marginBottom: 6 }}
+                style={{ color: 'var(--on-dark-3)', padding: '0 10px', marginBottom: 6 }}
               >
                 {group}
               </div>
@@ -142,8 +142,8 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
                     borderRadius: 'var(--r-ctrl)',
                     fontSize: 13.5, fontWeight: 700,
                     textDecoration: 'none',
-                    color: isActive ? '#fff' : '#FFFFFFB8',
-                    background: isActive ? '#00BF6320' : 'transparent',
+                    color: isActive ? 'var(--on-brand)' : 'var(--on-dark-1)',
+                    background: isActive ? 'var(--nav-active)' : 'transparent',
                   })}
                 >
                   {({ isActive }) => (
@@ -161,7 +161,7 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
                       <span
                         style={{
                           display: 'flex',
-                          color: isActive ? 'var(--emerald)' : '#fff',
+                          color: isActive ? 'var(--emerald)' : 'var(--on-brand)',
                           opacity: isActive ? 1 : 0.75,
                         }}
                       >
@@ -188,7 +188,7 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
           ))}
         </nav>
 
-        <div style={{ height: 1, background: '#FFFFFF1A', margin: '12px 18px 0' }} />
+        <div style={{ height: 1, background: 'var(--dark-line)', margin: '12px 18px 0' }} />
 
         <div style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
@@ -206,13 +206,13 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
           <div style={{ minWidth: 0 }}>
             <div
               style={{
-                color: '#fff', fontSize: 12.5, fontWeight: 700,
+                color: 'var(--on-brand)', fontSize: 12.5, fontWeight: 700,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}
             >
               {ADMIN.name}
             </div>
-            <div style={{ color: '#FFFFFF8A', fontSize: 11 }}>
+            <div style={{ color: 'var(--on-dark-2)', fontSize: 11 }}>
               {ADMIN.role} · {ADMIN.city}
             </div>
           </div>

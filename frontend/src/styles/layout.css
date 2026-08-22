@@ -56,3 +56,112 @@
     display: none !important;
   }
 }
+
+/* Order-flow rail — section 8.1a */
+
+.reeyo-flow-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+@media (max-width: 1080px) {
+  .reeyo-flow-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .reeyo-flow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.reeyo-flow-track {
+  animation: reeyo-track-in 620ms cubic-bezier(.3, .9, .3, 1) both;
+  transform-origin: left center;
+}
+
+@keyframes reeyo-track-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.reeyo-pulse {
+  animation: reeyo-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes reeyo-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* Overlays — section 5.6 */
+
+.reeyo-drawer {
+  animation: reeyo-drawer-in 280ms cubic-bezier(.3, .9, .3, 1) both;
+}
+
+@keyframes reeyo-drawer-in {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.reeyo-modal {
+  animation: reeyo-modal-in 200ms cubic-bezier(.3, .9, .3, 1) both;
+}
+
+@keyframes reeyo-modal-in {
+  from { transform: scale(.98); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.reeyo-toast {
+  animation: reeyo-toast-in 200ms cubic-bezier(.3, .9, .3, 1) both;
+}
+
+@keyframes reeyo-toast-in {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* Tables — section 5.4 */
+
+.reeyo-row:hover {
+  background: #F7FBF8;
+}
+
+/* Two-column page splits — section 6 */
+
+.reeyo-split {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.reeyo-split-even {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1079px) {
+  .reeyo-split,
+  .reeyo-split-even {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Service grid — section 8.1c */
+
+.reeyo-service-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 859px) {
+  .reeyo-service-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

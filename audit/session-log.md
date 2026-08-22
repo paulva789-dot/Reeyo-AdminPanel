@@ -117,3 +117,43 @@ It also surfaced the one bug that was genuinely there and which no screenshot wo
 **Lesson for later phases:** when verifying layout against a spec that states pixel thresholds, drive the CDP probe (`scratchpad/responsive.mjs` pattern) rather than eyeballing screenshots. Screenshots are for judging design; measurement is for verifying constraints.
 
 Final state: console clean (the two React Router v7 future-flag warnings were resolved by opting into `v7_startTransition` and `v7_relativeSplatPath` in `main.tsx`, which §14's "zero console errors" makes worth doing now rather than at the v7 upgrade).
+
+---
+
+## Part 4 — Phases 2 and 3, and the rest of the pages
+
+The Phase 1 checkpoint left every page as a bare title, which reads as "blank". This part filled them.
+
+### What was built
+
+- **Seed data** (`src/data/seed.ts`) to every quantity §7 asks for: 12 orders spanning all three verticals and every live stage including one delayed and one cancelled; 8 vendors (4 food, 3 grocery, 1 parcel, one suspended, one under review); 6 riders with one below 4.2; 7 customers across all four segments; 7 payments with one failed; 4 payout requests with three pending; 3 offers, 3 banners, 3 announcements, 5 spin-wheel prizes. Only Chez Mado has a published menu, so the menu empty state is genuinely reachable from the UI.
+- **Shared state** (`src/state/AppState.tsx`) holding orders, payouts, offers, banners, sections and fee rules, with badge counts derived from that state. This is what makes §14's cross-screen propagation real rather than cosmetic.
+- **All twelve UI primitives** from §5 and **all four charts** from §9, hand-rolled in SVG.
+- **Domain components:** the order-flow rail with working stage filtering, the service grid, the order drawer, and the dispatch rider map.
+- **All eleven pages** populated.
+
+### Deviation from the spec's build order, and why
+
+§13 asks for a Phase 2 scratch route rendering every primitive side by side for review. That was skipped: the request was to fix blank pages, and a component gallery is a reviewing aid, not a page a user visits. Every primitive still got exercised — and reviewed — through the real pages that use it. Worth adding later if a component library review is wanted on its own terms.
+
+### The §5 vs §14 conflict, and how it was resolved
+
+§14 requires `grep -r "#" src/components` to return no raw hex outside `tokens.css`. But §5 itself specifies literal hex values that are *not* in the §3 token list: `#EFCDC7` (destructive border), `#F5F9F5` (table header), `#F7FBF8` (row hover), `#06383166` (overlay veil), `#00BF631F` (focus ring), `#CBD8D0` (toggle track). Following §5 literally breaks §14's check; following §14 literally means inventing substitutes, which §15 forbids.
+
+§15 says to ask rather than invent. This did not need an escalation because a resolution exists that violates neither rule: **those values were promoted into `tokens.css` as named tokens** (`--destructive-line`, `--table-head`, `--row-hover`, `--veil`, `--focus-ring`, `--toggle-off`) and the components reference them by `var()`. Nothing was invented — the values are the spec's own, just relocated to where §14 wants them to live. The same was done for the white-on-forest layers the rail needs (`--on-dark-1/2/3`, `--dark-line`, `--dark-fill`, `--nav-active`). `grep -rE "#[0-9A-Fa-f]{3,8}" src/components` now returns nothing.
+
+### Verification
+
+Three CDP probes were written rather than trusting screenshots (see the lesson in Part 3), and all three pass:
+
+- **Route walk** — all eleven routes render real content, no console errors, no horizontal overflow.
+- **§14 interaction checks** — order status change decrements the Orders badge (10 → 9) and fires a toast; clicking a rail stage filters the panels below and dims the others; clicking the same stage again clears it; approving a payout decrements the Payments badge (3 → 2); the drawer opens and closes on both Escape and veil click; a filter with no matches reaches its written empty state.
+- **§11 and §10 spot checks** — every control has an accessible name, exactly one `h1` per screen, no emoji, no placeholder copy, no exclamation marks. This caught one real gap: the Settings fields relied on implicit `<label>` wrapping with no placeholder, so they were given explicit `aria-label`s.
+
+Responsive holds with no horizontal scroll at 360 / 420 / 768 / 860 / 1080 / 1440 / 1920.
+
+### Still open
+
+- The Phase 2 component gallery route, as noted above.
+- §8.7's banner reordering is implemented with the native HTML drag-and-drop API, which is keyboard-inaccessible. §11 requires full keyboard reach, so this needs keyboard-operable move controls before it can honestly be ticked off.
+- Phase 7's polish pass has been partly absorbed into the work above (reduced-motion, focus rings, empty states, the responsive sweep) but has not been run as a deliberate end-to-end pass.

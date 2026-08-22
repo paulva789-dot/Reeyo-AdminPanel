@@ -59,3 +59,42 @@ export interface Banner {
   id: number; name: string; vertical: string; zone: string;
   destination: string; active: boolean; taps: number;
 }
+
+/* Beyond section 7 — needed by the pages in sections 8.4, 8.8 and 8.10. */
+
+export interface MenuItem {
+  id: string; name: string; price: number;
+  wasPrice: number | null;          // struck through when present
+  stock: number; addOns: number; available: boolean;
+}
+
+export interface MenuCategory {
+  id: string; name: string; visible: boolean;
+  opens: string; closes: string;
+  days: string[];                   // 'Mon' ... 'Sun'
+  items: MenuItem[];
+}
+
+export interface Announcement {
+  id: number; headline: string; message: string;
+  audience: string; channel: string;
+  sent: string; reach: number; openRate: number;
+}
+
+export interface SpinPrize {
+  id: number; name: string; weight: number; colourToken: string;
+}
+
+export interface Team {
+  id: string; name: string; lead: string; size: number;
+  zone: Zone; shift: string; load: number;
+}
+
+export interface FeeRule {
+  id: string; name: string; baseFare: number; perKm: number;
+  condition: string; active: boolean;
+}
+
+export interface RiderPosition {
+  riderId: string; x: number; y: number;   // percentage across the map panel
+}
