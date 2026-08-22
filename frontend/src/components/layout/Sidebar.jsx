@@ -246,12 +246,15 @@ function Sidebar({ isMobileOpen, setIsMobileOpen }) {
       >
         {/* Logo/Header Section */}
         <div className="p-5 flex items-center justify-between flex-shrink-0 border-b border-white/10">
-          <motion.h1
-            className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent"
+          <motion.div
+            className="flex items-center gap-2"
             whileHover={{ scale: 1.05 }}
           >
-            Reeyo
-          </motion.h1>
+            <img src="/logo.svg" alt="" className="w-8 h-8 rounded-lg bg-white/90 p-1" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              Reeyo
+            </h1>
+          </motion.div>
           <motion.button
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}

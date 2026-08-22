@@ -14,8 +14,17 @@ import {
   HelpCircle,
   X,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+
+const ROLE_LABELS = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+};
 
 function Header({ toggleSidebar }) {
+  const { admin, role, logout } = useAuth();
+  const displayName = admin?.name || admin?.email || "Admin";
+  const displayRole = ROLE_LABELS[role] || role || "Admin";
   const [isScrolled, setIsScrolled] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -70,6 +79,12 @@ function Header({ toggleSidebar }) {
 
   const unreadCount = notifications.filter((n) => n.unread).length;
   const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    setShowProfileMenu(false);
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header
@@ -265,9 +280,9 @@ function Header({ toggleSidebar }) {
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-semibold text-gray-900">
-                    Super Admin
+                    {displayName}
                   </p>
-                  <p className="text-xs text-gray-500">admin@reeyo.com</p>
+                  <p className="text-xs text-gray-500">{admin?.email}</p>
                 </div>
                 <ChevronDown
                   className={`w-4 h-4 text-gray-500 transition-transform ${
@@ -292,10 +307,13 @@ function Header({ toggleSidebar }) {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">
-                            Super Admin
+                            {displayName}
                           </p>
                           <p className="text-xs text-gray-600">
-                            admin@reeyo.com
+                            {admin?.email}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {displayRole}
                           </p>
                         </div>
                       </div>
@@ -321,6 +339,7 @@ function Header({ toggleSidebar }) {
                     <div className="p-2 border-t border-gray-100 dark:border-slate-800">
                       <motion.button
                         whileHover={{ backgroundColor: "#fef2f2" }}
+                        onClick={handleSignOut}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm text-red-600 font-medium transition-colors"
                       >
                         <LogOut className="w-4 h-4" />

@@ -49,6 +49,7 @@ function LoginPage() {
       >
         {/* App Logo/Branding */}
         <div className="text-center mb-8">
+          <img src="/logo.svg" alt="Reeyo" className="w-16 h-16 mx-auto mb-3" />
           <h1 className="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
             Reeyo
           </h1>
