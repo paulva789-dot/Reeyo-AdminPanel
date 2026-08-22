@@ -3,6 +3,7 @@ import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Toggle from '../components/ui/Toggle';
 import Pill from '../components/ui/Pill';
+import LocalOnly from '../components/ui/LocalOnly';
 import { useAppState } from '../state/AppState';
 
 const THUMB_GRADIENT: Record<string, string> = {
@@ -48,6 +49,7 @@ export default function Storefront() {
   return (
     <>
       <PageTitle>Storefront</PageTitle>
+      <LocalOnly what="Storefront merchandising" />
 
       <div className="reeyo-split-even">
         <Card title="Home banners">

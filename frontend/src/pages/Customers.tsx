@@ -20,7 +20,7 @@ const SEGMENT_TOKEN: Record<string, string> = {
 };
 
 export default function Customers() {
-  const { customers } = useAppState();
+  const { customers, sampleOnly } = useAppState();
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
@@ -77,10 +77,10 @@ export default function Customers() {
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
-          <MetricTile label="Customers" value={String(customers.length)} delta={9} note="new this month" />
-          <MetricTile label="Lifetime spend" value={money(spend)} prefix="FCFA" delta={14} />
+          <MetricTile label="Customers" value={String(customers.length)} delta={sampleOnly(9)} note={sampleOnly('new this month')} />
+          <MetricTile label="Lifetime spend" value={money(spend)} prefix="FCFA" delta={sampleOnly(14)} />
           <MetricTile label="Loyal" value={String(loyal)} note="ordered 40+ times" />
-          <MetricTile label="Lapsed" value={String(lapsed)} delta={1} invertDelta note="worth a nudge" />
+          <MetricTile label="Lapsed" value={String(lapsed)} note="worth a nudge" />
         </MetricRow>
       </div>
 

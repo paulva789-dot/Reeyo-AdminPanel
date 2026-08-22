@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Order } from '../../data/types';
 import { money, ORDER_STAGES, isLate } from '../../lib/format';
 import { useAppState } from '../../state/AppState';
-import { riders } from '../../data/seed';
 import { Drawer, Modal, FooterSpacer } from '../ui/Overlay';
 import Button from '../ui/Button';
 import Pill from '../ui/Pill';
@@ -43,9 +42,9 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export default function OrderDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
-  const { setOrderStatus, assignRider } = useAppState();
+  const { setOrderStatus, assignRider, riders } = useAppState();
   const [reassigning, setReassigning] = useState(false);
-  const [pick, setPick] = useState(riders[0].name);
+  const [pick, setPick] = useState(riders[0]?.name ?? '');
 
   // The journey stops at the current stage; a cancelled order never advanced.
   const reached = order.status === 'cancelled'

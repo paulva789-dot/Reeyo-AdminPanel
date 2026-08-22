@@ -8,6 +8,7 @@ import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
+import EmptyState from '../components/ui/EmptyState';
 import { Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/AppState';
 import { money } from '../lib/format';
@@ -93,6 +94,19 @@ function Ledger() {
 
 function VendorSettlements() {
   const { vendors } = useAppState();
+  const settleable = vendors.filter((v) => v.status === 'active');
+
+  if (settleable.length === 0) {
+    return (
+      <Card>
+        <EmptyState
+          heading="No vendor is ready to settle"
+          line="Only active vendors are settled. Suspended and in-review vendors are held back."
+        />
+      </Card>
+    );
+  }
+
   return (
     <div
       style={{
@@ -100,7 +114,7 @@ function VendorSettlements() {
         gridTemplateColumns: 'repeat(auto-fit, minmax(268px, 1fr))',
       }}
     >
-      {vendors.filter((v) => v.status === 'active').map((v) => {
+      {settleable.map((v) => {
         const commission = Math.round(v.revenue * COMMISSION);
         const service = Math.round(v.revenue * SERVICE_FEE);
         const net = v.revenue - commission - service;
@@ -137,6 +151,18 @@ function VendorSettlements() {
 
 function RiderSettlements() {
   const { riders } = useAppState();
+
+  if (riders.length === 0) {
+    return (
+      <Card>
+        <EmptyState
+          heading="No riders to settle"
+          line="Riders appear here once they are on the fleet and have earnings owed."
+        />
+      </Card>
+    );
+  }
+
   return (
     <div
       style={{
@@ -274,7 +300,7 @@ function Requests() {
 }
 
 export default function Payments() {
-  const { payouts, payments } = useAppState();
+  const { payouts, payments, sampleOnly } = useAppState();
   const [tab, setTab] = useState('ledger');
 
   const pending = payouts.filter((p) => p.status === 'pending');
@@ -290,7 +316,7 @@ export default function Payments() {
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
-          <MetricTile label="Settled today" value={money(settled)} prefix="FCFA" delta={11} />
+          <MetricTile label="Settled today" value={money(settled)} prefix="FCFA" delta={sampleOnly(11)} />
           <MetricTile
             label="Waiting to release" value={money(pendingTotal)} prefix="FCFA"
             note={pending.length ? 'oldest is 2 days' : 'nothing waiting'}

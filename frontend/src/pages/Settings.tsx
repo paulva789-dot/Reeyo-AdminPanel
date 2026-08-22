@@ -7,6 +7,7 @@ import Toggle from '../components/ui/Toggle';
 import Field from '../components/ui/Field';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
+import LocalOnly from '../components/ui/LocalOnly';
 import { useAppState } from '../state/AppState';
 import { PAYMENT_METHODS, adminTeam } from '../data/seed';
 import { initials } from '../lib/format';
@@ -98,6 +99,8 @@ export default function Settings() {
       >
         Settings
       </PageTitle>
+
+      <LocalOnly what="Platform configuration" />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="reeyo-split-even">

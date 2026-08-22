@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useState, useEffect, useCallback, useMemo,
+  createContext, useContext, useState, useEffect, useCallback, useMemo, useRef,
 } from 'react';
 import { apiClient, ApiError, setUnauthorizedHandler } from '../services/apiClient';
 import { ENDPOINTS } from '../services/endpoints';
@@ -49,7 +49,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  /**
+   * Set as soon as a session is established by an explicit act — signing in, or
+   * choosing sample data. The initial /auth/me runs with a timeout, so it can
+   * still be in flight when the user picks one of those; without this guard its
+   * late rejection would call clearSession() and silently throw away the
+   * session they just chose.
+   */
+  const sessionClaimed = useRef(false);
+
   const clearSession = useCallback(() => {
+    sessionClaimed.current = false;
     setAdmin(null);
     setMode(null);
   }, []);
@@ -70,12 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     apiClient
       .get<Admin>(ENDPOINTS.me, undefined, { signal: AbortSignal.timeout(8000) })
       .then((res) => {
-        if (cancelled) return;
+        // A session chosen while this was in flight wins; do not overwrite it.
+        if (cancelled || sessionClaimed.current) return;
+        sessionClaimed.current = true;
         setAdmin(res.data ?? {});
         setMode('live');
       })
       .catch(() => {
-        if (!cancelled) clearSession();
+        if (cancelled || sessionClaimed.current) return;
+        clearSession();
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -89,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ENDPOINTS.login, { email, password },
       );
       const payload = res.data ?? {};
+      sessionClaimed.current = true;
       setAdmin(payload.admin ?? payload);
       setMode('live');
       return { success: true };
@@ -109,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const useSampleData = useCallback(() => {
+    sessionClaimed.current = true;
     setAdmin({ name: 'Adrian Nkeng', role: 'Platform admin', email: 'sample@reeyo.local' });
     setMode('sample');
   }, []);

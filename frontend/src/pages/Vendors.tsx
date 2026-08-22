@@ -35,7 +35,7 @@ function Avatar({ name, token }: { name: string; token: string }) {
 
 function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void }) {
   const [categories, setCategories] = useState<MenuCategory[]>(menus[vendor.id] ?? []);
-  const { pushToast } = useAppState();
+  const { pushToast, isSample } = useAppState();
 
   const toggleCategory = (id: string) => {
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, visible: !c.visible } : c)));
@@ -70,9 +70,13 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
     >
       {categories.length === 0 ? (
         <EmptyState
-          heading="This vendor has not published a menu"
-          line={`${vendor.name} cannot receive orders until at least one category with one available item exists.`}
-          action={<Button variant="primary">Add first category</Button>}
+          heading={isSample
+            ? 'This vendor has not published a menu'
+            : 'Menus are not available here yet'}
+          line={isSample
+            ? `${vendor.name} cannot receive orders until at least one category with one available item exists.`
+            : 'The admin API has no menu route, so this console cannot read or edit what a vendor is serving.'}
+          action={isSample ? <Button variant="primary">Add first category</Button> : undefined}
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

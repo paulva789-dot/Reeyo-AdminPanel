@@ -9,13 +9,14 @@ import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import Field, { TextArea, Select } from '../components/ui/Field';
 import BarList from '../components/charts/BarList';
+import LocalOnly from '../components/ui/LocalOnly';
 import { useAppState } from '../state/AppState';
 import { money } from '../lib/format';
 import { announcements, spinPrizes } from '../data/seed';
 import type { Offer } from '../data/types';
 
 function Offers() {
-  const { offers, toggleOffer } = useAppState();
+  const { offers, toggleOffer, sampleOnly } = useAppState();
 
   const live = offers.filter((o) => o.active).length;
   const redemptions = offers.reduce((s, o) => s + o.uses, 0);
@@ -74,9 +75,13 @@ function Offers() {
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
           <MetricTile label="Live offers" value={String(live)} note={`of ${offers.length}`} />
-          <MetricTile label="Redemptions" value={String(redemptions)} delta={18} />
-          <MetricTile label="Campaign spend" value={money(spent)} prefix="FCFA" delta={6} invertDelta />
-          <MetricTile label="Cost per redemption" value={money(Math.round(spent / redemptions))} prefix="FCFA" />
+          <MetricTile label="Redemptions" value={String(redemptions)} delta={sampleOnly(18)} />
+          <MetricTile label="Campaign spend" value={money(spent)} prefix="FCFA" delta={sampleOnly(6)} invertDelta />
+          <MetricTile
+            label="Cost per redemption"
+            value={redemptions > 0 ? money(Math.round(spent / redemptions)) : '—'}
+            prefix={redemptions > 0 ? 'FCFA' : undefined}
+          />
         </MetricRow>
       </div>
 
@@ -239,6 +244,8 @@ export default function Marketing() {
       >
         Marketing
       </PageTitle>
+
+      <LocalOnly what="Offers, announcements and the spin wheel" />
 
       <div style={{ marginBottom: 14 }}>
         <Segments

@@ -7,6 +7,7 @@ import Segments from '../components/ui/Segments';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import RiderMap from '../components/domain/RiderMap';
+import LocalOnly from '../components/ui/LocalOnly';
 import { useAppState } from '../state/AppState';
 import { money } from '../lib/format';
 import { zoneStats, teams } from '../data/seed';
@@ -21,6 +22,8 @@ function capacityToken(pct: number): string {
 
 function Zones() {
   return (
+    <>
+    <LocalOnly what="Delivery zones" />
     <div
       style={{
         display: 'grid',
@@ -81,6 +84,7 @@ function Zones() {
         );
       })}
     </div>
+    </>
   );
 }
 
@@ -108,9 +112,12 @@ function Teams() {
   ];
 
   return (
-    <Card title="Delivery teams">
-      <DataTable columns={columns} rows={teams} rowKey={(t) => t.id} />
-    </Card>
+    <>
+      <LocalOnly what="Delivery teams" />
+      <Card title="Delivery teams">
+        <DataTable columns={columns} rows={teams} rowKey={(t) => t.id} />
+      </Card>
+    </>
   );
 }
 
@@ -118,6 +125,8 @@ function Fees() {
   const { feeRules, toggleFeeRule } = useAppState();
 
   return (
+    <>
+    <LocalOnly what="Delivery fee rules" />
     <div
       style={{
         display: 'grid',
@@ -157,6 +166,7 @@ function Fees() {
         </Card>
       ))}
     </div>
+    </>
   );
 }
 

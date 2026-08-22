@@ -217,9 +217,67 @@ A CDP flow test drives the real browser against the real backend, and all nine c
 
 All eleven pages then walk clean via in-app navigation, with no console errors, no missing accessible names, no emoji, no placeholder copy. No document-level horizontal scroll from 360px to 1920px — the only overflow reported is inside tables' own scroll containers, which §11 explicitly permits.
 
-### Still open
+### Still open at the end of Part 5
 
 - The Phase 2 component gallery route.
 - **Backend:** the origin-handling defect, and confirmation of the authenticated response shapes so `adapters.ts` can be narrowed from "several plausible keys" to the real ones.
 - **Backend:** the four mutation contracts the console calls were inferred from the API's own patterns and could not be exercised without a valid session. They are listed in `docs/BACKEND_INTEGRATION.md` for confirmation.
 - **Product:** whether Marketing, Storefront, zones, teams and fee rules should get endpoints or stay console-local.
+
+---
+
+## Part 6 — The bug hunt
+
+A deliberate pass to find and fix defects, rather than only closing the items already known.
+
+### The dominant class: fabricated figures presented as live
+
+Once the console could show real data, a whole category of defect became visible that had been harmless while everything was seeded: **hardcoded numbers sitting next to real ones**.
+
+- The Overview "needs attention" list named specific seed entities — *"Fresh Corner is suspended"*, *"Mama Grill has been under review for 3 days"*, *"Blaise Fon is rated 3.9 across 156 trips"*, *"1 order running late in Muea"*. Against live data these are **fabricated claims about entities that may not exist**, and the pluralisation was wrong for any count but one.
+- Every metric tile carried an invented trend (`+12% vs yesterday`), and Overview's "Avg delivery" was the literal string `24 min`.
+- The whole Analytics page was hardcoded: GMV of 13 240 000, 128 new customers, a 4.6 rating — none of it connected to anything.
+
+The fix was a new `src/lib/insights.ts` that derives every claim from the rows actually loaded, with a rule stated at the top of the file: nothing in it may hardcode a vendor, rider, zone or figure. Overview and Analytics now compute their values; where a figure genuinely needs history the API does not expose, `sampleOnly()` returns it in sample mode and `undefined` in live mode, so it simply does not render rather than showing an invented number.
+
+Alerts are now derived and only appear when the data justifies them — an empty platform produces an empty list, not invented problems. A new one fell out of the rewrite that nobody had thought to hardcode: *"3 orders without a rider"*.
+
+### Features with no endpoint were showing seed data unlabelled
+
+Storefront, Marketing, Settings, delivery zones, teams and fee rules have no backend route at all. In live mode they were rendering seed rows with nothing to say they were not real. A small `LocalOnly` component now marks each one. Relatedly, the vendor menu empty state claimed *"This vendor has not published a menu"* — a statement the console cannot verify, since the API exposes no menu route. It now says that instead.
+
+### A real race condition, caught only because a harness was hardened
+
+The page walk was reporting **"All pages clean"** for eleven pages while sitting on the sign-in screen the entire time. Its checks — main text length, exactly one `h1` — are all satisfied by the login page, so it had been passing without ever entering the console. The screenshots were the giveaway.
+
+After making the harness assert that the rail exists and the `h1` matches the expected page, it failed immediately and exposed a genuine bug:
+
+> `/auth/me` runs with an 8-second timeout. If the user clicks "Explore with sample data" while it is still in flight, its later rejection calls `clearSession()` and **silently throws away the session they just chose.**
+
+Earlier runs passed only because the request happened to finish before the click. Fixed with a `sessionClaimed` ref that both explicit paths set, so a late `/auth/me` result can never overwrite a session established while it was pending.
+
+**The lesson is about the harness, not the bug:** a green check that cannot distinguish "the app works" from "the app never loaded" is worse than no check, because it actively buys false confidence. Assertions must be specific enough to fail.
+
+### A typography bug found by testing the wrong thing
+
+An edge-case suite asserted `money()` used U+202F. It used U+2009 THIN SPACE — literally what the spec asks for, so the test was wrong. But checking the difference surfaced a real defect: **U+2009 is a breaking space**, and a DOM measurement confirmed `FCFA 2 140 000` wraps mid-number in a narrow cell, rendering one figure as two. Switched to U+202F NARROW NO-BREAK SPACE, which looks the same and cannot break. The spec's intent — scannable figures in mono with tabular numerals — is better served by the non-breaking variant.
+
+### Smaller defects fixed
+
+- `OrderDrawer` still imported riders from the seed file, so reassignment offered seed riders against live orders.
+- `SampleBanner` only watched the orders collection; any other collection could fail silently. It now watches all six.
+- `Sparkline` derived its gradient id from `sum + length`, so two sparklines with matching values would collide and one would borrow the other's fill. Now `useId()`.
+- Toast timers were never cleared on unmount.
+- Marketing divided by `redemptions` without guarding zero, producing `NaN`.
+- If a payload omitted every id field, all rows adopted the same fallback key and React reconciliation broke. `resources.ts` now guarantees unique ids.
+- Payments settlement tabs rendered an empty grid with no explanation when nobody was settleable.
+
+### Verification
+
+56 checks across three suites, each run on a clean browser profile after discovering that running them back to back caused cross-suite interference (which had produced two spurious failures):
+
+- **33 edge-case checks** against the real modules, covering the empty and malformed inputs live data can produce but the seed never does — empty collections, all-cancelled orders, unknown enum values, junk payloads, and the money formatting rules.
+- **14 interaction checks**, including the keyboard reordering and that alerts name only entities present in the data.
+- **9 auth-flow checks** against the live backend.
+
+All eleven pages walk clean with no console errors, and no document-level horizontal scroll from 360px to 1920px.

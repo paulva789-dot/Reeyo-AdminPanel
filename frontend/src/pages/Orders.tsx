@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
@@ -9,6 +9,7 @@ import type { Column } from '../components/ui/DataTable';
 import { FilterInput, Select } from '../components/ui/Field';
 import OrderDrawer from '../components/domain/OrderDrawer';
 import { useAppState } from '../state/AppState';
+import { resources } from '../services/resources';
 import { money, isLate } from '../lib/format';
 import type { Order, OrderStatus } from '../data/types';
 
@@ -17,11 +18,31 @@ const STATUSES: OrderStatus[] = [
 ];
 
 export default function Orders() {
-  const { orders, setOrderStatus } = useAppState();
+  const { orders, setOrderStatus, isSample } = useAppState();
   const [params, setParams] = useSearchParams();
   const vertical = params.get('vertical') ?? 'all';
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Order | null>(null);
+  const [remote, setRemote] = useState<Order[] | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  // The loaded page is only the most recent slice, so a filter that matches
+  // nothing locally is asked of the backend, which searches the whole dataset.
+  useEffect(() => {
+    const q = query.trim();
+    if (isSample || q.length < 2) {
+      setRemote(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSearching(true);
+      resources.searchOrders(q)
+        .then((rows) => setRemote(rows))
+        .catch(() => setRemote(null))
+        .finally(() => setSearching(false));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [query, isSample]);
 
   const byVertical = useMemo(
     () => (vertical === 'all' ? orders : orders.filter((o) => o.vertical === vertical)),
@@ -31,9 +52,12 @@ export default function Orders() {
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return byVertical;
-    return byVertical.filter((o) => [o.id, o.customer, o.vendor, o.rider ?? '', o.zone]
+    const local = byVertical.filter((o) => [o.id, o.customer, o.vendor, o.rider ?? '', o.zone]
       .join(' ').toLowerCase().includes(q));
-  }, [byVertical, query]);
+    // Prefer local hits; fall back to whatever the backend found.
+    if (local.length > 0 || remote === null) return local;
+    return vertical === 'all' ? remote : remote.filter((o) => o.vertical === vertical);
+  }, [byVertical, query, remote, vertical]);
 
   const columns: Column<Order>[] = [
     {
@@ -137,6 +161,9 @@ export default function Orders() {
 
       <Card>
         <TableToolbar title="All orders" count={rows.length}>
+          {searching && (
+            <span className="eyebrow" style={{ marginRight: 4 }}>Searching</span>
+          )}
           <FilterInput
             value={query}
             onChange={setQuery}
@@ -151,7 +178,9 @@ export default function Orders() {
           minWidth={980}
           empty={{
             heading: 'No order matches that filter',
-            line: 'Nothing here matches what you typed, so there is nothing to act on.',
+            line: isSample
+              ? 'Nothing here matches what you typed, so there is nothing to act on.'
+              : 'Nothing matches, on this page or anywhere else in the order history.',
             action: <Button variant="primary" onClick={() => setQuery('')}>Clear filter</Button>,
           }}
         />

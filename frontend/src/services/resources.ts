@@ -11,10 +11,32 @@ import type {
   Order, Vendor, Rider, Customer, Payment, PayoutRequest, OrderStatus,
 } from '../data/types';
 
-async function list<T>(path: string, adapt: (row: Record<string, unknown>) => T,
-  params?: Record<string, string | number>): Promise<T[]> {
+/**
+ * Rows are keyed by `id` throughout the console. If a payload omits every id
+ * field the adapters fall back to a placeholder, which would give every row the
+ * same key and break React's reconciliation — so duplicates are made unique
+ * here rather than silently corrupting the tables.
+ */
+function ensureUniqueIds<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.map((row, i) => {
+    if (!row.id || seen.has(row.id)) {
+      const id = `${row.id || 'row'}-${i + 1}`;
+      seen.add(id);
+      return { ...row, id };
+    }
+    seen.add(row.id);
+    return row;
+  });
+}
+
+async function list<T extends { id: string }>(
+  path: string,
+  adapt: (row: Record<string, unknown>) => T,
+  params?: Record<string, string | number>,
+): Promise<T[]> {
   const res = await apiClient.get<unknown>(path, params);
-  return toArray(res.data).map(adapt);
+  return ensureUniqueIds(toArray(res.data).map(adapt));
 }
 
 export const resources = {

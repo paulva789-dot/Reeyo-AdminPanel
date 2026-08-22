@@ -3,7 +3,15 @@ import type { OrderStatus, Vertical } from '../data/types';
 /** Signal tokens — section 3.3. There is no fifth. */
 export type SignalToken = 'go' | 'watch' | 'stop' | 'calm' | 'parcel';
 
-const THIN_SPACE = ' ';
+/**
+ * U+202F NARROW NO-BREAK SPACE, not U+2009 THIN SPACE.
+ *
+ * Both render as the thin gap section 1 asks for, but U+2009 is breaking: in
+ * a narrow table cell "FCFA 2 140 000" wraps mid-number and the figure reads
+ * as two. The no-break variant keeps every amount on one line, which is the
+ * whole point of the mono, tabular treatment in section 4.
+ */
+const THIN_SPACE = ' ';
 
 /** 2140000 -> "2 140 000". Thin space, never a comma — section 1. */
 export function money(amount: number): string {

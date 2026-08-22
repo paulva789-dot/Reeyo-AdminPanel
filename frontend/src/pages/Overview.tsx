@@ -12,10 +12,14 @@ import OrderFlowRail, { matchesStage } from '../components/domain/OrderFlowRail'
 import type { Stage } from '../components/domain/OrderFlowRail';
 import ServiceGrid from '../components/domain/ServiceGrid';
 import OrderDrawer from '../components/domain/OrderDrawer';
+import EmptyState from '../components/ui/EmptyState';
 import { useAppState } from '../state/AppState';
 import { money, isLate } from '../lib/format';
 import {
-  ordersSparkline, gmvSparkline, deliverySparkline, cancelSparkline, revenueSplit,
+  deriveAlerts, grossValue, cancelRate, averageEta, revenueByVertical,
+} from '../lib/insights';
+import {
+  ordersSparkline, gmvSparkline, deliverySparkline, cancelSparkline,
 } from '../data/seed';
 import type { Order } from '../data/types';
 
@@ -29,7 +33,9 @@ function needsDecision(o: Order): boolean {
 
 export default function Overview() {
   const navigate = useNavigate();
-  const { orders, payouts } = useAppState();
+  const {
+    orders, payouts, vendors, riders, sampleOnly,
+  } = useAppState();
   const [stage, setStage] = useState<Stage | null>(null);
   const [open, setOpen] = useState<Order | null>(null);
 
@@ -41,47 +47,18 @@ export default function Overview() {
 
   const attention = useMemo(() => scoped.filter(needsDecision), [scoped]);
 
-  const gross = scoped.reduce((sum, o) => sum + o.total, 0);
-  const cancelled = scoped.filter((o) => o.status === 'cancelled').length;
-  const cancelRate = scoped.length
-    ? Math.round((cancelled / scoped.length) * 100) : 0;
+  const gross = grossValue(scoped);
+  const rate = cancelRate(scoped);
+  const avgEta = averageEta(scoped);
 
-  const pendingTotal = payouts
-    .filter((p) => p.status === 'pending')
-    .reduce((sum, p) => sum + p.amount, 0);
+  // Derived from the rows actually loaded — see lib/insights.ts for why none of
+  // this may be hardcoded.
+  const alerts = useMemo(
+    () => deriveAlerts(orders, vendors, riders, payouts),
+    [orders, vendors, riders, payouts],
+  );
 
-  const alerts = [
-    {
-      id: 'a1',
-      text: `FCFA ${money(pendingTotal)} waiting, oldest is 2 days`,
-      token: 'watch',
-      to: '/payments',
-    },
-    {
-      id: 'a2',
-      text: `${orders.filter((o) => o.status === 'delayed').length} order running late in Muea`,
-      token: 'stop',
-      to: '/orders',
-    },
-    {
-      id: 'a3',
-      text: 'Fresh Corner is suspended and still listed',
-      token: 'stop',
-      to: '/vendors',
-    },
-    {
-      id: 'a4',
-      text: 'Mama Grill has been under review for 3 days',
-      token: 'watch',
-      to: '/vendors',
-    },
-    {
-      id: 'a5',
-      text: 'Blaise Fon is rated 3.9 across 156 trips',
-      token: 'watch',
-      to: '/riders',
-    },
-  ];
+  const revenue = useMemo(() => revenueByVertical(scoped), [scoped]);
 
   const columns: Column<Order>[] = [
     {
@@ -145,24 +122,29 @@ export default function Overview() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <OrderFlowRail orders={orders} selected={stage} onSelect={setStage} />
 
+        {/* Values come from the loaded rows. Trends and sparklines need history
+            the API does not expose, so they appear only in sample mode. */}
         <MetricRow>
           <MetricTile
             label="Orders today" value={String(scoped.length)}
-            delta={12} note="vs yesterday" series={ordersSparkline}
+            delta={sampleOnly(12)} note={sampleOnly('vs yesterday')}
+            series={sampleOnly(ordersSparkline)}
           />
           <MetricTile
             label="Gross value" value={money(gross)} prefix="FCFA"
-            delta={8} note="vs yesterday" series={gmvSparkline}
+            delta={sampleOnly(8)} note={sampleOnly('vs yesterday')}
+            series={sampleOnly(gmvSparkline)}
           />
           <MetricTile
-            label="Avg delivery" value="24 min"
-            delta={-3} deltaSuffix=" min" invertDelta note="faster this week"
-            series={deliverySparkline} seriesColour="var(--parcel)"
+            label="Avg delivery" value={avgEta === null ? '—' : `${avgEta} min`}
+            delta={sampleOnly(-3)} deltaSuffix=" min" invertDelta
+            note={sampleOnly('faster this week')}
+            series={sampleOnly(deliverySparkline)} seriesColour="var(--parcel)"
           />
           <MetricTile
-            label="Cancel rate" value={`${cancelRate}%`}
-            delta={-1} invertDelta note="vs last week"
-            series={cancelSparkline} seriesColour="var(--stop)"
+            label="Cancel rate" value={`${rate}%`}
+            delta={sampleOnly(-1)} invertDelta note={sampleOnly('vs last week')}
+            series={sampleOnly(cancelSparkline)} seriesColour="var(--stop)"
           />
         </MetricRow>
 
@@ -196,15 +178,23 @@ export default function Overview() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Card title="Revenue by service">
-              <Donut
-                slices={revenueSplit.map((r) => ({
-                  label: r.label, value: r.value, token: r.token,
-                }))}
-                format={(v) => money(v)}
-              />
+              {revenue.length === 0 ? (
+                <EmptyState
+                  heading="No revenue to split yet"
+                  line="Once orders start completing, the share each service takes shows here."
+                />
+              ) : (
+                <Donut slices={revenue} format={(v) => money(v)} />
+              )}
             </Card>
 
             <Card title="Needs attention">
+              {alerts.length === 0 ? (
+                <EmptyState
+                  heading="Nothing needs attention"
+                  line="No late orders, unassigned riders, suspended vendors or payouts waiting."
+                />
+              ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {alerts.map((a) => (
                   <button
@@ -231,6 +221,7 @@ export default function Overview() {
                   </button>
                 ))}
               </div>
+              )}
             </Card>
           </div>
         </div>

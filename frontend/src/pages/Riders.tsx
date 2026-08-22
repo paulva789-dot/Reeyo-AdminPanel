@@ -13,7 +13,7 @@ import { money } from '../lib/format';
 import type { Rider } from '../data/types';
 
 export default function Riders() {
-  const { riders, pushToast } = useAppState();
+  const { riders, pushToast, sampleOnly } = useAppState();
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
@@ -80,9 +80,9 @@ export default function Riders() {
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
           <MetricTile label="Fleet size" value={String(riders.length)} note="across five zones" />
-          <MetricTile label="On shift" value={String(onShift)} delta={2} deltaSuffix="" note="vs this hour" />
+          <MetricTile label="On shift" value={String(onShift)} note={`of ${riders.length}`} />
           <MetricTile label="Owed to riders" value={money(owed)} prefix="FCFA" />
-          <MetricTile label="Average rating" value={avgRating} delta={0} note="steady" />
+          <MetricTile label="Average rating" value={avgRating} note={sampleOnly('steady')} />
         </MetricRow>
       </div>
 

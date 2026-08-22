@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useState, useCallback, useMemo, useEffect,
+  createContext, useContext, useState, useCallback, useMemo, useEffect, useRef,
 } from 'react';
 import type {
   Order, OrderStatus, PayoutRequest, Vendor, Rider, Customer, Payment,
@@ -70,6 +70,16 @@ interface AppStateValue {
   openOrders: number;
   pendingPayouts: number;
 
+  /** True when the rows on screen are seed data rather than the live API. */
+  isSample: boolean;
+  /**
+   * Returns a value only in sample mode. Use it for figures the backend gives
+   * us no way to compute — period-over-period trends, historical series. In
+   * live mode they become undefined and simply do not render, rather than
+   * showing an invented number next to real data.
+   */
+  sampleOnly: <T>(value: T) => T | undefined;
+
   toasts: Toast[];
   pushToast: (message: string) => void;
 
@@ -119,10 +129,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Timers are tracked so unmounting cannot leave them firing setState.
+  const toastTimers = useRef<number[]>([]);
+  useEffect(() => () => {
+    toastTimers.current.forEach((t) => clearTimeout(t));
+  }, []);
+
   const pushToast = useCallback((message: string) => {
     const id = ++toastSeq;
     setToasts((prev) => [...prev, { id, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2600);
+    const timer = window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+      toastTimers.current = toastTimers.current.filter((t) => t !== timer);
+    }, 2600);
+    toastTimers.current.push(timer);
   }, []);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
@@ -277,6 +297,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [payouts],
   );
 
+  const isSample = !live || ordersState.sample;
+  const sampleOnly = useCallback(
+    <T,>(v: T): T | undefined => (isSample ? v : undefined),
+    [isSample],
+  );
+
   const value: AppStateValue = {
     orders, ordersState, setOrderStatus, assignRider,
     vendors: vendorsState.rows, vendorsState,
@@ -289,6 +315,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     sections, toggleSection,
     feeRules, toggleFeeRule,
     openOrders, pendingPayouts,
+    isSample, sampleOnly,
     toasts, pushToast,
     reload,
   };
