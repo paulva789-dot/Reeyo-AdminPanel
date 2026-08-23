@@ -137,6 +137,25 @@ export function SettingsIcon(p: IconProps) {
   );
 }
 
+export function DisputesIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 3l9 16H3l9-16z" />
+      <path d="M12 10v4" />
+      <path d="M12 17.5v.01" />
+    </Svg>
+  );
+}
+
+export function ApprovalsIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      <path d="M8.8 12.6l2 2 4.4-4.4" />
+    </Svg>
+  );
+}
+
 export function SearchIcon(p: IconProps) {
   return (
     <Svg {...p}>

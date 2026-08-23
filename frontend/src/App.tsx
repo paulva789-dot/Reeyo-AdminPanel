@@ -7,6 +7,8 @@ import Login from './pages/Login';
 import Overview from './pages/Overview';
 import Orders from './pages/Orders';
 import Dispatch from './pages/Dispatch';
+import Disputes from './pages/Disputes';
+import Approvals from './pages/Approvals';
 import Vendors from './pages/Vendors';
 import Riders from './pages/Riders';
 import Customers from './pages/Customers';
@@ -47,14 +49,21 @@ function Booting() {
 function SignedIn() {
   // Badges read live state, so a status change or a payout approval moves them
   // in the same tick as the page that caused it — section 14.
-  const { openOrders, pendingPayouts } = useAppState();
+  const { openOrders, pendingPayouts, openDisputes, pendingApprovals } = useAppState();
 
   return (
     <Routes>
-      <Route element={<Shell openOrders={openOrders} pendingPayouts={pendingPayouts} />}>
+      <Route element={<Shell
+        openOrders={openOrders}
+        pendingPayouts={pendingPayouts}
+        openDisputes={openDisputes}
+        pendingApprovals={pendingApprovals}
+      />}>
         <Route path="/" element={<Overview />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/dispatch" element={<Dispatch />} />
+        <Route path="/disputes" element={<Disputes />} />
+        <Route path="/approvals" element={<Approvals />} />
         <Route path="/vendors" element={<Vendors />} />
         <Route path="/riders" element={<Riders />} />
         <Route path="/customers" element={<Customers />} />

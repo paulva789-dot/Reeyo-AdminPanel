@@ -57,6 +57,17 @@ const STATUS_TOKENS: Record<string, SignalToken> = {
   suspended: 'stop',
   idle: 'calm',
   archived: 'calm',
+  // Disputes and menu approvals. All four fit go / watch / stop; section 3.3
+  // forbids inventing a fifth signal for them.
+  open: 'watch',
+  resolved: 'go',
+  rejected: 'stop',
+  approved: 'go',
+  high: 'stop',
+  normal: 'calm',
+  low: 'calm',
+  'price update': 'watch',
+  'new item': 'parcel',
 };
 
 export function statusToken(status: string): SignalToken {

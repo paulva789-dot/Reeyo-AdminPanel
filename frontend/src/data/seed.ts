@@ -1,6 +1,7 @@
 import type {
   Order, Vendor, Rider, Customer, Payment, PayoutRequest, Offer, Banner,
   MenuCategory, Announcement, SpinPrize, Team, FeeRule, RiderPosition, Zone,
+  Dispute, MenuApproval, ApiKey,
 } from './types';
 
 export const ZONES: Zone[] = ['Molyko', 'Bonduma', 'Great Soppo', 'Mile 16', 'Muea'];
@@ -482,6 +483,136 @@ export const openComplaints = [
   { label: 'Wrong item', value: 9, token: 'watch' },
   { label: 'Rider conduct', value: 4, token: 'stop' },
   { label: 'Damaged packaging', value: 3, token: 'watch' },
+];
+
+/* Disputes — one of each status, plus a high-priority open one. */
+export const disputes: Dispute[] = [
+  {
+    id: 'D-01', ticket: 'TCK-4471', subject: 'Order arrived cold',
+    category: 'Food quality', status: 'open', priority: 'high',
+    customer: 'Anna Mbella', orderId: 'F-2827', openedAgo: '2 hr ago',
+    resolution: null,
+    messages: [
+      {
+        id: 'm1', author: 'Anna Mbella',
+        body: 'The pizza was cold and the wings were missing.',
+        sentAt: '2 hr ago',
+      },
+      {
+        id: 'm2', author: 'Support',
+        body: 'Thank you for reporting this. We are checking with Pizza Palace.',
+        sentAt: '1 hr ago',
+      },
+    ],
+  },
+  {
+    id: 'D-02', ticket: 'TCK-4468', subject: 'Rider never arrived',
+    category: 'Delivery', status: 'open', priority: 'normal',
+    customer: 'Marc Etoa', orderId: 'S-1179', openedAgo: '5 hr ago',
+    resolution: null,
+    messages: [
+      {
+        id: 'm3', author: 'Marc Etoa',
+        body: 'Waited an hour and nobody came. I cancelled in the end.',
+        sentAt: '5 hr ago',
+      },
+    ],
+  },
+  {
+    id: 'D-03', ticket: 'TCK-4455', subject: 'Charged twice for one order',
+    category: 'Payment', status: 'resolved', priority: 'high',
+    customer: 'Peter Samu', orderId: 'P-0769', openedAgo: '2 d ago',
+    resolution: 'Duplicate charge refunded to MTN MoMo.',
+    messages: [
+      {
+        id: 'm4', author: 'Peter Samu',
+        body: 'My account shows two charges of FCFA 3 200.',
+        sentAt: '2 d ago',
+      },
+    ],
+  },
+  {
+    id: 'D-04', ticket: 'TCK-4450', subject: 'Wants refund for a delivered order',
+    category: 'Refund', status: 'rejected', priority: 'low',
+    customer: 'Clarisse Eto', orderId: 'F-2830', openedAgo: '3 d ago',
+    resolution: null,
+    messages: [
+      {
+        id: 'm5', author: 'Clarisse Eto',
+        body: 'I changed my mind after it arrived.',
+        sentAt: '3 d ago',
+      },
+    ],
+  },
+];
+
+/* Menu approvals — a price rise, a price cut, a new item, and one of each
+   settled status so every state is reachable. */
+export const menuApprovals: MenuApproval[] = [
+  {
+    id: 'A-01', vendor: 'Chez Mado', itemName: 'Ndolé with plantain',
+    category: 'Main dishes', changeType: 'price update',
+    currentPrice: 3500, requestedPrice: 4200, status: 'pending',
+    submittedAgo: '3 hr ago',
+    reason: 'Cost of ingredients has risen this month.',
+    adminNotes: null,
+  },
+  {
+    id: 'A-02', vendor: 'UrbanMart', itemName: 'Rice 5kg',
+    category: 'Staples', changeType: 'price update',
+    currentPrice: 6500, requestedPrice: 5900, status: 'pending',
+    submittedAgo: '6 hr ago',
+    reason: 'Passing on a supplier discount.',
+    adminNotes: null,
+  },
+  {
+    id: 'A-03', vendor: 'GreenBowl', itemName: 'Avocado smoothie',
+    category: 'Drinks', changeType: 'new item',
+    currentPrice: null, requestedPrice: 1800, status: 'pending',
+    submittedAgo: '1 d ago',
+    reason: 'Adding a seasonal drink for the dry season.',
+    adminNotes: null,
+  },
+  {
+    id: 'A-04', vendor: 'Pizza Palace', itemName: 'Large pepperoni',
+    category: 'Pizza', changeType: 'price update',
+    currentPrice: 7800, requestedPrice: 8500, status: 'approved',
+    submittedAgo: '2 d ago',
+    reason: 'Cheese cost increase.',
+    adminNotes: 'Approved, in line with the market.',
+  },
+  {
+    id: 'A-05', vendor: 'Mama Grill', itemName: 'Grilled tilapia',
+    category: 'Grill', changeType: 'price update',
+    currentPrice: 4000, requestedPrice: 9500, status: 'rejected',
+    submittedAgo: '3 d ago',
+    reason: 'Fish is scarce.',
+    adminNotes: 'A 138% rise is too steep. Resubmit with a smaller change.',
+  },
+];
+
+/* API keys — one active, one never used, one revoked. */
+export const apiKeys: ApiKey[] = [
+  {
+    id: 'K-01', name: 'support-bot', prefix: 'rey_live_8fa2',
+    scopes: ['orders:read', 'users:read'],
+    lastUsed: '2026-08-22', revoked: false,
+  },
+  {
+    id: 'K-02', name: 'analytics-export', prefix: 'rey_live_31cd',
+    scopes: ['analytics:read', 'orders:read'],
+    lastUsed: null, revoked: false,
+  },
+  {
+    id: 'K-03', name: 'old-dashboard', prefix: 'rey_live_0b47',
+    scopes: ['orders:read'],
+    lastUsed: '2026-06-02', revoked: true,
+  },
+];
+
+export const API_KEY_SCOPES = [
+  'orders:read', 'users:read', 'vendors:read', 'riders:read',
+  'broadcast:write', 'analytics:read',
 ];
 
 export const adminTeam = [

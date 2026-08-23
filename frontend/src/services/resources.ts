@@ -5,10 +5,12 @@ import { apiClient } from './apiClient';
 import { ENDPOINTS } from './endpoints';
 import {
   adaptOrder, adaptVendor, adaptRider, adaptCustomer,
-  adaptPayment, adaptPayoutRequest, toArray,
+  adaptPayment, adaptPayoutRequest, adaptDispute, adaptApproval, adaptApiKey,
+  toArray,
 } from './adapters';
 import type {
   Order, Vendor, Rider, Customer, Payment, PayoutRequest, OrderStatus,
+  Dispute, MenuApproval, ApiKey,
 } from '../data/types';
 
 /**
@@ -57,7 +59,42 @@ export const resources = {
   payoutRequests: () =>
     list<PayoutRequest>(ENDPOINTS.payoutRequests, adaptPayoutRequest, { limit: 100 }),
 
+  disputes: () => list<Dispute>(ENDPOINTS.disputes, adaptDispute, { limit: 100 }),
+
+  menuApprovals: () =>
+    list<MenuApproval>(ENDPOINTS.menuApprovals, adaptApproval, { limit: 100 }),
+
+  apiKeys: () => list<ApiKey>(ENDPOINTS.apiKeys, adaptApiKey),
+
   /** Mutations — the console's own writes, not adapted on the way back. */
+
+  resolveDispute: (id: string, resolution: string, refundAmount?: number) =>
+    apiClient.post(ENDPOINTS.resolveDispute(id), {
+      resolution,
+      refundAmount: refundAmount || undefined,
+      refundToWallet: false,
+    }),
+
+  rejectDispute: (id: string, reason: string) =>
+    apiClient.post(ENDPOINTS.rejectDispute(id), { reason }),
+
+  replyToDispute: (id: string, message: string) =>
+    apiClient.post(ENDPOINTS.disputeMessages(id), { message }),
+
+  approveMenu: (id: string) => apiClient.post(ENDPOINTS.approveMenu(id)),
+
+  rejectMenu: (id: string, reason: string) =>
+    apiClient.post(ENDPOINTS.rejectMenu(id), { reason }),
+
+  /** Returns the raw key, which the backend shows exactly once. */
+  createApiKey: (name: string, scopes: string[], expiresAt?: string) =>
+    apiClient.post<{ rawKey?: string; key?: string } & Record<string, unknown>>(
+      ENDPOINTS.apiKeys,
+      { name, scopes, expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined },
+    ),
+
+  revokeApiKey: (id: string) => apiClient.delete(ENDPOINTS.apiKey(id)),
+
   setOrderStatus: (id: string, status: OrderStatus) =>
     apiClient.patch(`${ENDPOINTS.orders}/${id}`, { status }),
 

@@ -281,3 +281,96 @@ An edge-case suite asserted `money()` used U+202F. It used U+2009 THIN SPACE —
 - **9 auth-flow checks** against the live backend.
 
 All eleven pages walk clean with no console errors, and no document-level horizontal scroll from 360px to 1920px.
+
+---
+
+## Part 7 — Restoring three capabilities the rebuild dropped
+
+Asked what else would help, I checked rather than assumed and found a gap worth
+raising: **three things the backend serves and the old panel had, which the new
+console did not.**
+
+| Capability | Route | Old panel |
+|---|---|---|
+| Disputes | `/disputes` | `DisputesPage.jsx` |
+| Menu approvals | `/menu-approvals` | `MenuApprovals.jsx` |
+| API keys | `/config/api-keys` | `ApiKeys.jsx` |
+
+`CLAUDE.md` specifies eleven pages and none of them cover this, so it was not a
+bug against the spec — but it meant a working admin could no longer resolve a
+dispute, approve a vendor's menu, or revoke an API key. The user asked for all
+three back.
+
+### Contracts taken from the old panel, not invented
+
+Rather than guess request shapes, the old panel's calls were read out of git.
+It had been talking to this same API, so those contracts are proven against a
+real build rather than pattern-matched: `POST /disputes/:id/resolve` takes
+`{ resolution, refundAmount?, refundToWallet }`, `POST /menu-approvals/:id/reject`
+takes `{ reason }`, and `POST /config/api-keys` returns the raw key exactly once.
+
+Probing also settled a discrepancy: the old panel called `/menu-approvals` while
+the earlier endpoint sweep had found `/vendors/menu-approvals`. **Both answer.**
+The console uses the short form because that is the one with a proven history.
+
+### What was built
+
+- **Disputes** — its own nav item under Operate with a live badge for the open
+  count. Table with priority and status, and a drawer carrying the full
+  conversation, a reply box, and resolve/reject flows. Resolving asks what was
+  done and optionally a refund amount, and says plainly that money which has
+  left cannot be pulled back. Rejecting requires a reason, because the customer
+  sees it.
+- **Menu approvals** — its own nav item under Supply with a badge for the
+  waiting count, since a vendor is blocked until someone decides. The column
+  that matters is the price move: old price struck through, new price beside it,
+  and the percentage change coloured by direction. A rise costs the customer and
+  a cut costs the vendor, so both read as `watch` rather than `stop` — neither
+  is an error. Rejecting requires a reason the vendor can act on.
+- **API keys** — a card in Settings. The raw key is revealed once on creation
+  behind copy-to-clipboard, with the list showing only the prefix afterwards.
+  Creation refuses a key with no name or no scopes, since a scopeless key can do
+  nothing. Revoking confirms and states that it cannot be undone.
+
+All three write through to the API in live mode and fall back to local state in
+sample mode, with the same optimistic-then-resync behaviour as the rest of the
+console.
+
+### One real find, and three harness mistakes
+
+The dispute row action was labelled **"Open"** — the same word as the status
+filter tab directly above it. Ambiguous on screen, and worse for anyone moving
+between controls by name. Renamed to "Open ticket".
+
+The other three failures were all my own harness being imprecise, and each is
+worth recording because the pattern repeats:
+
+- It asserted `includes('Conversation')` while the eyebrow style renders the
+  label uppercase.
+- It clicked the **first** button matching "Resolve dispute", but the drawer's
+  action and the modal's confirm share that label — which §10 explicitly
+  requires ("keep one name through a flow"). The modal renders last, so the
+  match had to be the last one.
+- It filled the **first** textarea in a dialog, but with a drawer and a modal
+  open together that was the drawer's reply box, not the modal's resolution
+  field. The topmost dialog is the one to target.
+
+None of these were app defects. The lesson from Part 6 held: a selector loose
+enough to match the wrong element produces a failure that looks like a bug, and
+the only way to tell them apart is to look at the DOM rather than re-run and
+hope.
+
+### Verification
+
+17 new checks covering all three capabilities — badges moving, validation
+refusing incomplete input, the raw key shown exactly once, revocation warning
+that it is permanent. All pass, alongside the existing suites: 33 edge cases, 14
+interaction checks, 9 auth-flow checks, and all **thirteen** pages walking clean
+with no console errors and no horizontal scroll from 360px to 1920px.
+
+### What the user still needs to supply
+
+- **Backend source or a test login** — to narrow the defensive adapters to real
+  field names and exercise the mutations.
+- **The origin-500 fix** — a backend change, out of reach from this repo.
+- **A deployment origin and the Brand Guide v1.1** — artifacts only they have.

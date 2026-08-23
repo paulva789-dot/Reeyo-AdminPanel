@@ -62,7 +62,8 @@ built on this deployment.
 | Auth | `/auth/me`, `/auth/login`, `/auth/refresh` | present |
 | Orders | `/orders`, `/orders/search` | present |
 | Riders | `/riders`, `/riders/:id/deliveries` | present |
-| Vendors | `/vendors`, `/vendors/menu-approvals` | present |
+| Vendors | `/vendors` | present |
+| Menu approvals | `/menu-approvals` and `/vendors/menu-approvals` | both present |
 | Customers | `/users` | present |
 | Disputes | `/disputes` | present |
 | Analytics | `/analytics/overview` | present |
@@ -75,12 +76,15 @@ built on this deployment.
 | — | `/offers`, `/banners`, `/announcements` | **404** |
 | — | `/admins` | **404** |
 
-Two corrections to what `BACKEND_ENDPOINT_REQUESTS.md` recorded for the previous
-panel:
+Three corrections to what `BACKEND_ENDPOINT_REQUESTS.md` recorded for the
+previous panel:
 
 - **`/orders/search` now exists.** It was previously tracked as a real gap.
 - **Customers were never at `/customers`.** They are at `/users`, which matches
   the `DELETE /users/:userId` reference in the older document.
+- **Menu approvals answer on both `/menu-approvals` and
+  `/vendors/menu-approvals`.** The console uses the short form, which is what
+  the previous panel called and is therefore the proven one.
 
 ### Consequences for the console
 
@@ -192,10 +196,19 @@ already does for `https://admin.usereeyo.com`.
 - **Backend:** stop returning 500 for non-allowlisted origins (section 1).
 - **Backend:** confirm the authenticated response shapes so `adapters.ts` can be
   narrowed from "several plausible keys" to the real ones.
-- **Backend:** confirm the mutation contracts the console calls —
-  `PATCH /orders/:id`, `POST /orders/:id/assign-rider`,
-  `POST /payouts/requests/:id/approve`, `POST /payouts/requests/:id/decline`.
-  These follow the pattern of the rest of the API but were not verifiable
-  without a session.
+- **Backend:** confirm the mutation contracts the console calls. These were
+  not verifiable without a session:
+  - Inferred from the API's own patterns: `PATCH /orders/:id`,
+    `POST /orders/:id/assign-rider`, `POST /payouts/requests/:id/approve`,
+    `POST /payouts/requests/:id/decline`.
+  - Carried over from the previous panel, so proven against an older build of
+    this API rather than guessed: `POST /disputes/:id/resolve`
+    (`{ resolution, refundAmount?, refundToWallet }`),
+    `POST /disputes/:id/reject` (`{ reason }`),
+    `POST /disputes/:id/messages` (`{ message }`),
+    `POST /menu-approvals/:id/approve`,
+    `POST /menu-approvals/:id/reject` (`{ reason }`),
+    `POST /config/api-keys` (`{ name, scopes, expiresAt? }`, returns the raw key
+    once), `DELETE /config/api-keys/:id`.
 - **Product:** decide whether offers, banners, announcements, zones, teams and
   fee rules should get endpoints, or stay console-local.

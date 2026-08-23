@@ -10,7 +10,8 @@
 
 import type {
   Order, OrderStatus, Vertical, Zone, Vendor, Rider, Customer,
-  Payment, PayoutRequest,
+  Payment, PayoutRequest, Dispute, DisputeStatus, DisputePriority,
+  DisputeMessage, MenuApproval, ApprovalStatus, ChangeType, ApiKey,
 } from '../data/types';
 
 type Raw = Record<string, unknown>;
@@ -281,6 +282,93 @@ export function adaptPayoutRequest(row: Raw): PayoutRequest {
     method: str(row, ['method', 'payout_method', 'channel'], '—'),
     number: str(row, ['number', 'account_number', 'phone', 'destination'], '—'),
     status,
+  };
+}
+
+const DISPUTE_STATUSES = ['open', 'resolved', 'rejected'] as const;
+const PRIORITIES = ['low', 'normal', 'high'] as const;
+
+export function adaptDispute(row: Raw): Dispute {
+  const rawStatus = normaliseEnum(str(row, ['status', 'state'], 'open'));
+  const status = (DISPUTE_STATUSES as readonly string[]).includes(rawStatus)
+    ? rawStatus as DisputeStatus
+    : rawStatus.includes('resolv') || rawStatus.includes('closed') ? 'resolved'
+      : rawStatus.includes('reject') || rawStatus.includes('declin') ? 'rejected'
+        : 'open';
+
+  const rawPriority = normaliseEnum(str(row, ['priority', 'severity'], 'normal'));
+  const priority = (PRIORITIES as readonly string[]).includes(rawPriority)
+    ? rawPriority as DisputePriority
+    : rawPriority.includes('urgent') || rawPriority.includes('critical') ? 'high' : 'normal';
+
+  const rawMessages = row.messages;
+  const messages: DisputeMessage[] = Array.isArray(rawMessages)
+    ? (rawMessages as Raw[]).map((m, i) => ({
+      id: str(m, ['id', '_id'], `m${i + 1}`),
+      author: nested(m, ['author', 'sender', 'user'], ['name', 'full_name'])
+        || str(m, ['author_name', 'sender_name'], 'Unknown'),
+      body: str(m, ['message', 'body', 'text'], ''),
+      sentAt: toRelative(pick(m, ['created_at', 'createdAt', 'sent_at'])),
+    }))
+    : [];
+
+  return {
+    id: str(row, ['id', '_id'], '—'),
+    ticket: str(row, ['ticket_number', 'ticketNumber', 'reference'], '—'),
+    subject: str(row, ['subject', 'title', 'summary'], '—'),
+    category: str(row, ['category', 'type'], '—'),
+    status,
+    priority,
+    customer: nested(row, ['user', 'customer'], ['name', 'full_name'])
+      || str(row, ['customer_name'], '—'),
+    orderId: nested(row, ['order'], ['order_number', 'orderNumber', 'id'])
+      || str(row, ['order_id', 'orderId'], '') || null,
+    openedAgo: toRelative(pick(row, ['created_at', 'createdAt', 'opened_at'])),
+    resolution: str(row, ['resolution'], '') || null,
+    messages,
+  };
+}
+
+const APPROVAL_STATUSES = ['pending', 'approved', 'rejected'] as const;
+
+export function adaptApproval(row: Raw): MenuApproval {
+  const rawStatus = normaliseEnum(str(row, ['status', 'state'], 'pending'));
+  const status = (APPROVAL_STATUSES as readonly string[]).includes(rawStatus)
+    ? rawStatus as ApprovalStatus
+    : rawStatus.includes('approv') ? 'approved'
+      : rawStatus.includes('reject') || rawStatus.includes('declin') ? 'rejected'
+        : 'pending';
+
+  const rawChange = normaliseEnum(str(row, ['change_type', 'changeType', 'kind'], ''));
+  const changeType: ChangeType = rawChange.includes('new') ? 'new item' : 'price update';
+
+  const current = pick(row, ['current_price', 'currentPrice', 'old_price']);
+
+  return {
+    id: str(row, ['id', '_id'], '—'),
+    vendor: nested(row, ['vendor', 'store', 'merchant'], ['name', 'business_name'])
+      || str(row, ['vendor_name', 'vendorName'], '—'),
+    itemName: str(row, ['item_name', 'itemName', 'name'], '—'),
+    category: str(row, ['category'], '—'),
+    changeType,
+    currentPrice: current === undefined ? null : Number(current) || 0,
+    requestedPrice: num(row, ['requested_price', 'requestedPrice', 'new_price', 'price']),
+    status,
+    submittedAgo: toRelative(pick(row, ['submitted_at', 'submittedAt', 'created_at'])),
+    reason: str(row, ['reason', 'note', 'justification'], '—'),
+    adminNotes: str(row, ['admin_notes', 'adminNotes'], '') || null,
+  };
+}
+
+export function adaptApiKey(row: Raw): ApiKey {
+  const scopes = Array.isArray(row.scopes) ? (row.scopes as unknown[]).map(String) : [];
+  return {
+    id: str(row, ['id', '_id'], '—'),
+    name: str(row, ['name', 'label'], '—'),
+    prefix: str(row, ['key_prefix', 'keyPrefix', 'prefix'], '—'),
+    scopes,
+    lastUsed: String(pick(row, ['last_used_at', 'lastUsedAt']) ?? '').slice(0, 10) || null,
+    revoked: Boolean(pick(row, ['revoked_at', 'revokedAt', 'revoked'])),
   };
 }
 

@@ -17,15 +17,24 @@ export const ENDPOINTS = {
   riders: '/riders',
   riderDeliveries: (id: string) => `/riders/${id}/deliveries`,
   vendors: '/vendors',
-  menuApprovals: '/vendors/menu-approvals',
+  // Both /menu-approvals and /vendors/menu-approvals answer; the previous
+  // panel used the short form, so that is the proven one.
+  menuApprovals: '/menu-approvals',
+  approveMenu: (id: string) => `/menu-approvals/${id}/approve`,
+  rejectMenu: (id: string) => `/menu-approvals/${id}/reject`,
   users: '/users', // customers live here, NOT at /customers
   disputes: '/disputes',
+  dispute: (id: string) => `/disputes/${id}`,
+  resolveDispute: (id: string) => `/disputes/${id}/resolve`,
+  rejectDispute: (id: string) => `/disputes/${id}/reject`,
+  disputeMessages: (id: string) => `/disputes/${id}/messages`,
   analyticsOverview: '/analytics/overview',
   payouts: '/payouts',
   payoutRequests: '/payouts/requests',
   config: '/config',
   configSettings: '/config/settings',
   apiKeys: '/config/api-keys',
+  apiKey: (id: string) => `/config/api-keys/${id}`,
   uploads: '/uploads',
 } as const;
 

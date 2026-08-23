@@ -8,6 +8,7 @@ import Field from '../components/ui/Field';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import LocalOnly from '../components/ui/LocalOnly';
+import ApiKeysCard from './settings/ApiKeysCard';
 import { useAppState } from '../state/AppState';
 import { PAYMENT_METHODS, adminTeam } from '../data/seed';
 import { initials } from '../lib/format';
@@ -169,6 +170,8 @@ export default function Settings() {
             ))}
           </div>
         </Card>
+
+        <ApiKeysCard />
 
         <Card
           title="Admin team"

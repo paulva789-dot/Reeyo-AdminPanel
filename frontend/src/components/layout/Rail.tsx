@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   OverviewIcon, OrdersIcon, DispatchIcon, VendorsIcon, RidersIcon,
   CustomersIcon, StorefrontIcon, MarketingIcon, PaymentsIcon,
-  AnalyticsIcon, SettingsIcon, CloseIcon,
+  AnalyticsIcon, SettingsIcon, CloseIcon, DisputesIcon, ApprovalsIcon,
 } from './icons';
 import { initials } from '../../lib/format';
 import { useAuth } from '../../state/AuthContext';
@@ -36,11 +36,16 @@ interface NavGroup {
 interface RailProps {
   openOrders: number;
   pendingPayouts: number;
+  openDisputes: number;
+  pendingApprovals: number;
   mobileOpen: boolean;
   onClose: () => void;
 }
 
-export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }: RailProps) {
+export default function Rail({
+  openOrders, pendingPayouts, openDisputes, pendingApprovals,
+  mobileOpen, onClose,
+}: RailProps) {
   const { admin, isSample, logout } = useAuth();
 
   // Show whoever is actually signed in, never a hardcoded identity — the
@@ -55,12 +60,14 @@ export default function Rail({ openOrders, pendingPayouts, mobileOpen, onClose }
         { label: 'Overview', to: '/', Icon: OverviewIcon },
         { label: 'Orders', to: '/orders', Icon: OrdersIcon, badge: openOrders },
         { label: 'Dispatch', to: '/dispatch', Icon: DispatchIcon },
+        { label: 'Disputes', to: '/disputes', Icon: DisputesIcon, badge: openDisputes },
       ],
     },
     {
       group: 'Supply',
       items: [
         { label: 'Vendors', to: '/vendors', Icon: VendorsIcon },
+        { label: 'Approvals', to: '/approvals', Icon: ApprovalsIcon, badge: pendingApprovals },
         { label: 'Riders', to: '/riders', Icon: RidersIcon },
         { label: 'Customers', to: '/customers', Icon: CustomersIcon },
       ],

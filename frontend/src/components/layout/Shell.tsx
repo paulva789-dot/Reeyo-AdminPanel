@@ -7,9 +7,13 @@ import SampleBanner from './SampleBanner';
 interface ShellProps {
   openOrders: number;
   pendingPayouts: number;
+  openDisputes: number;
+  pendingApprovals: number;
 }
 
-export default function Shell({ openOrders, pendingPayouts }: ShellProps) {
+export default function Shell({
+  openOrders, pendingPayouts, openDisputes, pendingApprovals,
+}: ShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
@@ -32,6 +36,8 @@ export default function Shell({ openOrders, pendingPayouts }: ShellProps) {
       <Rail
         openOrders={openOrders}
         pendingPayouts={pendingPayouts}
+        openDisputes={openDisputes}
+        pendingApprovals={pendingApprovals}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />

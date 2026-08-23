@@ -98,3 +98,52 @@ export interface FeeRule {
 export interface RiderPosition {
   riderId: string; x: number; y: number;   // percentage across the map panel
 }
+
+/* Capabilities the backend serves that the first eleven pages did not cover. */
+
+export type DisputeStatus = 'open' | 'resolved' | 'rejected';
+export type DisputePriority = 'low' | 'normal' | 'high';
+
+export interface DisputeMessage {
+  id: string; author: string; body: string; sentAt: string;
+}
+
+export interface Dispute {
+  id: string;
+  ticket: string;             // customer-facing ticket number
+  subject: string;
+  category: string;
+  status: DisputeStatus;
+  priority: DisputePriority;
+  customer: string;
+  orderId: string | null;
+  openedAgo: string;
+  resolution: string | null;
+  messages: DisputeMessage[];
+}
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type ChangeType = 'price update' | 'new item';
+
+export interface MenuApproval {
+  id: string;
+  vendor: string;
+  itemName: string;
+  category: string;
+  changeType: ChangeType;
+  currentPrice: number | null;   // null for a brand new item
+  requestedPrice: number;
+  status: ApprovalStatus;
+  submittedAgo: string;
+  reason: string;
+  adminNotes: string | null;
+}
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;             // the only part of the key ever shown again
+  scopes: string[];
+  lastUsed: string | null;
+  revoked: boolean;
+}
