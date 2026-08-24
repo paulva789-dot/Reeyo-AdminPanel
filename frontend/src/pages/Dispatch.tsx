@@ -8,7 +8,7 @@ import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import RiderMap from '../components/domain/RiderMap';
 import LocalOnly from '../components/ui/LocalOnly';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 import EmptyState from '../components/ui/EmptyState';
 import { zoneStats, teams } from '../data/seed';

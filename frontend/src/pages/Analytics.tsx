@@ -7,7 +7,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ColumnChart from '../components/charts/ColumnChart';
 import BarList from '../components/charts/BarList';
 import Donut from '../components/charts/Donut';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 import {
   grossValue, cancelRate, averageBasket, averageEta, ratingAverage,

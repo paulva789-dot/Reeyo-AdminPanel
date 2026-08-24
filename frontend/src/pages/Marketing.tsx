@@ -10,7 +10,7 @@ import type { Column } from '../components/ui/DataTable';
 import Field, { TextArea, Select } from '../components/ui/Field';
 import BarList from '../components/charts/BarList';
 import LocalOnly from '../components/ui/LocalOnly';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 import { announcements, spinPrizes } from '../data/seed';
 import type { Offer } from '../data/types';
@@ -188,7 +188,16 @@ function SpinWheel() {
   const cx = size / 2;
   const cy = size / 2;
 
-  let angle = -Math.PI / 2;
+  // Each slice's start angle is derived from the ones before it rather than by
+  // mutating a running value while rendering.
+  const slices = spinPrizes.reduce<{ prize: typeof spinPrizes[number]; from: number; sweep: number }[]>(
+    (acc, prize) => {
+      const sweep = (prize.weight / total) * Math.PI * 2;
+      const from = acc.length ? acc[acc.length - 1].from + acc[acc.length - 1].sweep : -Math.PI / 2;
+      return [...acc, { prize, from, sweep }];
+    },
+    [],
+  );
 
   return (
     <div className="reeyo-split-even">
@@ -208,19 +217,18 @@ function SpinWheel() {
             role="img"
             aria-label={spinPrizes.map((p) => `${p.name} ${p.weight}%`).join(', ')}
           >
-            {spinPrizes.map((p) => {
-              const sweep = (p.weight / total) * Math.PI * 2;
-              const x1 = cx + r * Math.cos(angle);
-              const y1 = cy + r * Math.sin(angle);
-              angle += sweep;
-              const x2 = cx + r * Math.cos(angle);
-              const y2 = cy + r * Math.sin(angle);
+            {slices.map(({ prize, from, sweep }) => {
+              const to = from + sweep;
+              const x1 = cx + r * Math.cos(from);
+              const y1 = cy + r * Math.sin(from);
+              const x2 = cx + r * Math.cos(to);
+              const y2 = cy + r * Math.sin(to);
               const large = sweep > Math.PI ? 1 : 0;
               return (
                 <path
-                  key={p.id}
+                  key={prize.id}
                   d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`}
-                  fill={`var(--${p.colourToken})`}
+                  fill={`var(--${prize.colourToken})`}
                   stroke="var(--card)"
                   strokeWidth="2"
                 />

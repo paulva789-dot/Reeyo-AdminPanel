@@ -3,7 +3,7 @@ import type { Order, Vertical } from '../../data/types';
 import { money } from '../../lib/format';
 import Button from '../ui/Button';
 import Pill from '../ui/Pill';
-import { useAppState } from '../../state/AppState';
+import { useAppState } from '../../state/useAppState';
 import { ALL_REGIONS, REGIONS, zonesInRegion } from '../../data/geography';
 
 interface ServiceGridProps {

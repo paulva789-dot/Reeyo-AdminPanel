@@ -469,3 +469,87 @@ The region checks specifically prove the scope is real: 22 orders nationwide
 narrow to 3 in Littoral, every remaining row is in that region, the scope
 carries across pages, the sidebar badge follows it (3 vs 17), and a region with
 no activity shows its empty state rather than a broken table.
+
+---
+
+## Part 9 — Missing tooling, and the bugs it found
+
+The ask was to fix broken issues and add missing dependencies. Nothing was
+missing at runtime — every package the source imports was declared — but two
+things genuinely were.
+
+### No linter at all
+
+The rebuild dropped ESLint entirely: no config, no dev dependency, no `lint`
+script. That is worse than the previous panel's situation, where the linter at
+least existed (even if its globs matched nothing — `audit/code-quality.md`).
+
+Added `eslint`, `typescript-eslint`, the React Hooks and Refresh plugins, and
+`@types/node` (`vite.config.ts` uses `process.cwd()` and had been relying on a
+transitive type). The first attempt failed on a peer conflict — `eslint@^9`
+against a floating `@eslint/js` that resolved to v10 — fixed by pinning both to
+the same major rather than reaching for `--legacy-peer-deps`.
+
+The config carries a `lint:count` script beside it, which prints how many files
+were linted. That exists specifically so the old failure — a linter that passes
+because it is looking at nothing — cannot recur unnoticed. It reports **69**.
+
+### Four real errors it found immediately
+
+- **`RegionPicker` defined its row component inside its own render.** React sees
+  a new component type every render, so the entire option list unmounted and
+  remounted on each state change. Hoisted to module scope.
+- **`Donut` and the spin wheel mutated a running total during render** — an
+  offset and an angle accumulated inside `.map()`. Both now precompute.
+- **`Orders` called `setState` synchronously inside an effect.** Reworked so the
+  remote search result is keyed by the query it answers and stale results are
+  ignored, which removes the need for the reset entirely.
+
+And ten warnings, all real: six stale-dependency warnings fixed by memoising
+`writeThrough`, and four Fast Refresh warnings from modules exporting both a
+component and a hook. That last one was not theoretical — it appeared in the dev
+log during this session as *"Could not Fast Refresh (useAppState export is
+incompatible)"* and forced full page reloads on every edit. Fixed by splitting
+the contexts and hooks into `useAppState.ts`, `useAuth.ts` and `orderStages.ts`.
+
+The split also surfaced a Windows hazard: my first attempt created
+`authContext.ts` alongside `AuthContext.tsx`, which differ only in casing and
+collide on a case-insensitive filesystem. Renamed to something unambiguous.
+
+### The verification suites were ephemeral
+
+Every check written across this session lived in a temp directory and would have
+been lost. They are now `frontend/checks/`, runnable with `npm run checks`,
+with a README explaining what each proves.
+
+Committing them exposed three bugs in my own harness, each of which had been
+producing failures that looked like app bugs:
+
+1. **The Chrome profile sat inside the Vite root.** Vite tried to watch Chrome's
+   locked `Cookies` file and the dev server died with `EBUSY` mid-run — which
+   presented as every suite failing at once. The profile now lives in the OS
+   temp directory.
+2. **Vite was watching `checks/` itself**, so editing a test triggered a full
+   page reload in the browser running that test. `server.watch.ignored` now
+   excludes it.
+3. **The runner relaunched Chrome per suite.** On Windows killing the launcher
+   does not kill Chrome's process tree, so the old instance held the debug port
+   while the new one raced it. It now uses one browser, blanking the page and
+   clearing cookies and cache between suites.
+
+### The flake that was not flakiness
+
+`auth.mjs` failed roughly one run in three. The cause was specific: when
+`/auth/me` hits the app's 8-second timeout against the slow remote backend, the
+request is **aborted**, and Chrome emits `loadingFailed` rather than
+`responseReceived`. The suite listened only for responses, so a request the app
+genuinely made was invisible. It now counts a request as made when it is sent.
+
+That suite still depends on an external service, so the runner retries a failed
+suite once and **names any suite that only passed on the retry**. Surfacing
+flakiness beats a green run that hides it.
+
+### Verification
+
+`npm run typecheck` clean, `npm run lint` clean across 69 files, `npm run build`
+clean, no raw hex in components, and all seven check suites passing.

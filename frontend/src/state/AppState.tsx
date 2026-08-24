@@ -1,6 +1,6 @@
-import {
-  createContext, useContext, useState, useCallback, useMemo, useEffect, useRef,
-} from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { AppStateContext } from './useAppState';
+import type { AppStateValue, Loaded, Toast } from './useAppState';
 import type {
   Order, OrderStatus, PayoutRequest, Vendor, Rider, Customer, Payment,
   Offer, Banner, FeeRule, Dispute, MenuApproval, ApiKey,
@@ -24,109 +24,7 @@ import { ALL_REGIONS } from '../data/geography';
 import type { Region, RegionScope } from '../data/geography';
 import { resources } from '../services/resources';
 import { ApiError } from '../services/apiClient';
-import { useAuth } from './AuthContext';
-
-interface Toast {
-  id: number;
-  message: string;
-}
-
-/** Per-collection load state, so a card can show its own error. */
-export interface Loaded<T> {
-  rows: T[];
-  loading: boolean;
-  error: string | null;
-  /** True when these rows are seed data rather than anything from the API. */
-  sample: boolean;
-}
-
-interface AppStateValue {
-  orders: Order[];
-  ordersState: Loaded<Order>;
-  setOrderStatus: (id: string, status: OrderStatus) => void;
-  assignRider: (id: string, rider: string) => void;
-
-  vendors: Vendor[];
-  vendorsState: Loaded<Vendor>;
-  riders: Rider[];
-  ridersState: Loaded<Rider>;
-  customers: Customer[];
-  customersState: Loaded<Customer>;
-  payments: Payment[];
-  paymentsState: Loaded<Payment>;
-
-  payouts: PayoutRequest[];
-  payoutsState: Loaded<PayoutRequest>;
-  approvePayout: (id: string) => void;
-  declinePayout: (id: string) => void;
-
-  disputes: Dispute[];
-  disputesState: Loaded<Dispute>;
-  resolveDispute: (id: string, resolution: string, refund?: number) => void;
-  rejectDispute: (id: string, reason: string) => void;
-  replyToDispute: (id: string, message: string) => void;
-
-  approvals: MenuApproval[];
-  approvalsState: Loaded<MenuApproval>;
-  approveMenu: (id: string) => void;
-  rejectMenu: (id: string, reason: string) => void;
-
-  apiKeys: ApiKey[];
-  apiKeysState: Loaded<ApiKey>;
-  createApiKey: (name: string, scopes: string[], expiresAt?: string) => Promise<string | null>;
-  revokeApiKey: (id: string) => void;
-
-  // Local-only: no backend route exists for these (see services/endpoints.ts).
-  offers: Offer[];
-  toggleOffer: (id: number) => void;
-  banners: Banner[];
-  toggleBanner: (id: number) => void;
-  reorderBanners: (from: number, to: number) => void;
-  moveBanner: (id: number, direction: -1 | 1) => void;
-  sections: typeof seedSections;
-  toggleSection: (id: number) => void;
-  feeRules: FeeRule[];
-  toggleFeeRule: (id: string) => void;
-
-  openOrders: number;
-  pendingPayouts: number;
-  openDisputes: number;
-  pendingApprovals: number;
-
-  /**
-   * The region every collection above is scoped to. 'all' means the whole
-   * country. Collections are already filtered, so pages need do nothing.
-   */
-  region: RegionScope;
-  setRegion: (region: RegionScope) => void;
-  /** Open orders per region, for the topbar selector. Never scoped. */
-  ordersByRegion: Record<string, number>;
-  /** Totals before scoping, so the UI can say what the filter is hiding. */
-  nationalTotals: { orders: number; vendors: number; riders: number; customers: number };
-
-  /** True when the rows on screen are seed data rather than the live API. */
-  isSample: boolean;
-  /**
-   * Returns a value only in sample mode. Use it for figures the backend gives
-   * us no way to compute — period-over-period trends, historical series. In
-   * live mode they become undefined and simply do not render, rather than
-   * showing an invented number next to real data.
-   */
-  sampleOnly: <T>(value: T) => T | undefined;
-
-  toasts: Toast[];
-  pushToast: (message: string) => void;
-
-  reload: () => void;
-}
-
-const AppStateContext = createContext<AppStateValue | null>(null);
-
-export function useAppState(): AppStateValue {
-  const ctx = useContext(AppStateContext);
-  if (!ctx) throw new Error('useAppState must be used within AppStateProvider');
-  return ctx;
-}
+import { useAuth } from './useAuth';
 
 const CLOSED: OrderStatus[] = ['delivered', 'cancelled'];
 
@@ -290,13 +188,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [live, pushToast, reload]);
 
   /** Optimistic write, then the API call; a failure says so and re-syncs. */
-  function writeThrough(label: string, call: () => Promise<unknown>) {
+  const writeThrough = useCallback((label: string, call: () => Promise<unknown>) => {
     if (!live) return;
     call().catch((err) => {
       pushToast(`${label} did not save — ${describe(err)}`);
       reload();
     });
-  }
+  }, [live, pushToast, reload]);
 
   const resolveDispute = useCallback((id: string, resolution: string, refund?: number) => {
     setDisputesState((prev) => ({
@@ -308,7 +206,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       ? `${id} resolved with a refund`
       : `${id} resolved`);
     writeThrough(id, () => resources.resolveDispute(id, resolution, refund));
-  }, [live, pushToast, reload]);
+  }, [pushToast, writeThrough]);
 
   const rejectDispute = useCallback((id: string, reason: string) => {
     setDisputesState((prev) => ({
@@ -317,7 +215,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     pushToast(`${id} rejected`);
     writeThrough(id, () => resources.rejectDispute(id, reason));
-  }, [live, pushToast, reload]);
+  }, [pushToast, writeThrough]);
 
   const replyToDispute = useCallback((id: string, message: string) => {
     setDisputesState((prev) => ({
@@ -333,7 +231,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     pushToast('Reply sent');
     writeThrough(id, () => resources.replyToDispute(id, message));
-  }, [live, pushToast, reload]);
+  }, [pushToast, writeThrough]);
 
   const approveMenu = useCallback((id: string) => {
     const target = approvalsState.rows.find((a) => a.id === id);
@@ -343,7 +241,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     pushToast(target ? `${target.itemName} approved` : `${id} approved`);
     writeThrough(id, () => resources.approveMenu(id));
-  }, [live, approvalsState.rows, pushToast, reload]);
+  }, [approvalsState.rows, pushToast, writeThrough]);
 
   const rejectMenu = useCallback((id: string, reason: string) => {
     const target = approvalsState.rows.find((a) => a.id === id);
@@ -354,7 +252,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     pushToast(target ? `${target.itemName} rejected` : `${id} rejected`);
     writeThrough(id, () => resources.rejectMenu(id, reason));
-  }, [live, approvalsState.rows, pushToast, reload]);
+  }, [approvalsState.rows, pushToast, writeThrough]);
 
   /**
    * Returns the raw key so the caller can show it once. In sample mode a local
@@ -396,7 +294,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     pushToast(target ? `${target.name} revoked` : `${id} revoked`);
     writeThrough(id, () => resources.revokeApiKey(id));
-  }, [live, apiKeysState.rows, pushToast, reload]);
+  }, [apiKeysState.rows, pushToast, writeThrough]);
 
   const toggleOffer = useCallback((id: number) => {
     setOffers((prev) => prev.map((o) => (o.id === id ? { ...o, active: !o.active } : o)));

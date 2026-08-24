@@ -1,5 +1,5 @@
-import { useAuth } from '../../state/AuthContext';
-import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/useAuth';
+import { useAppState } from '../../state/useAppState';
 
 /**
  * Says plainly when what is on screen is not live. Shown for the whole session

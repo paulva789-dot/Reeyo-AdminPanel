@@ -4,7 +4,7 @@ import Card from '../components/ui/Card';
 import Toggle from '../components/ui/Toggle';
 import Pill from '../components/ui/Pill';
 import LocalOnly from '../components/ui/LocalOnly';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 
 const THUMB_GRADIENT: Record<string, string> = {
   Food: 'linear-gradient(135deg, var(--food-soft) 0%, var(--food-vivid) 100%)',

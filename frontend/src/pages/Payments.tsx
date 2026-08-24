@@ -10,7 +10,7 @@ import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Modal, FooterSpacer } from '../components/ui/Overlay';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 
 import type { Payment, PayoutRequest } from '../data/types';

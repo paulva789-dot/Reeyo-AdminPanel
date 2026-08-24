@@ -6,7 +6,7 @@ import DataTable from '../../components/ui/DataTable';
 import type { Column } from '../../components/ui/DataTable';
 import Field from '../../components/ui/Field';
 import { Modal, FooterSpacer } from '../../components/ui/Overlay';
-import { useAppState } from '../../state/AppState';
+import { useAppState } from '../../state/useAppState';
 import { API_KEY_SCOPES } from '../../data/seed';
 import type { ApiKey } from '../../data/types';
 

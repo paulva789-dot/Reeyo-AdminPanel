@@ -1,4 +1,4 @@
-import { useAppState } from '../../state/AppState';
+import { useAppState } from '../../state/useAppState';
 
 function CheckIcon() {
   return (

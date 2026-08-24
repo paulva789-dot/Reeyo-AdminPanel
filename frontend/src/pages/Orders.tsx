@@ -8,7 +8,7 @@ import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput, Select } from '../components/ui/Field';
 import OrderDrawer from '../components/domain/OrderDrawer';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { resources } from '../services/resources';
 import { money, isLate } from '../lib/format';
 import type { Order, OrderStatus } from '../data/types';
@@ -23,22 +23,22 @@ export default function Orders() {
   const vertical = params.get('vertical') ?? 'all';
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Order | null>(null);
-  const [remote, setRemote] = useState<Order[] | null>(null);
+  // Keyed by the query it answers, so a stale result is ignored rather than
+  // needing a synchronous reset inside the effect.
+  const [remote, setRemote] = useState<{ query: string; rows: Order[] } | null>(null);
   const [searching, setSearching] = useState(false);
 
   // The loaded page is only the most recent slice, so a filter that matches
   // nothing locally is asked of the backend, which searches the whole dataset.
   useEffect(() => {
     const q = query.trim();
-    if (isSample || q.length < 2) {
-      setRemote(null);
-      return;
-    }
+    if (isSample || q.length < 2) return;
+
     const timer = setTimeout(() => {
       setSearching(true);
       resources.searchOrders(q)
-        .then((rows) => setRemote(rows))
-        .catch(() => setRemote(null))
+        .then((rows) => setRemote({ query: q, rows }))
+        .catch(() => setRemote({ query: q, rows: [] }))
         .finally(() => setSearching(false));
     }, 350);
     return () => clearTimeout(timer);
@@ -54,9 +54,13 @@ export default function Orders() {
     if (!q) return byVertical;
     const local = byVertical.filter((o) => [o.id, o.customer, o.vendor, o.rider ?? '', o.zone]
       .join(' ').toLowerCase().includes(q));
-    // Prefer local hits; fall back to whatever the backend found.
-    if (local.length > 0 || remote === null) return local;
-    return vertical === 'all' ? remote : remote.filter((o) => o.vertical === vertical);
+    // Prefer local hits; fall back to the backend's answer for this exact
+    // query, ignoring any result that belongs to something typed earlier.
+    if (local.length > 0) return local;
+    if (!remote || remote.query !== query.trim()) return local;
+    return vertical === 'all'
+      ? remote.rows
+      : remote.rows.filter((o) => o.vertical === vertical);
   }, [byVertical, query, remote, vertical]);
 
   const columns: Column<Order>[] = [

@@ -7,7 +7,7 @@ import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 
 import type { Rider } from '../data/types';

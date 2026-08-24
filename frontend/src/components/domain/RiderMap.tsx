@@ -1,5 +1,5 @@
 import { riderPositions } from '../../data/seed';
-import { useAppState } from '../../state/AppState';
+import { useAppState } from '../../state/useAppState';
 
 const STATE_TOKEN: Record<string, string> = {
   'on a delivery': 'emerald',

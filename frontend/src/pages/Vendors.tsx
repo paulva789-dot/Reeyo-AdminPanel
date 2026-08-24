@@ -11,7 +11,7 @@ import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money, initials } from '../lib/format';
 import { menus } from '../data/seed';
 import type { Vendor, MenuCategory } from '../data/types';

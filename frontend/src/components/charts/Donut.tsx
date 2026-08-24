@@ -32,7 +32,16 @@ export default function Donut({ slices, format = (v) => String(v), size = 152 }:
   const circumference = 2 * Math.PI * radius;
   const GAP = 2; // px of white between slices
 
-  let offset = 0;
+  // Offsets are precomputed: mutating a running total during render breaks
+  // under a double-invoked render and the rule that render stays pure.
+  const arcs = capped.reduce<{ slice: DonutSlice; length: number; offset: number }[]>(
+    (acc, slice) => {
+      const length = (slice.value / total) * circumference;
+      const offset = acc.length ? acc[acc.length - 1].offset + acc[acc.length - 1].length : 0;
+      return [...acc, { slice, length, offset }];
+    },
+    [],
+  );
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
@@ -43,22 +52,19 @@ export default function Donut({ slices, format = (v) => String(v), size = 152 }:
         aria-label={capped.map((s) => `${s.label} ${format(s.value)}`).join(', ')}
       >
         <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-          {capped.map((s) => {
-            const length = (s.value / total) * circumference;
+          {arcs.map(({ slice, length, offset }) => {
             const dash = Math.max(0, length - GAP);
-            const el = (
+            return (
               <circle
-                key={s.label}
+                key={slice.label}
                 cx={size / 2} cy={size / 2} r={radius}
                 fill="none"
-                stroke={`var(--${s.token})`}
+                stroke={`var(--${slice.token})`}
                 strokeWidth={stroke}
                 strokeDasharray={`${dash} ${circumference - dash}`}
                 strokeDashoffset={-offset}
               />
             );
-            offset += length;
-            return el;
           })}
         </g>
       </svg>

@@ -13,3 +13,10 @@ dist-ssr
 .idea
 .DS_Store
 .vercel
+
+# Chrome profiles created by the checks runner
+.chrome-profile
+checks/.chrome-profile
+
+# Screenshots the checks write while running
+checks/*.png

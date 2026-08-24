@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Order } from '../../data/types';
 import { money, ORDER_STAGES, isLate } from '../../lib/format';
-import { useAppState } from '../../state/AppState';
+import { useAppState } from '../../state/useAppState';
 import { Drawer, Modal, FooterSpacer } from '../ui/Overlay';
 import Button from '../ui/Button';
 import Pill from '../ui/Pill';

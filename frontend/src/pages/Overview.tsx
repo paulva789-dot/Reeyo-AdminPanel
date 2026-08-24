@@ -8,12 +8,13 @@ import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import Donut from '../components/charts/Donut';
-import OrderFlowRail, { matchesStage } from '../components/domain/OrderFlowRail';
-import type { Stage } from '../components/domain/OrderFlowRail';
+import OrderFlowRail from '../components/domain/OrderFlowRail';
+import { matchesStage } from '../components/domain/orderStages';
+import type { Stage } from '../components/domain/orderStages';
 import ServiceGrid from '../components/domain/ServiceGrid';
 import OrderDrawer from '../components/domain/OrderDrawer';
 import EmptyState from '../components/ui/EmptyState';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money, isLate } from '../lib/format';
 import {
   deriveAlerts, grossValue, cancelRate, averageEta, revenueByVertical,

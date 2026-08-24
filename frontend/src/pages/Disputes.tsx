@@ -9,7 +9,7 @@ import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import Field, { FilterInput, TextArea } from '../components/ui/Field';
 import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 import type { Dispute } from '../data/types';
 

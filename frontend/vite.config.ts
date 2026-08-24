@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     server: {
+      watch: {
+        // The checks are Node scripts that drive the app, not part of it.
+        // Watching them means editing a test triggers a full page reload in the
+        // browser running that test, which fails the run for no reason.
+        ignored: ['**/checks/**'],
+      },
       proxy: {
         // Same-origin in dev so the admin-api's HTTP-only auth cookies are
         // sent and set without cross-site cookie restrictions.

@@ -1,8 +1,60 @@
 import { useState, useRef, useEffect } from 'react';
 import { PinIcon } from './icons';
-import { useAppState } from '../../state/AppState';
+import { useAppState } from '../../state/useAppState';
 import { REGIONS, ALL_REGIONS, citiesInRegion } from '../../data/geography';
 import type { RegionScope } from '../../data/geography';
+
+/**
+ * Declared at module scope, not inside RegionPicker: a component defined during
+ * render is a new type every time, so React unmounts and remounts the whole
+ * list on each keystroke or state change.
+ */
+function RegionRow({
+  value, name, count, sub, active, onPick,
+}: {
+  value: RegionScope;
+  name: string;
+  count: number;
+  sub?: string;
+  active: boolean;
+  onPick: (value: RegionScope) => void;
+}) {
+  return (
+    <button
+      role="option"
+      aria-selected={active}
+      onClick={() => onPick(value)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+        padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
+        background: active ? 'var(--go-soft)' : 'transparent',
+        color: active ? 'var(--emerald-ink)' : 'var(--text)',
+        fontWeight: active ? 700 : 500, fontSize: 12.5,
+      }}
+      className="reeyo-region-row"
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        {name}
+        {sub && (
+          <span
+            style={{
+              display: 'block', fontSize: 10.5, color: 'var(--text-3)',
+              fontWeight: 500, marginTop: 1,
+            }}
+          >
+            {sub}
+          </span>
+        )}
+      </span>
+      <span
+        className="mono"
+        style={{ fontSize: 11, color: count > 0 ? 'var(--text-2)' : 'var(--text-3)' }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
 
 /**
  * The topbar location control. Section 5.2 of the brand guide keeps a location
@@ -37,47 +89,6 @@ export default function RegionPicker() {
   function choose(next: RegionScope) {
     setRegion(next);
     setOpen(false);
-  }
-
-  function Row({ value, name, count, sub }: {
-    value: RegionScope; name: string; count: number; sub?: string;
-  }) {
-    const active = region === value;
-    return (
-      <button
-        role="option"
-        aria-selected={active}
-        onClick={() => choose(value)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-          padding: '8px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
-          background: active ? 'var(--go-soft)' : 'transparent',
-          color: active ? 'var(--emerald-ink)' : 'var(--text)',
-          fontWeight: active ? 700 : 500, fontSize: 12.5,
-        }}
-        className="reeyo-region-row"
-      >
-        <span style={{ flex: 1, minWidth: 0 }}>
-          {name}
-          {sub && (
-            <span
-              style={{
-                display: 'block', fontSize: 10.5, color: 'var(--text-3)',
-                fontWeight: 500, marginTop: 1,
-              }}
-            >
-              {sub}
-            </span>
-          )}
-        </span>
-        <span
-          className="mono"
-          style={{ fontSize: 11, color: count > 0 ? 'var(--text-2)' : 'var(--text-3)' }}
-        >
-          {count}
-        </span>
-      </button>
-    );
   }
 
   return (
@@ -119,18 +130,27 @@ export default function RegionPicker() {
             paddingBlock: 5,
           }}
         >
-          <Row value={ALL_REGIONS} name="All regions" count={nationwide} sub="Everywhere reeyo operates" />
+          <RegionRow
+            value={ALL_REGIONS}
+            name="All regions"
+            count={nationwide}
+            sub="Everywhere reeyo operates"
+            active={region === ALL_REGIONS}
+            onPick={choose}
+          />
           <div style={{ height: 1, background: 'var(--line-soft)', margin: '5px 0' }} />
           <div className="eyebrow" style={{ padding: '4px 12px 6px' }}>
             Cameroon · 10 regions
           </div>
           {REGIONS.map((r) => (
-            <Row
+            <RegionRow
               key={r}
               value={r}
               name={r}
               count={ordersByRegion[r] ?? 0}
               sub={citiesInRegion(r).join(' · ')}
+              active={region === r}
+              onPick={choose}
             />
           ))}
         </div>

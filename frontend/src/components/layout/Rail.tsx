@@ -5,7 +5,7 @@ import {
   AnalyticsIcon, SettingsIcon, CloseIcon, DisputesIcon, ApprovalsIcon,
 } from './icons';
 import { initials } from '../../lib/format';
-import { useAuth } from '../../state/AuthContext';
+import { useAuth } from '../../state/useAuth';
 
 type IconComponent = (props: { size?: number }) => React.ReactElement;
 

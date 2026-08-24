@@ -8,7 +8,7 @@ import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
 import { money } from '../lib/format';
-import { useAppState } from '../state/AppState';
+import { useAppState } from '../state/useAppState';
 import type { Customer } from '../data/types';
 
 /** Segments are not order states, so they carry their own tokens. */
