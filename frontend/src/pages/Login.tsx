@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../state/AuthContext';
 import { API_BASE_URL } from '../services/apiClient';
+import { REGIONS, ZONES } from '../data/geography';
 
 function EyeIcon({ off }: { off: boolean }) {
   return (
@@ -119,7 +120,7 @@ export default function Login() {
               letterSpacing: '-0.03em', lineHeight: 1.25,
             }}
           >
-            Everything moving across Buea, on one screen.
+            Everything moving across Cameroon, on one screen.
           </h2>
           <p
             style={{
@@ -128,13 +129,14 @@ export default function Login() {
             }}
           >
             Food, grocery and parcel orders, the rider fleet, and every franc
-            owed — from the moment an order lands to the moment a payout clears.
+            owed — across every region reeyo runs in, from the moment an order
+            lands to the moment a payout clears.
           </p>
 
           <div style={{ display: 'flex', gap: 22, marginTop: 26, flexWrap: 'wrap' }}>
             {[
-              ['Zones', '5'],
-              ['Services', '3'],
+              ['Regions', String(REGIONS.length)],
+              ['Delivery zones', String(ZONES.length)],
               ['Stages tracked', '7'],
             ].map(([k, v]) => (
               <div key={k}>
@@ -158,7 +160,7 @@ export default function Login() {
             color: 'var(--on-dark-2)', fontSize: 11.5,
           }}
         >
-          Operations console · Buea, Cameroon
+          Operations console · Cameroon
         </p>
       </aside>
 

@@ -287,7 +287,17 @@ export default function Vendors() {
         </div>
       ),
     },
-    { key: 'zone', header: 'Zone', render: (v) => v.zone },
+    {
+      key: 'zone', header: 'Zone',
+      render: (v) => (
+        <div>
+          <div>{v.zone}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+            {v.city} · {v.region}
+          </div>
+        </div>
+      ),
+    },
     {
       key: 'joined', header: 'Joined',
       render: (v) => <span className="mono" style={{ fontSize: 12 }}>{v.joined}</span>,

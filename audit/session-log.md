@@ -374,3 +374,98 @@ with no console errors and no horizontal scroll from 360px to 1920px.
   field names and exercise the mutations.
 - **The origin-500 fix** — a backend change, out of reach from this repo.
 - **A deployment origin and the Brand Guide v1.1** — artifacts only they have.
+
+---
+
+## Part 8 — From one city to all ten regions
+
+The console was built around Buea: five delivery zones and a topbar pinned to
+"Bonduma Gate, Buea". The ask was to track all ten regions of Cameroon instead.
+
+### Two decisions worth confirming before writing code
+
+Expanding the geography touches the data model, the seed and every page, and
+getting it wrong means redoing all three — so two questions were asked rather
+than assumed:
+
+1. **Do regions replace zones or sit above them?** Above. A platform running
+   nationally still has neighbourhoods; a rider works Akwa, not "Littoral".
+2. **Does picking a region filter the console, or just annotate it?** Filter.
+
+### The model
+
+`src/data/geography.ts` holds **Region → City → Delivery zone** once. All ten
+regions are there: Adamawa, Centre, East, Far North, Littoral, North,
+Northwest, South, Southwest, West. The five original Buea zones are unchanged,
+now correctly placed under Southwest.
+
+**A record stores only its zone.** City and region are derived, so a rollup can
+never contradict the geography table. Seed rows use a `place()` helper that
+throws if given a zone that does not exist — which paid for itself immediately
+(see below).
+
+### The rule that governs filtering
+
+> **A record that cannot be placed is always shown.**
+
+Filtering narrows attention; it must never hide work an admin would otherwise
+have acted on. Disputes and approvals carry no region of their own, so they
+inherit one from the order or vendor they concern — and anything unmatched
+stays visible rather than vanishing from a filtered view.
+
+### What changed in the UI
+
+- The topbar pill became a real selector: all ten regions, each with its cities
+  and its live open-order count, defaulting to *All regions*.
+- Scoping is global. Every page, table and sidebar badge follows it.
+- Zone cells across Orders, Vendors, Riders and Customers now show city and
+  region beneath the zone, because "Molyko" alone is ambiguous nationally.
+- Dispatch groups zones under region headings — a flat grid of 33 zones is
+  unreadable, and capacity only means something next to its neighbours.
+
+### Stale copy the expansion exposed
+
+Three strings were quietly wrong the moment coverage changed, and all three
+were hardcoded numbers about geography:
+
+- the sign-in panel said *"Everything moving across Buea"* and *"5 ZONES"*
+- the parcel banner said *"across all five zones"*
+- the fleet metric said *"across five zones"*
+
+All now derive from `geography.ts` or the loaded rows, so they cannot drift
+again. `CLAUDE.md` §2 was rewritten to describe the three-level geography and
+the filtering rule, since it is the spec of record.
+
+### One real bug, caught by failing loudly
+
+A regex converting `zone: 'X'` to `...place('X')` was too broad and caught the
+free-text audience labels on offers and banners — values like `"All zones"`,
+which are not delivery zones at all. `place()` threw on the first one and
+blanked the app on load.
+
+That is the helper working as intended: the alternative was silently placing an
+offer in a region that does not exist. A quick script then checked every
+`place()` call against the real zone list and found all three bad values.
+
+### Harness lessons, again
+
+- `units.mjs` still called `toZone`, which no longer exists — my change, my test
+  to update. It now asserts placement resolution instead.
+- `interact2.mjs` failed as a batch but passed standalone. The cause was **not**
+  the app: a fixed 10-second wait was no longer enough for a cold Vite start now
+  the bundle is larger, and killing Chrome by port did not always free it before
+  the next launch. Every harness now polls for readiness rather than sleeping a
+  guessed interval, and the batch waits for the debug port to actually close.
+  Confirmed by re-running the full batch, which then passed clean.
+
+### Verification
+
+Seven suites, 80+ checks, all passing: 35 edge cases, 13 pages walking clean,
+14 interaction checks, 17 restored-capability checks, 9 auth-flow checks
+against the live backend, 9 region checks, and no horizontal scroll from 360px
+to 1920px.
+
+The region checks specifically prove the scope is real: 22 orders nationwide
+narrow to 3 in Littoral, every remaining row is in that region, the scope
+carries across pages, the sidebar badge follows it (3 vs 17), and a region with
+no activity shows its empty state rather than a broken table.

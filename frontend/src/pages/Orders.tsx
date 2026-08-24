@@ -90,7 +90,17 @@ export default function Orders() {
         ? o.rider
         : <span style={{ color: 'var(--text-3)' }}>Unassigned</span>),
     },
-    { key: 'zone', header: 'Zone', render: (o) => o.zone },
+    {
+      key: 'zone', header: 'Zone',
+      render: (o) => (
+        <div>
+          <div>{o.zone}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+            {o.city} · {o.region}
+          </div>
+        </div>
+      ),
+    },
     {
       key: 'total',
       header: 'Total',

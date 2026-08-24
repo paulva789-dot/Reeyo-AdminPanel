@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { SearchIcon, BellIcon, RefreshIcon, PinIcon, MenuIcon } from './icons';
+import { SearchIcon, BellIcon, RefreshIcon, MenuIcon } from './icons';
+import RegionPicker from './RegionPicker';
 
 interface TopbarProps {
   onOpenNav: () => void;
@@ -51,22 +52,7 @@ export default function Topbar({ onOpenNav }: TopbarProps) {
         <MenuIcon size={18} />
       </button>
 
-      {/* Location selector — brand element from guide §5.2 */}
-      <div
-        className="reeyo-location"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          background: 'var(--go-soft)', color: 'var(--forest)',
-          borderRadius: 'var(--r-pill)', padding: '6px 13px',
-          fontSize: 12.5, fontWeight: 700, flexShrink: 0,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <span style={{ display: 'flex', color: 'var(--emerald-ink)' }}>
-          <PinIcon size={15} />
-        </span>
-        Bonduma Gate, Buea
-      </div>
+      <RegionPicker />
 
       <div className="reeyo-spacer" style={{ flex: 1, minWidth: 0 }} />
 

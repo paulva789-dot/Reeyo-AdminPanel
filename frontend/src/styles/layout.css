@@ -49,11 +49,19 @@
   }
 }
 
-/* The location pill is the first thing to go when width runs out — the search
-   field and the alert controls are load-bearing, it is not. */
+/* The region pill stays at every width: it says what the whole console is
+   scoped to, so hiding it would leave a narrow screen filtered with no way to
+   see or change that. It only sheds its count and padding. */
 @media (max-width: 700px) {
   .reeyo-location {
-    display: none !important;
+    padding: 6px 9px;
+    max-width: 148px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .reeyo-location .mono {
+    display: none;
   }
 }
 
@@ -125,8 +133,12 @@
 
 /* Tables — section 5.4 */
 
+.reeyo-region-row:hover {
+  background: var(--row-hover);
+}
+
 .reeyo-row:hover {
-  background: #F7FBF8;
+  background: var(--row-hover);
 }
 
 /* Two-column page splits — section 6 */

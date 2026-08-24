@@ -20,6 +20,8 @@ import {
   homeSections as seedSections,
   feeRules as seedFeeRules,
 } from '../data/seed';
+import { ALL_REGIONS } from '../data/geography';
+import type { Region, RegionScope } from '../data/geography';
 import { resources } from '../services/resources';
 import { ApiError } from '../services/apiClient';
 import { useAuth } from './AuthContext';
@@ -91,6 +93,17 @@ interface AppStateValue {
   openDisputes: number;
   pendingApprovals: number;
 
+  /**
+   * The region every collection above is scoped to. 'all' means the whole
+   * country. Collections are already filtered, so pages need do nothing.
+   */
+  region: RegionScope;
+  setRegion: (region: RegionScope) => void;
+  /** Open orders per region, for the topbar selector. Never scoped. */
+  ordersByRegion: Record<string, number>;
+  /** Totals before scoping, so the UI can say what the filter is hiding. */
+  nationalTotals: { orders: number; vendors: number; riders: number; customers: number };
+
   /** True when the rows on screen are seed data rather than the live API. */
   isSample: boolean;
   /**
@@ -152,6 +165,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [feeRules, setFeeRules] = useState<FeeRule[]>(seedFeeRules);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  const [region, setRegion] = useState<RegionScope>(ALL_REGIONS);
 
   // Timers are tracked so unmounting cannot leave them firing setState.
   const toastTimers = useRef<number[]>([]);
@@ -421,8 +435,99 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setFeeRules((prev) => prev.map((f) => (f.id === id ? { ...f, active: !f.active } : f)));
   }, []);
 
-  const orders = ordersState.rows;
-  const payouts = payoutsState.rows;
+
+  /* ---- Region scoping -----------------------------------------------------
+   * One rule throughout: a record we cannot place is always shown. Filtering
+   * is there to narrow attention, never to hide work an admin would otherwise
+   * have acted on.
+   */
+
+  const inScope = useCallback(
+    (rowRegion?: Region | null) => region === ALL_REGIONS || !rowRegion || rowRegion === region,
+    [region],
+  );
+
+  const scopedOrders = useMemo(
+    () => ordersState.rows.filter((o) => inScope(o.region)),
+    [ordersState.rows, inScope],
+  );
+  const scopedVendors = useMemo(
+    () => vendorsState.rows.filter((v) => inScope(v.region)),
+    [vendorsState.rows, inScope],
+  );
+  const scopedRiders = useMemo(
+    () => ridersState.rows.filter((r) => inScope(r.region)),
+    [ridersState.rows, inScope],
+  );
+  const scopedCustomers = useMemo(
+    () => customersState.rows.filter((c) => inScope(c.region)),
+    [customersState.rows, inScope],
+  );
+
+  // Disputes and approvals carry no region of their own, so they inherit one
+  // from the order or vendor they are about. Anything we cannot match stays
+  // visible rather than disappearing from a filtered view.
+  const orderRegion = useMemo(() => {
+    const map = new Map<string, Region>();
+    for (const o of ordersState.rows) map.set(o.id, o.region);
+    return map;
+  }, [ordersState.rows]);
+
+  const vendorRegion = useMemo(() => {
+    const map = new Map<string, Region>();
+    for (const v of vendorsState.rows) map.set(v.name, v.region);
+    return map;
+  }, [vendorsState.rows]);
+
+  const scopedDisputes = useMemo(
+    () => disputesState.rows.filter(
+      (d) => inScope(d.orderId ? orderRegion.get(d.orderId) : null),
+    ),
+    [disputesState.rows, orderRegion, inScope],
+  );
+
+  const scopedApprovals = useMemo(
+    () => approvalsState.rows.filter((a) => inScope(vendorRegion.get(a.vendor))),
+    [approvalsState.rows, vendorRegion, inScope],
+  );
+
+  const personRegion = useMemo(() => {
+    const map = new Map<string, Region>();
+    for (const r of ridersState.rows) map.set(r.name, r.region);
+    for (const v of vendorsState.rows) map.set(v.name, v.region);
+    return map;
+  }, [ridersState.rows, vendorsState.rows]);
+
+  const scopedPayouts = useMemo(
+    () => payoutsState.rows.filter((p) => inScope(personRegion.get(p.who))),
+    [payoutsState.rows, personRegion, inScope],
+  );
+
+  const scopedPayments = useMemo(
+    () => paymentsState.rows.filter(
+      (p) => inScope(personRegion.get(p.to) ?? personRegion.get(p.from)),
+    ),
+    [paymentsState.rows, personRegion, inScope],
+  );
+
+  const ordersByRegion = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const o of ordersState.rows) {
+      if (CLOSED.includes(o.status)) continue;
+      counts[o.region] = (counts[o.region] ?? 0) + 1;
+    }
+    return counts;
+  }, [ordersState.rows]);
+
+  const nationalTotals = useMemo(() => ({
+    orders: ordersState.rows.length,
+    vendors: vendorsState.rows.length,
+    riders: ridersState.rows.length,
+    customers: customersState.rows.length,
+  }), [ordersState.rows, vendorsState.rows, ridersState.rows, customersState.rows]);
+
+  const orders = scopedOrders;
+  const payouts = scopedPayouts;
 
   const openOrders = useMemo(
     () => orders.filter((o) => !CLOSED.includes(o.status)).length,
@@ -433,12 +538,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [payouts],
   );
   const openDisputes = useMemo(
-    () => disputesState.rows.filter((d) => d.status === 'open').length,
-    [disputesState.rows],
+    () => scopedDisputes.filter((d) => d.status === 'open').length,
+    [scopedDisputes],
   );
   const pendingApprovals = useMemo(
-    () => approvalsState.rows.filter((a) => a.status === 'pending').length,
-    [approvalsState.rows],
+    () => scopedApprovals.filter((a) => a.status === 'pending').length,
+    [scopedApprovals],
   );
 
   const isSample = !live || ordersState.sample;
@@ -449,14 +554,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppStateValue = {
     orders, ordersState, setOrderStatus, assignRider,
-    vendors: vendorsState.rows, vendorsState,
-    riders: ridersState.rows, ridersState,
-    customers: customersState.rows, customersState,
-    payments: paymentsState.rows, paymentsState,
+    vendors: scopedVendors, vendorsState,
+    riders: scopedRiders, ridersState,
+    customers: scopedCustomers, customersState,
+    payments: scopedPayments, paymentsState,
     payouts, payoutsState, approvePayout, declinePayout,
-    disputes: disputesState.rows, disputesState,
+    disputes: scopedDisputes, disputesState,
     resolveDispute, rejectDispute, replyToDispute,
-    approvals: approvalsState.rows, approvalsState,
+    approvals: scopedApprovals, approvalsState,
     approveMenu, rejectMenu,
     apiKeys: apiKeysState.rows, apiKeysState,
     createApiKey, revokeApiKey,
@@ -465,6 +570,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     sections, toggleSection,
     feeRules, toggleFeeRule,
     openOrders, pendingPayouts, openDisputes, pendingApprovals,
+    region, setRegion, ordersByRegion, nationalTotals,
     isSample, sampleOnly,
     toasts, pushToast,
     reload,

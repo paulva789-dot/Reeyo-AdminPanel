@@ -1,7 +1,14 @@
+import type { Region } from './geography';
+
 export type Vertical = 'food' | 'grocery' | 'parcel';
 export type OrderStatus = 'new' | 'accepted' | 'preparing' | 'ready'
                         | 'on the way' | 'delivered' | 'cancelled' | 'delayed';
-export type Zone = 'Molyko' | 'Bonduma' | 'Great Soppo' | 'Mile 16' | 'Muea';
+/**
+ * A delivery zone is a neighbourhood a rider works. The set is defined in
+ * geography.ts, which also says which city and region each one sits in, so a
+ * record only ever stores the zone and the rest is derived.
+ */
+export type Zone = string;
 
 export interface Order {
   id: string;            // F-2841 | S-1192 | P-0774
@@ -13,6 +20,8 @@ export interface Order {
   total: number;         // FCFA
   status: OrderStatus;
   zone: Zone;
+  city: string;
+  region: Region;
   placedAgo: string;     // "12 min ago"
   eta: string;           // "8 min" | "late 14 min" | "done"
   payment: string;       // "MTN MoMo" | "Orange Money" | "Cash" | "Card"
@@ -20,18 +29,21 @@ export interface Order {
 
 export interface Vendor {
   id: string; name: string; vertical: Vertical; category: string;
-  zone: Zone; orders: number; revenue: number; rating: number;
+  zone: Zone; city: string; region: Region;
+  orders: number; revenue: number; rating: number;
   prepMinutes: number; status: 'active' | 'suspended' | 'review'; joined: string;
 }
 
 export interface Rider {
-  id: string; name: string; zone: Zone; vehicle: 'Moto' | 'Bicycle' | 'Car';
+  id: string; name: string; zone: Zone; city: string; region: Region;
+  vehicle: 'Moto' | 'Bicycle' | 'Car';
   trips: number; rating: number; owed: number;
   state: 'on a delivery' | 'idle' | 'running late'; phone: string;
 }
 
 export interface Customer {
-  id: string; name: string; zone: Zone; orders: number; spend: number;
+  id: string; name: string; zone: Zone; city: string; region: Region;
+  orders: number; spend: number;
   lastOrder: string; rating: number;
   segment: 'new' | 'active' | 'loyal' | 'lapsed';
 }
@@ -87,7 +99,7 @@ export interface SpinPrize {
 
 export interface Team {
   id: string; name: string; lead: string; size: number;
-  zone: Zone; shift: string; load: number;
+  zone: Zone; city: string; region: Region; shift: string; load: number;
 }
 
 export interface FeeRule {

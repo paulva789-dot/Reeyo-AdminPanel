@@ -8,6 +8,8 @@
 // When the real shapes are confirmed, collapse each pick() list to the one true
 // key — that is a change to this file only, not to any page.
 
+import { resolveRegion, cityOfZone, REGIONS } from '../data/geography';
+import type { Region } from '../data/geography';
 import type {
   Order, OrderStatus, Vertical, Zone, Vendor, Rider, Customer,
   Payment, PayoutRequest, Dispute, DisputeStatus, DisputePriority,
@@ -15,6 +17,9 @@ import type {
 } from '../data/types';
 
 type Raw = Record<string, unknown>;
+
+/** Where a row goes when the API gives us nothing we can place. */
+const UNPLACED_REGION: Region = REGIONS[0];
 
 function pick(row: Raw, keys: string[]): unknown {
   for (const key of keys) {
@@ -81,12 +86,24 @@ export function toVertical(value: unknown, orderId = ''): Vertical {
   return 'food';
 }
 
-const ZONES: Zone[] = ['Molyko', 'Bonduma', 'Great Soppo', 'Mile 16', 'Muea'];
+/**
+ * Resolves a row to a delivery zone, city and region. The API may send any of
+ * the three; geography.ts fills in whatever is missing, so a record is always
+ * placeable even when only one of them arrives.
+ */
+export function toPlacement(row: Raw): { zone: Zone; city: string; region: Region } {
+  const zone = str(row, ['zone', 'delivery_zone', 'deliveryZone', 'area', 'neighbourhood']);
+  const city = str(row, ['city', 'town']);
+  const region = str(row, ['region', 'state', 'province']);
 
-export function toZone(value: unknown): Zone {
-  const raw = String(value ?? '').trim().toLowerCase();
-  const match = ZONES.find((z) => z.toLowerCase() === raw);
-  return match ?? 'Molyko';
+  const resolved = resolveRegion(region, city, zone);
+  return {
+    zone: zone || city || region || 'Unknown',
+    city: city || (zone ? cityOfZone(zone) ?? '' : '') || 'Unknown',
+    // An unplaceable row still has to land somewhere it can be seen; the
+    // national view shows everything, so this only affects region filtering.
+    region: resolved ?? UNPLACED_REGION,
+  };
 }
 
 /** "2026-08-22T09:14:00Z" -> "12 min ago". Empty input yields an em dash. */
@@ -149,7 +166,7 @@ export function adaptOrder(row: Raw): Order {
     items: str(row, ['items_summary', 'itemsSummary', 'summary', 'description'], '—'),
     total: num(row, ['total', 'total_amount', 'totalAmount', 'amount', 'grand_total']),
     status,
-    zone: toZone(pick(row, ['zone', 'delivery_zone', 'area'])),
+    ...toPlacement(row),
     placedAgo: toRelative(pick(row, ['created_at', 'createdAt', 'placed_at', 'placedAt'])),
     eta: toEta(pick(row, ['eta', 'eta_minutes', 'etaMinutes', 'estimated_delivery_at']), status),
     payment: str(row, ['payment_method', 'paymentMethod', 'payment'], '—'),
@@ -172,7 +189,7 @@ export function adaptVendor(row: Raw): Vendor {
     name,
     vertical: toVertical(pick(row, ['vertical', 'service', 'type', 'category'])),
     category: str(row, ['category', 'cuisine', 'vendor_type'], '—'),
-    zone: toZone(pick(row, ['zone', 'area'])),
+    ...toPlacement(row),
     orders: num(row, ['orders', 'order_count', 'total_orders', 'ordersCount']),
     revenue: num(row, ['revenue', 'total_revenue', 'gross', 'totalRevenue']),
     rating: num(row, ['rating', 'average_rating', 'avgRating']),
@@ -202,7 +219,7 @@ export function adaptRider(row: Raw): Rider {
   return {
     id: str(row, ['id', '_id', 'rider_id'], name),
     name,
-    zone: toZone(pick(row, ['zone', 'area'])),
+    ...toPlacement(row),
     vehicle,
     trips: num(row, ['trips', 'total_deliveries', 'totalDeliveries', 'deliveries']),
     rating: num(row, ['rating', 'average_rating', 'avgRating']),
@@ -229,7 +246,7 @@ export function adaptCustomer(row: Raw): Customer {
   return {
     id: str(row, ['id', '_id', 'user_id'], name),
     name,
-    zone: toZone(pick(row, ['zone', 'area'])),
+    ...toPlacement(row),
     orders,
     spend: num(row, ['spend', 'lifetime_spend', 'total_spent', 'totalSpent']),
     lastOrder: String(pick(row, ['last_order_at', 'lastOrderAt', 'last_order']) ?? '—').slice(0, 10),

@@ -23,6 +23,7 @@ export default function Riders() {
       .join(' ').toLowerCase().includes(q));
   }, [query, riders]);
 
+  const zoneSpread = new Set(riders.map((r) => r.zone)).size;
   const owed = riders.reduce((sum, r) => sum + r.owed, 0);
   const onShift = riders.filter((r) => r.state !== 'idle').length;
   const avgRating = (riders.reduce((s, r) => s + r.rating, 0) / riders.length).toFixed(1);
@@ -37,7 +38,17 @@ export default function Riders() {
         </div>
       ),
     },
-    { key: 'zone', header: 'Zone', render: (r) => r.zone },
+    {
+      key: 'zone', header: 'Zone',
+      render: (r) => (
+        <div>
+          <div>{r.zone}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+            {r.city} · {r.region}
+          </div>
+        </div>
+      ),
+    },
     { key: 'vehicle', header: 'Vehicle', render: (r) => r.vehicle },
     {
       key: 'trips', header: 'Trips', align: 'right',
@@ -79,7 +90,10 @@ export default function Riders() {
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
-          <MetricTile label="Fleet size" value={String(riders.length)} note="across five zones" />
+          <MetricTile
+            label="Fleet size" value={String(riders.length)}
+            note={`across ${zoneSpread} ${zoneSpread === 1 ? 'zone' : 'zones'}`}
+          />
           <MetricTile label="On shift" value={String(onShift)} note={`of ${riders.length}`} />
           <MetricTile label="Owed to riders" value={money(owed)} prefix="FCFA" />
           <MetricTile label="Average rating" value={avgRating} note={sampleOnly('steady')} />

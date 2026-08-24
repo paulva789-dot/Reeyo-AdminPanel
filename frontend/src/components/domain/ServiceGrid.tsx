@@ -3,6 +3,8 @@ import type { Order, Vertical } from '../../data/types';
 import { money } from '../../lib/format';
 import Button from '../ui/Button';
 import Pill from '../ui/Pill';
+import { useAppState } from '../../state/AppState';
+import { ALL_REGIONS, REGIONS, zonesInRegion } from '../../data/geography';
 
 interface ServiceGridProps {
   orders: Order[];
@@ -90,6 +92,17 @@ function ServiceTile({
 /** Section 8.1c — two equal tiles above one full-width parcel banner. */
 export default function ServiceGrid({ orders }: ServiceGridProps) {
   const navigate = useNavigate();
+  const { region } = useAppState();
+
+  // Says where parcel actually runs rather than a number that goes stale the
+  // moment coverage changes.
+  const parcelZones = new Set(
+    orders.filter((o) => o.vertical === 'parcel').map((o) => o.zone),
+  ).size;
+  const parcelReach = region === ALL_REGIONS
+    ? `Same-day courier across ${REGIONS.length} regions`
+    : `Same-day courier across ${parcelZones || zonesInRegion(region).length} ${
+      (parcelZones || zonesInRegion(region).length) === 1 ? 'zone' : 'zones'} in ${region}`;
   const food = summarise(orders, 'food');
   const grocery = summarise(orders, 'grocery');
   const parcel = summarise(orders, 'parcel');
@@ -135,7 +148,7 @@ export default function ServiceGrid({ orders }: ServiceGridProps) {
             </h3>
           </div>
           <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--forest-600)' }}>
-            Same-day courier across all five zones
+            {parcelReach}
           </p>
         </div>
 

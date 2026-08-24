@@ -44,7 +44,17 @@ export default function Customers() {
         </div>
       ),
     },
-    { key: 'zone', header: 'Zone', render: (c) => c.zone },
+    {
+      key: 'zone', header: 'Zone',
+      render: (c) => (
+        <div>
+          <div>{c.zone}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+            {c.city} · {c.region}
+          </div>
+        </div>
+      ),
+    },
     {
       key: 'orders', header: 'Orders', align: 'right',
       render: (c) => <span className="mono" style={{ fontSize: 12 }}>{c.orders}</span>,

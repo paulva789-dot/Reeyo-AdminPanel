@@ -6,7 +6,7 @@ Build specification for Claude Code. This file lives at the repository root as `
 
 ## 0. Start here
 
-You are building the **reeyo admin operations console**: the internal tool the reeyo team uses to run a multi-service delivery platform across Buea, Cameroon. Three verticals share one platform — **Food**, **Grocery**, **Parcel**.
+You are building the **reeyo admin operations console**: the internal tool the reeyo team uses to run a multi-service delivery platform across **all ten regions of Cameroon**. Three verticals share one platform — **Food**, **Grocery**, **Parcel**.
 
 The audience is a platform admin who opens this tool at 07:00 and needs to know, in under five seconds, what is broken and what needs releasing. Every decision below serves that.
 
@@ -42,7 +42,7 @@ The audience is a platform admin who opens this tool at 07:00 and needs to know,
 
 ## 2. What the product is
 
-reeyo connects customers in Buea with local restaurants, grocery stores and instant parcel couriers. The console manages:
+reeyo connects customers across Cameroon with local restaurants, grocery stores and instant parcel couriers. The console manages:
 
 - Orders moving through seven stages across three verticals
 - A rider fleet working defined zones
@@ -50,7 +50,29 @@ reeyo connects customers in Buea with local restaurants, grocery stores and inst
 - Money: what came in, what the platform earned, what is owed and to whom
 - Storefront merchandising and marketing campaigns
 
-**Zones:** Molyko, Bonduma, Great Soppo, Mile 16, Muea.
+### Geography
+
+Three levels, defined once in `src/data/geography.ts`:
+
+**Region → City → Delivery zone.**
+
+All ten regions of Cameroon are tracked: Adamawa, Centre, East, Far North,
+Littoral, North, Northwest, South, Southwest, West. A record stores only its
+**zone**; the city and region are derived, so a rollup can never contradict the
+geography table.
+
+The five zones the console launched with — Molyko, Bonduma, Great Soppo,
+Mile 16, Muea — are neighbourhoods of Buea, in Southwest. They are unchanged.
+
+**The console is scoped by region.** The topbar carries a region selector
+defaulting to *All regions*; picking one narrows every page, every table and
+every sidebar badge. One rule governs it: **a record that cannot be placed is
+always shown.** Filtering narrows attention, it never hides work an admin would
+otherwise have acted on.
+
+Not every region has activity yet, and that is a real state the UI handles —
+an empty region shows its empty state rather than a broken table.
+
 **Payment methods:** MTN Mobile Money, Orange Money, cash on delivery, card, bank transfer.
 
 ---
@@ -277,7 +299,10 @@ Location selector pill (`--go-soft` background, emerald pin icon, "Bonduma Gate,
 export type Vertical = 'food' | 'grocery' | 'parcel';
 export type OrderStatus = 'new' | 'accepted' | 'preparing' | 'ready'
                         | 'on the way' | 'delivered' | 'cancelled' | 'delayed';
-export type Zone = 'Molyko' | 'Bonduma' | 'Great Soppo' | 'Mile 16' | 'Muea';
+export type Zone = string;              // validated against geography.ts
+export type Region =                    // the ten regions of Cameroon
+  | 'Adamawa' | 'Centre' | 'East' | 'Far North' | 'Littoral'
+  | 'North' | 'Northwest' | 'South' | 'Southwest' | 'West';
 
 export interface Order {
   id: string;            // F-2841 | S-1192 | P-0774
@@ -288,7 +313,9 @@ export interface Order {
   items: string;
   total: number;         // FCFA
   status: OrderStatus;
-  zone: Zone;
+  zone: Zone;            // the neighbourhood; city and region derive from it
+  city: string;
+  region: Region;
   placedAgo: string;     // "12 min ago"
   eta: string;           // "8 min" | "late 14 min" | "done"
   payment: string;       // "MTN MoMo" | "Orange Money" | "Cash" | "Card"
@@ -339,7 +366,7 @@ export interface Banner {
 
 ### Seed data requirements
 
-- **12 orders** spread across all three verticals and all seven live statuses, including at least one delayed and one cancelled
+- **Orders spread across several regions**, covering all three verticals and all seven live statuses, including at least one delayed and one cancelled. Buea alone is no longer a representative sample — the national view has to have something in it.
 - **8 vendors**: 4 food, 3 grocery, 1 parcel agent. One suspended, one under review. One food vendor has a full nested menu (2 categories, 5 items, with prices, discount prices, stock levels, add-ons, opening hours and available days) — every other vendor has an empty menu so the empty state is reachable
 - **6 riders** across the zones with mixed states and ratings, at least one below 4.2
 - **7 customers** covering all four segments
@@ -474,6 +501,7 @@ Not a phase two. Every screen ships against this.
 ```
 src/
   styles/tokens.css        # section 3, imported first
+  data/geography.ts        # region -> city -> zone, and the lookups
   data/types.ts            # section 7
   data/seed.ts             # all seed arrays
   lib/format.ts            # money(), fcfa(), initials(), statusToken()

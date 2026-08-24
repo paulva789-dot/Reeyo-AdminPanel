@@ -1,10 +1,23 @@
+import { regionOfZone, cityOfZone } from './geography';
+import type { Region } from './geography';
 import type {
   Order, Vendor, Rider, Customer, Payment, PayoutRequest, Offer, Banner,
-  MenuCategory, Announcement, SpinPrize, Team, FeeRule, RiderPosition, Zone,
+  MenuCategory, Announcement, SpinPrize, Team, FeeRule, RiderPosition,
   Dispute, MenuApproval, ApiKey,
 } from './types';
 
-export const ZONES: Zone[] = ['Molyko', 'Bonduma', 'Great Soppo', 'Mile 16', 'Muea'];
+/**
+ * Fills in city and region from the zone, so a seed record only ever states
+ * the neighbourhood and the rollup can never contradict geography.ts.
+ */
+function place(zone: string): { zone: string; city: string; region: Region } {
+  const region = regionOfZone(zone);
+  const city = cityOfZone(zone);
+  if (!region || !city) {
+    throw new Error(`Seed uses a zone that is not in geography.ts: ${zone}`);
+  }
+  return { zone, city, region };
+}
 
 export const PAYMENT_METHODS = [
   'MTN Mobile Money', 'Orange Money', 'Cash on delivery', 'Card', 'Bank transfer',
@@ -15,74 +28,135 @@ export const orders: Order[] = [
   {
     id: 'F-2841', vertical: 'food', customer: 'Anna Mbella', vendor: 'Chez Mado',
     rider: null, items: 'Ndolé with plantain · 2 × grilled fish', total: 8400,
-    status: 'new', zone: 'Molyko', placedAgo: '2 min ago', eta: '32 min',
+    status: 'new', ...place('Molyko'), placedAgo: '2 min ago', eta: '32 min',
     payment: 'MTN MoMo',
   },
   {
     id: 'S-1192', vertical: 'grocery', customer: 'Marc Etoa', vendor: 'UrbanMart',
     rider: null, items: 'Rice 5kg · Palm oil · Tomatoes', total: 12600,
-    status: 'new', zone: 'Bonduma', placedAgo: '4 min ago', eta: '40 min',
+    status: 'new', ...place('Bonduma'), placedAgo: '4 min ago', eta: '40 min',
     payment: 'Orange Money',
   },
   {
     id: 'P-0774', vertical: 'parcel', customer: 'Peter Samu', vendor: 'Buea Express',
     rider: 'Sarah Ngo', items: 'Documents envelope · Molyko to Muea', total: 2500,
-    status: 'accepted', zone: 'Muea', placedAgo: '7 min ago', eta: '25 min',
+    status: 'accepted', ...place('Muea'), placedAgo: '7 min ago', eta: '25 min',
     payment: 'Cash',
   },
   {
     id: 'F-2839', vertical: 'food', customer: 'Clarisse Eto', vendor: 'Pizza Palace',
     rider: null, items: 'Large pepperoni · Garlic bread', total: 9800,
-    status: 'accepted', zone: 'Great Soppo', placedAgo: '9 min ago', eta: '28 min',
+    status: 'accepted', ...place('Great Soppo'), placedAgo: '9 min ago', eta: '28 min',
     payment: 'Card',
   },
   {
     id: 'F-2836', vertical: 'food', customer: 'Anna Mbella', vendor: 'GreenBowl',
     rider: 'Eric Njume', items: 'Chicken salad bowl · Fresh juice', total: 6200,
-    status: 'preparing', zone: 'Molyko', placedAgo: '12 min ago', eta: '18 min',
+    status: 'preparing', ...place('Molyko'), placedAgo: '12 min ago', eta: '18 min',
     payment: 'MTN MoMo',
   },
   {
     id: 'S-1188', vertical: 'grocery', customer: 'Sarah Ngo', vendor: 'Pharma Plus',
     rider: 'Divine Ako', items: 'Paracetamol · Vitamin C · Bandages', total: 4300,
-    status: 'preparing', zone: 'Mile 16', placedAgo: '14 min ago', eta: '20 min',
+    status: 'preparing', ...place('Mile 16'), placedAgo: '14 min ago', eta: '20 min',
     payment: 'Orange Money',
   },
   {
     id: 'F-2833', vertical: 'food', customer: 'Marc Etoa', vendor: 'Chez Mado',
     rider: 'Eric Njume', items: 'Poulet DG · 2 × soft drink', total: 11200,
-    status: 'ready', zone: 'Bonduma', placedAgo: '19 min ago', eta: '12 min',
+    status: 'ready', ...place('Bonduma'), placedAgo: '19 min ago', eta: '12 min',
     payment: 'MTN MoMo',
   },
   {
     id: 'S-1184', vertical: 'grocery', customer: 'Peter Samu', vendor: 'UrbanMart',
     rider: 'Blaise Fon', items: 'Bread · Eggs · Milk · Sugar', total: 5900,
-    status: 'ready', zone: 'Molyko', placedAgo: '21 min ago', eta: '9 min',
+    status: 'ready', ...place('Molyko'), placedAgo: '21 min ago', eta: '9 min',
     payment: 'Cash',
   },
   {
     id: 'F-2830', vertical: 'food', customer: 'Clarisse Eto', vendor: 'GreenBowl',
     rider: 'Divine Ako', items: 'Veggie wrap · Smoothie', total: 5400,
-    status: 'on the way', zone: 'Great Soppo', placedAgo: '26 min ago', eta: '6 min',
+    status: 'on the way', ...place('Great Soppo'), placedAgo: '26 min ago', eta: '6 min',
     payment: 'Card',
   },
   {
     id: 'P-0769', vertical: 'parcel', customer: 'Anna Mbella', vendor: 'Buea Express',
     rider: 'Sarah Ngo', items: 'Small package · Bonduma to Mile 16', total: 3200,
-    status: 'delivered', zone: 'Mile 16', placedAgo: '48 min ago', eta: 'done',
+    status: 'delivered', ...place('Mile 16'), placedAgo: '48 min ago', eta: 'done',
     payment: 'MTN MoMo',
   },
   {
     id: 'F-2827', vertical: 'food', customer: 'Sarah Ngo', vendor: 'Pizza Palace',
     rider: 'Blaise Fon', items: 'Margherita · Wings', total: 8900,
-    status: 'delayed', zone: 'Muea', placedAgo: '52 min ago', eta: 'late 14 min',
+    status: 'delayed', ...place('Muea'), placedAgo: '52 min ago', eta: 'late 14 min',
     payment: 'Orange Money',
   },
   {
     id: 'S-1179', vertical: 'grocery', customer: 'Marc Etoa', vendor: 'UrbanMart',
     rider: null, items: 'Detergent · Soap · Tissue', total: 4700,
-    status: 'cancelled', zone: 'Bonduma', placedAgo: '1 hr ago', eta: 'done',
+    status: 'cancelled', ...place('Bonduma'), placedAgo: '1 hr ago', eta: 'done',
     payment: 'Cash',
+  },
+
+  {
+    id: 'F-3102', vertical: 'food', customer: 'Estelle Nana', vendor: 'Chez Wou',
+    rider: 'Landry Mbappe', items: 'Grilled chicken · Fried plantain', total: 7600,
+    status: 'on the way', ...place('Akwa'), placedAgo: '16 min ago', eta: '9 min',
+    payment: 'MTN MoMo',
+  },
+  {
+    id: 'S-2044', vertical: 'grocery', customer: 'Yannick Bile', vendor: 'Douala Fresh',
+    rider: null, items: 'Plantains · Cassava · Groundnut oil', total: 9300,
+    status: 'new', ...place('Deido'), placedAgo: '3 min ago', eta: '38 min',
+    payment: 'Orange Money',
+  },
+  {
+    id: 'P-1188', vertical: 'parcel', customer: 'Aminata Sow', vendor: 'Douala Courier',
+    rider: 'Landry Mbappe', items: 'Legal documents · Bonanjo to Makepe', total: 3400,
+    status: 'preparing', ...place('Bonanjo'), placedAgo: '11 min ago', eta: '21 min',
+    payment: 'Card',
+  },
+  {
+    id: 'F-3098', vertical: 'food', customer: 'Rodrigue Fotso', vendor: 'Bastos Kitchen',
+    rider: 'Carine Awono', items: 'Poulet braisé · Miondo', total: 8800,
+    status: 'delayed', ...place('Bastos'), placedAgo: '58 min ago', eta: 'late 19 min',
+    payment: 'MTN MoMo',
+  },
+  {
+    id: 'S-2039', vertical: 'grocery', customer: 'Nadege Owona', vendor: 'Yaounde Market Co',
+    rider: 'Carine Awono', items: 'Rice · Tomato paste · Onions', total: 11400,
+    status: 'delivered', ...place('Mvan'), placedAgo: '1 hr ago', eta: 'done',
+    payment: 'Cash',
+  },
+  {
+    id: 'F-3091', vertical: 'food', customer: 'Ernest Tabi', vendor: 'Bamenda Grill',
+    rider: 'Emmanuel Ndifor', items: 'Achu soup · Roast fish', total: 6900,
+    status: 'ready', ...place('Commercial Avenue'), placedAgo: '23 min ago', eta: '11 min',
+    payment: 'MTN MoMo',
+  },
+  {
+    id: 'S-2031', vertical: 'grocery', customer: 'Prisca Ndam', vendor: 'Nkwen Provisions',
+    rider: null, items: 'Maize flour · Beans · Palm oil', total: 5200,
+    status: 'accepted', ...place('Nkwen'), placedAgo: '8 min ago', eta: '30 min',
+    payment: 'Orange Money',
+  },
+  {
+    id: 'F-3084', vertical: 'food', customer: 'Serge Kamdem', vendor: 'Bafoussam Bites',
+    rider: 'Aline Tchoumi', items: 'Koki · Ripe plantain', total: 4800,
+    status: 'on the way', ...place('Kamkop'), placedAgo: '31 min ago', eta: '7 min',
+    payment: 'Cash',
+  },
+  {
+    id: 'P-1173', vertical: 'parcel', customer: 'Marthe Eyenga', vendor: 'Kribi Runners',
+    rider: null, items: 'Cooler box · Mboa Manga to Angalé', total: 5600,
+    status: 'cancelled', ...place('Mboa Manga'), placedAgo: '2 hr ago', eta: 'done',
+    payment: 'Card',
+  },
+  {
+    id: 'F-3077', vertical: 'food', customer: 'Estelle Nana', vendor: 'Limbe Seafood',
+    rider: 'Beltus Efande', items: 'Grilled prawns · Chips', total: 12400,
+    status: 'delivered', ...place('Down Beach'), placedAgo: '2 hr ago', eta: 'done',
+    payment: 'MTN MoMo',
   },
 ];
 
@@ -90,43 +164,94 @@ export const orders: Order[] = [
 export const vendors: Vendor[] = [
   {
     id: 'V-101', name: 'Chez Mado', vertical: 'food', category: 'Cameroonian',
-    zone: 'Molyko', orders: 412, revenue: 2140000, rating: 4.8,
+    ...place('Molyko'), orders: 412, revenue: 2140000, rating: 4.8,
     prepMinutes: 18, status: 'active', joined: '2024-03-12',
   },
   {
     id: 'V-102', name: 'GreenBowl', vertical: 'food', category: 'Healthy',
-    zone: 'Bonduma', orders: 287, revenue: 1290000, rating: 4.6,
+    ...place('Bonduma'), orders: 287, revenue: 1290000, rating: 4.6,
     prepMinutes: 14, status: 'active', joined: '2024-06-02',
   },
   {
     id: 'V-103', name: 'Pizza Palace', vertical: 'food', category: 'Pizza',
-    zone: 'Great Soppo', orders: 356, revenue: 1830000, rating: 4.3,
+    ...place('Great Soppo'), orders: 356, revenue: 1830000, rating: 4.3,
     prepMinutes: 22, status: 'active', joined: '2024-01-28',
   },
   {
     id: 'V-104', name: 'Mama Grill', vertical: 'food', category: 'Grill',
-    zone: 'Muea', orders: 78, revenue: 340000, rating: 3.9,
+    ...place('Muea'), orders: 78, revenue: 340000, rating: 3.9,
     prepMinutes: 31, status: 'review', joined: '2025-11-19',
   },
   {
     id: 'V-201', name: 'UrbanMart', vertical: 'grocery', category: 'Supermarket',
-    zone: 'Molyko', orders: 508, revenue: 3120000, rating: 4.7,
+    ...place('Molyko'), orders: 508, revenue: 3120000, rating: 4.7,
     prepMinutes: 25, status: 'active', joined: '2023-11-04',
   },
   {
     id: 'V-202', name: 'Pharma Plus', vertical: 'grocery', category: 'Pharmacy',
-    zone: 'Mile 16', orders: 193, revenue: 870000, rating: 4.9,
+    ...place('Mile 16'), orders: 193, revenue: 870000, rating: 4.9,
     prepMinutes: 11, status: 'active', joined: '2024-08-21',
   },
   {
     id: 'V-203', name: 'Fresh Corner', vertical: 'grocery', category: 'Produce',
-    zone: 'Bonduma', orders: 64, revenue: 210000, rating: 3.6,
+    ...place('Bonduma'), orders: 64, revenue: 210000, rating: 3.6,
     prepMinutes: 29, status: 'suspended', joined: '2025-02-14',
   },
   {
     id: 'V-301', name: 'Buea Express', vertical: 'parcel', category: 'Courier agent',
-    zone: 'Molyko', orders: 631, revenue: 1460000, rating: 4.5,
+    ...place('Molyko'), orders: 631, revenue: 1460000, rating: 4.5,
     prepMinutes: 6, status: 'active', joined: '2023-09-30',
+  },
+
+  {
+    id: 'V-401', name: 'Chez Wou', vertical: 'food', category: 'Cameroonian',
+    ...place('Akwa'), orders: 921, revenue: 5240000, rating: 4.7,
+    prepMinutes: 21, status: 'active', joined: '2023-06-14',
+  },
+  {
+    id: 'V-402', name: 'Douala Fresh', vertical: 'grocery', category: 'Market grocer',
+    ...place('Deido'), orders: 640, revenue: 2980000, rating: 4.4,
+    prepMinutes: 27, status: 'active', joined: '2024-02-09',
+  },
+  {
+    id: 'V-403', name: 'Douala Courier', vertical: 'parcel', category: 'Courier agent',
+    ...place('Bonanjo'), orders: 1180, revenue: 3410000, rating: 4.6,
+    prepMinutes: 5, status: 'active', joined: '2023-04-22',
+  },
+  {
+    id: 'V-501', name: 'Bastos Kitchen', vertical: 'food', category: 'Grill',
+    ...place('Bastos'), orders: 512, revenue: 2760000, rating: 4.5,
+    prepMinutes: 24, status: 'active', joined: '2024-05-30',
+  },
+  {
+    id: 'V-502', name: 'Yaounde Market Co', vertical: 'grocery', category: 'Supermarket',
+    ...place('Mvan'), orders: 388, revenue: 1940000, rating: 4.2,
+    prepMinutes: 30, status: 'active', joined: '2024-09-11',
+  },
+  {
+    id: 'V-601', name: 'Bamenda Grill', vertical: 'food', category: 'Traditional',
+    ...place('Commercial Avenue'), orders: 274, revenue: 1180000, rating: 4.6,
+    prepMinutes: 26, status: 'active', joined: '2025-01-17',
+  },
+  {
+    id: 'V-602', name: 'Nkwen Provisions', vertical: 'grocery', category: 'Provisions',
+    ...place('Nkwen'), orders: 96, revenue: 420000, rating: 3.8,
+    prepMinutes: 33, status: 'review', joined: '2026-02-03',
+  },
+  {
+    id: 'V-701', name: 'Bafoussam Bites', vertical: 'food', category: 'Cameroonian',
+    ...place('Kamkop'), orders: 143, revenue: 610000, rating: 4.1,
+    prepMinutes: 28, status: 'active', joined: '2025-07-25',
+  },
+  {
+    id: 'V-801', name: 'Kribi Runners', vertical: 'parcel', category: 'Courier agent',
+    ...place('Mboa Manga'), orders: 58, revenue: 190000, rating: 3.5,
+    prepMinutes: 9, status: 'suspended', joined: '2025-11-08',
+  },
+  {
+    id: 'V-802', name: 'Limbe Seafood', vertical: 'food', category: 'Seafood',
+    ...place('Down Beach'), orders: 331, revenue: 1720000, rating: 4.8,
+    prepMinutes: 19, status: 'active', joined: '2024-04-16',
   },
 ];
 
@@ -173,28 +298,53 @@ export const menus: Record<string, MenuCategory[]> = {
 /* Riders — mixed states, one below 4.2. */
 export const riders: Rider[] = [
   {
-    id: 'R-01', name: 'Eric Njume', zone: 'Molyko', vehicle: 'Moto',
+    id: 'R-01', name: 'Eric Njume', ...place('Molyko'), vehicle: 'Moto',
     trips: 345, rating: 4.8, owed: 96200, state: 'on a delivery', phone: '675 11 22 33',
   },
   {
-    id: 'R-02', name: 'Sarah Ngo', zone: 'Muea', vehicle: 'Moto',
+    id: 'R-02', name: 'Sarah Ngo', ...place('Muea'), vehicle: 'Moto',
     trips: 289, rating: 4.6, owed: 74500, state: 'on a delivery', phone: '677 45 78 12',
   },
   {
-    id: 'R-03', name: 'Divine Ako', zone: 'Great Soppo', vehicle: 'Moto',
+    id: 'R-03', name: 'Divine Ako', ...place('Great Soppo'), vehicle: 'Moto',
     trips: 412, rating: 4.9, owed: 118300, state: 'on a delivery', phone: '699 03 56 41',
   },
   {
-    id: 'R-04', name: 'Blaise Fon', zone: 'Bonduma', vehicle: 'Car',
+    id: 'R-04', name: 'Blaise Fon', ...place('Bonduma'), vehicle: 'Car',
     trips: 156, rating: 3.9, owed: 43800, state: 'running late', phone: '671 88 90 04',
   },
   {
-    id: 'R-05', name: 'Nadine Bih', zone: 'Mile 16', vehicle: 'Moto',
+    id: 'R-05', name: 'Nadine Bih', ...place('Mile 16'), vehicle: 'Moto',
     trips: 203, rating: 4.4, owed: 51900, state: 'idle', phone: '678 21 34 67',
   },
   {
-    id: 'R-06', name: 'Joseph Tabi', zone: 'Molyko', vehicle: 'Bicycle',
+    id: 'R-06', name: 'Joseph Tabi', ...place('Molyko'), vehicle: 'Bicycle',
     trips: 88, rating: 4.2, owed: 19400, state: 'idle', phone: '676 55 12 89',
+  },
+
+  {
+    id: 'R-07', name: 'Landry Mbappe', ...place('Akwa'), vehicle: 'Moto',
+    trips: 612, rating: 4.7, owed: 154200, state: 'on a delivery', phone: '677 90 11 24',
+  },
+  {
+    id: 'R-08', name: 'Carine Awono', ...place('Bastos'), vehicle: 'Moto',
+    trips: 438, rating: 4.5, owed: 108600, state: 'running late', phone: '699 34 77 08',
+  },
+  {
+    id: 'R-09', name: 'Emmanuel Ndifor', ...place('Commercial Avenue'), vehicle: 'Moto',
+    trips: 221, rating: 4.3, owed: 62100, state: 'on a delivery', phone: '675 42 19 63',
+  },
+  {
+    id: 'R-10', name: 'Aline Tchoumi', ...place('Kamkop'), vehicle: 'Bicycle',
+    trips: 117, rating: 4.0, owed: 28900, state: 'on a delivery', phone: '678 65 30 22',
+  },
+  {
+    id: 'R-11', name: 'Beltus Efande', ...place('Down Beach'), vehicle: 'Moto',
+    trips: 305, rating: 4.6, owed: 81400, state: 'idle', phone: '676 12 88 47',
+  },
+  {
+    id: 'R-12', name: 'Fadimatou Bello', ...place('Domayo'), vehicle: 'Moto',
+    trips: 64, rating: 3.7, owed: 15300, state: 'idle', phone: '671 55 02 19',
   },
 ];
 
@@ -210,32 +360,61 @@ export const riderPositions: RiderPosition[] = [
 /* Customers — all four segments represented. */
 export const customers: Customer[] = [
   {
-    id: 'CU-01', name: 'Anna Mbella', zone: 'Molyko', orders: 63, spend: 412000,
+    id: 'CU-01', name: 'Anna Mbella', ...place('Molyko'), orders: 63, spend: 412000,
     lastOrder: '2026-08-22', rating: 4.9, segment: 'loyal',
   },
   {
-    id: 'CU-02', name: 'Marc Etoa', zone: 'Bonduma', orders: 41, spend: 268000,
+    id: 'CU-02', name: 'Marc Etoa', ...place('Bonduma'), orders: 41, spend: 268000,
     lastOrder: '2026-08-22', rating: 4.6, segment: 'loyal',
   },
   {
-    id: 'CU-03', name: 'Peter Samu', zone: 'Molyko', orders: 18, spend: 96000,
+    id: 'CU-03', name: 'Peter Samu', ...place('Molyko'), orders: 18, spend: 96000,
     lastOrder: '2026-08-21', rating: 4.4, segment: 'active',
   },
   {
-    id: 'CU-04', name: 'Sarah Ngo', zone: 'Mile 16', orders: 22, spend: 131000,
+    id: 'CU-04', name: 'Sarah Ngo', ...place('Mile 16'), orders: 22, spend: 131000,
     lastOrder: '2026-08-20', rating: 4.7, segment: 'active',
   },
   {
-    id: 'CU-05', name: 'Clarisse Eto', zone: 'Great Soppo', orders: 9, spend: 47000,
+    id: 'CU-05', name: 'Clarisse Eto', ...place('Great Soppo'), orders: 9, spend: 47000,
     lastOrder: '2026-08-22', rating: 4.5, segment: 'active',
   },
   {
-    id: 'CU-06', name: 'Brenda Manga', zone: 'Muea', orders: 2, spend: 11400,
+    id: 'CU-06', name: 'Brenda Manga', ...place('Muea'), orders: 2, spend: 11400,
     lastOrder: '2026-08-19', rating: 4.0, segment: 'new',
   },
   {
-    id: 'CU-07', name: 'Samuel Ndip', zone: 'Bonduma', orders: 27, spend: 154000,
+    id: 'CU-07', name: 'Samuel Ndip', ...place('Bonduma'), orders: 27, spend: 154000,
     lastOrder: '2026-05-03', rating: 4.2, segment: 'lapsed',
+  },
+
+  {
+    id: 'CU-08', name: 'Estelle Nana', ...place('Akwa'), orders: 88, spend: 604000,
+    lastOrder: '2026-08-24', rating: 4.8, segment: 'loyal',
+  },
+  {
+    id: 'CU-09', name: 'Yannick Bile', ...place('Deido'), orders: 31, spend: 197000,
+    lastOrder: '2026-08-24', rating: 4.5, segment: 'active',
+  },
+  {
+    id: 'CU-10', name: 'Rodrigue Fotso', ...place('Bastos'), orders: 54, spend: 348000,
+    lastOrder: '2026-08-23', rating: 4.6, segment: 'loyal',
+  },
+  {
+    id: 'CU-11', name: 'Nadege Owona', ...place('Mvan'), orders: 12, spend: 71000,
+    lastOrder: '2026-08-22', rating: 4.3, segment: 'active',
+  },
+  {
+    id: 'CU-12', name: 'Ernest Tabi', ...place('Commercial Avenue'), orders: 7, spend: 39000,
+    lastOrder: '2026-08-23', rating: 4.1, segment: 'active',
+  },
+  {
+    id: 'CU-13', name: 'Serge Kamdem', ...place('Kamkop'), orders: 3, spend: 14200,
+    lastOrder: '2026-08-24', rating: 4.4, segment: 'new',
+  },
+  {
+    id: 'CU-14', name: 'Marthe Eyenga', ...place('Mboa Manga'), orders: 19, spend: 108000,
+    lastOrder: '2026-04-11', rating: 3.9, segment: 'lapsed',
   },
 ];
 
@@ -305,7 +484,7 @@ export const payoutRequests: PayoutRequest[] = [
 export const offers: Offer[] = [
   {
     id: 1, name: 'Molyko lunch rush', code: 'LUNCH15', vertical: 'Food',
-    zone: 'Molyko', type: 'Percent off', value: '15%', payer: 'Split 50/50',
+    ...place('Molyko'), type: 'Percent off', value: '15%', payer: 'Split 50/50',
     uses: 342, spent: 214000, active: true, ends: '2026-09-15',
   },
   {
@@ -315,7 +494,7 @@ export const offers: Offer[] = [
   },
   {
     id: 3, name: 'Parcel weekend', code: 'SENDFREE', vertical: 'Parcel',
-    zone: 'Bonduma', type: 'Free delivery', value: 'Delivery waived', payer: 'Vendor',
+    ...place('Bonduma'), type: 'Free delivery', value: 'Delivery waived', payer: 'Vendor',
     uses: 76, spent: 60800, active: false, ends: '2026-08-10',
   },
 ];
@@ -326,7 +505,7 @@ export const banners: Banner[] = [
     destination: 'Vendor · Chez Mado', active: true, taps: 4820,
   },
   {
-    id: 2, name: 'Stock up at UrbanMart', vertical: 'Grocery', zone: 'Molyko',
+    id: 2, name: 'Stock up at UrbanMart', vertical: 'Grocery', ...place('Molyko'),
     destination: 'Vendor · UrbanMart', active: true, taps: 3140,
   },
   {
@@ -376,19 +555,32 @@ export const spinPrizes: SpinPrize[] = [
 export const teams: Team[] = [
   {
     id: 'T-1', name: 'Molyko core', lead: 'Eric Njume', size: 8,
-    zone: 'Molyko', shift: '08:00 – 16:00', load: 72,
+    ...place('Molyko'), shift: '08:00 – 16:00', load: 72,
   },
   {
     id: 'T-2', name: 'Bonduma runners', lead: 'Blaise Fon', size: 6,
-    zone: 'Bonduma', shift: '10:00 – 18:00', load: 48,
+    ...place('Bonduma'), shift: '10:00 – 18:00', load: 48,
   },
   {
     id: 'T-3', name: 'Soppo evening', lead: 'Divine Ako', size: 5,
-    zone: 'Great Soppo', shift: '14:00 – 22:00', load: 84,
+    ...place('Great Soppo'), shift: '14:00 – 22:00', load: 84,
   },
   {
     id: 'T-4', name: 'Mile 16 relay', lead: 'Nadine Bih', size: 4,
-    zone: 'Mile 16', shift: '09:00 – 17:00', load: 31,
+    ...place('Mile 16'), shift: '09:00 – 17:00', load: 31,
+  },
+
+  {
+    id: 'T-5', name: 'Akwa core', lead: 'Landry Mbappe', size: 12,
+    ...place('Akwa'), shift: '07:00 – 15:00', load: 88,
+  },
+  {
+    id: 'T-6', name: 'Bastos evening', lead: 'Carine Awono', size: 10,
+    ...place('Bastos'), shift: '14:00 – 22:00', load: 69,
+  },
+  {
+    id: 'T-7', name: 'Bamenda central', lead: 'Emmanuel Ndifor', size: 6,
+    ...place('Commercial Avenue'), shift: '09:00 – 17:00', load: 66,
   },
 ];
 
@@ -411,12 +603,25 @@ export const feeRules: FeeRule[] = [
   },
 ];
 
+/* Capacity per delivery zone, across every region reeyo is live in. */
 export const zoneStats = [
-  { zone: 'Molyko' as Zone, riders: 8, activeOrders: 14, capacity: 72, avgMinutes: 24 },
-  { zone: 'Bonduma' as Zone, riders: 6, activeOrders: 7, capacity: 48, avgMinutes: 27 },
-  { zone: 'Great Soppo' as Zone, riders: 5, activeOrders: 11, capacity: 84, avgMinutes: 33 },
-  { zone: 'Mile 16' as Zone, riders: 4, activeOrders: 3, capacity: 31, avgMinutes: 22 },
-  { zone: 'Muea' as Zone, riders: 3, activeOrders: 5, capacity: 63, avgMinutes: 38 },
+  { ...place('Molyko'), riders: 8, activeOrders: 14, capacity: 72, avgMinutes: 24 },
+  { ...place('Bonduma'), riders: 6, activeOrders: 7, capacity: 48, avgMinutes: 27 },
+  { ...place('Great Soppo'), riders: 5, activeOrders: 11, capacity: 84, avgMinutes: 33 },
+  { ...place('Mile 16'), riders: 4, activeOrders: 3, capacity: 31, avgMinutes: 22 },
+  { ...place('Muea'), riders: 3, activeOrders: 5, capacity: 63, avgMinutes: 38 },
+  { ...place('Down Beach'), riders: 4, activeOrders: 6, capacity: 55, avgMinutes: 29 },
+  { ...place('Akwa'), riders: 12, activeOrders: 26, capacity: 88, avgMinutes: 31 },
+  { ...place('Bonanjo'), riders: 9, activeOrders: 15, capacity: 61, avgMinutes: 26 },
+  { ...place('Deido'), riders: 7, activeOrders: 12, capacity: 74, avgMinutes: 34 },
+  { ...place('Makepe'), riders: 6, activeOrders: 9, capacity: 47, avgMinutes: 28 },
+  { ...place('Bastos'), riders: 10, activeOrders: 18, capacity: 69, avgMinutes: 27 },
+  { ...place('Mvan'), riders: 6, activeOrders: 8, capacity: 42, avgMinutes: 30 },
+  { ...place('Nlongkak'), riders: 5, activeOrders: 11, capacity: 78, avgMinutes: 33 },
+  { ...place('Commercial Avenue'), riders: 6, activeOrders: 10, capacity: 66, avgMinutes: 32 },
+  { ...place('Nkwen'), riders: 4, activeOrders: 5, capacity: 38, avgMinutes: 25 },
+  { ...place('Kamkop'), riders: 3, activeOrders: 4, capacity: 44, avgMinutes: 36 },
+  { ...place('Mboa Manga'), riders: 2, activeOrders: 3, capacity: 51, avgMinutes: 41 },
 ];
 
 /* Series for the hand-rolled charts — section 9. */
