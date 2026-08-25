@@ -198,10 +198,30 @@ clean rejection — for any origin outside it. Measured:
 The Vercel rewrite does not fix this on its own: Vercel forwards the browser's
 `Origin` header unchanged, and browsers send `Origin` on same-origin POSTs too.
 
-Note that **`admin.usereeyo.com` is already allowlisted but has no DNS record**
-— it looks like the intended home for this console, never set up. Pointing it
-at the Vercel project fixes sign-in with no backend change and no allowlist
-bypass. Awaiting a decision before doing anything about it.
+**Resolved by moving the console onto an origin that is already trusted.**
+`admin.usereeyo.com` was allowlisted by the backend all along but had no DNS
+record — the intended home for this console, never set up. It is now added to
+the Vercel project, so the only outstanding step is one DNS record:
+
+```
+A    admin    76.76.21.21
+```
+
+on `usereeyo.com` (nameservers are `ns1/ns2.dns-parking.com`, so this is added
+wherever that zone is managed). Nothing changes on the backend, and no origin
+allowlist is bypassed — the console simply moves to the address that was meant
+for it.
+
+One thing that cannot be verified without a working sign-in: the auth cookie's
+`Domain` attribute. The `/api/v1` rewrite means the browser receives the
+cookie from `admin.usereeyo.com` rather than `admin-api.usereeyo.com`, which is
+fine if the cookie is host-only or scoped to `.usereeyo.com`, and fails if the
+backend pins it to `Domain=admin-api.usereeyo.com`. If sign-in appears to
+succeed and then immediately bounces back to the login screen, that is this,
+and the fix is a one-line change: point `VITE_API_BASE_URL` at
+`https://admin-api.usereeyo.com/api/v1` and let the browser call it directly —
+which works from `admin.usereeyo.com` because that origin is allowlisted and
+the two hosts are same-site.
 
 **Check hardened.** `auth.mjs` had a check that passed on the broken state: it
 asserted "a request was made" and "an error appeared", both of which a proxy
