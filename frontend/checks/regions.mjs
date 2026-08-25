@@ -123,13 +123,15 @@ ws.onopen = async () => {
     || document.querySelectorAll('table tbody tr').length === 0`);
   check('a region with no orders shows an empty state, not a broken table', emptyState === true);
 
-  /* ---- Dispatch groups zones by region ---- */
+  /* ---- Dispatch groups zone capacity by region ----
+     The Zones tab is now the real /logistics/zones editor, which is a map and
+     a flat list. The region-grouped view is Capacity. */
   await pickRegion('All regions'); await wait(900);
   await go('Dispatch'); await wait(1200);
-  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Zones').click()`);
+  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Capacity').click()`);
   await wait(1000);
   const grouped = await ev(`[...document.querySelectorAll('h2')].map(h => h.textContent.trim())`);
-  check('zones are grouped under region headings',
+  check('zone capacity is grouped under region headings',
     Array.isArray(grouped) && grouped.includes('Littoral') && grouped.includes('Southwest'),
     Array.isArray(grouped) ? grouped.slice(0, 5).join(', ') : String(grouped));
 

@@ -4,6 +4,7 @@ import type { AppStateValue, Loaded, Toast } from './useAppState';
 import type {
   Order, OrderStatus, PayoutRequest, Vendor, Rider, Customer, Payment,
   Offer, Banner, FeeRule, Dispute, MenuApproval, ApiKey,
+  PendingVendor, PendingRider,
 } from '../data/types';
 import {
   orders as seedOrders,
@@ -23,6 +24,12 @@ import {
 import { ALL_REGIONS } from '../data/geography';
 import type { Region, RegionScope } from '../data/geography';
 import { resources } from '../services/resources';
+import { platform } from '../services/platformResources';
+import type { DocumentVerdict } from '../services/platformResources';
+import {
+  pendingVendors as seedPendingVendors,
+  pendingRiders as seedPendingRiders,
+} from '../data/approvalSeed';
 import { ApiError } from '../services/apiClient';
 import { useAuth } from './useAuth';
 
@@ -56,6 +63,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [disputesState, setDisputesState] = useState<Loaded<Dispute>>(idle(seedDisputes));
   const [approvalsState, setApprovalsState] = useState<Loaded<MenuApproval>>(idle(seedApprovals));
   const [apiKeysState, setApiKeysState] = useState<Loaded<ApiKey>>(idle(seedApiKeys));
+  const [pendingVendorsState, setPendingVendorsState] =
+    useState<Loaded<PendingVendor>>(idle(seedPendingVendors));
+  const [pendingRidersState, setPendingRidersState] =
+    useState<Loaded<PendingRider>>(idle(seedPendingRiders));
 
   const [offers, setOffers] = useState<Offer[]>(seedOffers);
   const [banners, setBanners] = useState<Banner[]>(seedBanners);
@@ -117,6 +128,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     load(() => resources.disputes(), setDisputesState, seedDisputes);
     load(() => resources.menuApprovals(), setApprovalsState, seedApprovals);
     load(() => resources.apiKeys(), setApiKeysState, seedApiKeys);
+    load(() => platform.pendingVendors(), setPendingVendorsState, seedPendingVendors);
+    load(() => platform.pendingRiders(), setPendingRidersState, seedPendingRiders);
 
     return () => { cancelled = true; };
   }, [isAuthenticated, live, reloadKey]);
@@ -283,6 +296,126 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     writeThrough(id, () => resources.revokeApiKey(id));
   }, [apiKeysState.rows, pushToast, writeThrough]);
 
+
+  /* ---- Riders ----------------------------------------------------------- */
+
+  const suspendRider = useCallback((id: string, reason: string) => {
+    const target = ridersState.rows.find((r) => r.id === id);
+    setPendingRidersState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((r) => (r.id === id ? { ...r, status: 'suspended' as const } : r)),
+    }));
+    pushToast(target ? `${target.name} suspended` : `${id} suspended`);
+    writeThrough(id, () => platform.suspendRider(id, reason));
+  }, [ridersState.rows, pushToast, writeThrough]);
+
+  /* ---- Customers -------------------------------------------------------- */
+
+  const suspendCustomer = useCallback((id: string, reason: string) => {
+    const target = customersState.rows.find((c) => c.id === id);
+    pushToast(target ? `${target.name} suspended` : `${id} suspended`);
+    writeThrough(id, () => platform.suspendUser(id, reason));
+  }, [customersState.rows, pushToast, writeThrough]);
+
+  const unsuspendCustomer = useCallback((id: string) => {
+    const target = customersState.rows.find((c) => c.id === id);
+    pushToast(target ? `${target.name} reinstated` : `${id} reinstated`);
+    writeThrough(id, () => platform.unsuspendUser(id));
+  }, [customersState.rows, pushToast, writeThrough]);
+
+  const deleteCustomer = useCallback((id: string) => {
+    const target = customersState.rows.find((c) => c.id === id);
+    setCustomersState((prev) => ({ ...prev, rows: prev.rows.filter((c) => c.id !== id) }));
+    pushToast(target ? `${target.name} deleted` : `${id} deleted`);
+    writeThrough(id, () => platform.deleteUser(id));
+  }, [customersState.rows, pushToast, writeThrough]);
+
+  /* ---- Approval queues -------------------------------------------------- */
+
+  const approveVendor = useCallback((id: string) => {
+    const target = pendingVendorsState.rows.find((v) => v.id === id);
+    setPendingVendorsState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((v) => (v.id === id ? { ...v, status: 'approved' as const } : v)),
+    }));
+    pushToast(target ? `${target.name} approved` : `${id} approved`);
+    writeThrough(id, () => platform.approveVendor(id));
+  }, [pendingVendorsState.rows, pushToast, writeThrough]);
+
+  const rejectVendor = useCallback((id: string, reason: string) => {
+    const target = pendingVendorsState.rows.find((v) => v.id === id);
+    setPendingVendorsState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((v) => (v.id === id ? { ...v, status: 'rejected' as const } : v)),
+    }));
+    pushToast(target ? `${target.name} rejected` : `${id} rejected`);
+    writeThrough(id, () => platform.rejectVendor(id, reason));
+  }, [pendingVendorsState.rows, pushToast, writeThrough]);
+
+  // Suspending reaches a vendor from two places — the approval queue and the
+  // vendor's own drawer — so it updates whichever list holds them.
+  const suspendVendor = useCallback((id: string, reason: string) => {
+    const target = pendingVendorsState.rows.find((v) => v.id === id)
+      ?? vendorsState.rows.find((v) => v.id === id);
+    setPendingVendorsState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((v) => (v.id === id ? { ...v, status: 'suspended' as const } : v)),
+    }));
+    setVendorsState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((v) => (v.id === id ? { ...v, status: 'suspended' as const } : v)),
+    }));
+    pushToast(target ? `${target.name} suspended` : `${id} suspended`);
+    writeThrough(id, () => platform.suspendVendor(id, reason));
+  }, [pendingVendorsState.rows, vendorsState.rows, pushToast, writeThrough]);
+
+  const approveRider = useCallback((id: string) => {
+    const target = pendingRidersState.rows.find((r) => r.id === id);
+    setPendingRidersState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((r) => (r.id === id ? { ...r, status: 'approved' as const } : r)),
+    }));
+    pushToast(target ? `${target.name} approved` : `${id} approved`);
+    writeThrough(id, () => platform.approveRider(id));
+  }, [pendingRidersState.rows, pushToast, writeThrough]);
+
+  const rejectRider = useCallback((id: string, reason: string) => {
+    const target = pendingRidersState.rows.find((r) => r.id === id);
+    setPendingRidersState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((r) => (r.id === id ? { ...r, status: 'rejected' as const } : r)),
+    }));
+    pushToast(target ? `${target.name} rejected` : `${id} rejected`);
+    writeThrough(id, () => platform.rejectRider(id, reason));
+  }, [pendingRidersState.rows, pushToast, writeThrough]);
+
+  /**
+   * Document decisions are recorded on the rider, but deliberately do not move
+   * the rider's own status — the API treats approval as a separate act once
+   * every document has been reviewed.
+   */
+  const verifyRiderDocuments = useCallback((id: string, decisions: DocumentVerdict[]) => {
+    setPendingRidersState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((r) => (r.id === id
+        ? {
+          ...r,
+          documents: r.documents.map((doc) => {
+            const verdict = decisions.find((d) => d.document_type === doc.type);
+            if (!verdict) return doc;
+            return {
+              ...doc,
+              status: verdict.status === 'APPROVED' ? 'approved' as const : 'rejected' as const,
+              reason: verdict.reason ?? null,
+            };
+          }),
+        }
+        : r)),
+    }));
+    pushToast(`${decisions.length} document${decisions.length === 1 ? '' : 's'} reviewed`);
+    writeThrough(id, () => platform.verifyRiderDocuments(id, decisions));
+  }, [pushToast, writeThrough]);
+
   const toggleOffer = useCallback((id: number) => {
     setOffers((prev) => prev.map((o) => (o.id === id ? { ...o, active: !o.active } : o)));
   }, []);
@@ -376,6 +509,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [approvalsState.rows, vendorRegion, inScope],
   );
 
+  // Applicants do carry their own region, so they scope directly.
+  const scopedPendingVendors = useMemo(
+    () => pendingVendorsState.rows.filter((v) => inScope(v.region)),
+    [pendingVendorsState.rows, inScope],
+  );
+
+  const scopedPendingRiders = useMemo(
+    () => pendingRidersState.rows.filter((r) => inScope(r.region)),
+    [pendingRidersState.rows, inScope],
+  );
+
   const personRegion = useMemo(() => {
     const map = new Map<string, Region>();
     for (const r of ridersState.rows) map.set(r.name, r.region);
@@ -427,8 +571,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [scopedDisputes],
   );
   const pendingApprovals = useMemo(
-    () => scopedApprovals.filter((a) => a.status === 'pending').length,
-    [scopedApprovals],
+    () => scopedApprovals.filter((a) => a.status === 'pending').length
+      + scopedPendingVendors.filter((v) => v.status === 'pending').length
+      + scopedPendingRiders.filter((r) => r.status === 'pending').length,
+    [scopedApprovals, scopedPendingVendors, scopedPendingRiders],
   );
 
   const isSample = !live || ordersState.sample;
@@ -440,14 +586,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const value: AppStateValue = {
     orders, ordersState, cancelOrder, assignRider,
     vendors: scopedVendors, vendorsState,
-    riders: scopedRiders, ridersState,
+    riders: scopedRiders, ridersState, suspendRider,
     customers: scopedCustomers, customersState,
+    suspendCustomer, unsuspendCustomer, deleteCustomer,
     payments: scopedPayments, paymentsState,
     payouts, payoutsState, approvePayout, declinePayout,
     disputes: scopedDisputes, disputesState,
     resolveDispute, rejectDispute,
     approvals: scopedApprovals, approvalsState,
     approveMenu, rejectMenu,
+    pendingVendors: scopedPendingVendors, pendingVendorsState,
+    approveVendor, rejectVendor, suspendVendor,
+    pendingRiders: scopedPendingRiders, pendingRidersState,
+    approveRider, rejectRider, verifyRiderDocuments,
     apiKeys: apiKeysState.rows, apiKeysState,
     createApiKey, revokeApiKey,
     offers, toggleOffer,

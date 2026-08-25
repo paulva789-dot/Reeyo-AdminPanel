@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { Order } from '../../data/types';
-import { money, ORDER_STAGES, isLate } from '../../lib/format';
+import { money, isLate } from '../../lib/format';
 import { useAppState } from '../../state/useAppState';
 import { Drawer, Modal, FooterSpacer } from '../ui/Overlay';
 import Button from '../ui/Button';
 import Pill from '../ui/Pill';
 import { Select, TextArea } from '../ui/Field';
+import OrderTimeline from './OrderTimeline';
 
 const DELIVERY_FEE = 700;
 
@@ -49,11 +50,6 @@ export default function OrderDrawer({ order, onClose }: { order: Order; onClose:
   const [reasonError, setReasonError] = useState('');
   const [pick, setPick] = useState(riders[0]?.name ?? '');
 
-  // The journey stops at the current stage; a cancelled order never advanced.
-  const reached = order.status === 'cancelled'
-    ? -1
-    : ORDER_STAGES.indexOf(order.status === 'delayed' ? 'on the way' : order.status);
-
   const basket = order.total - DELIVERY_FEE;
 
   return (
@@ -88,37 +84,7 @@ export default function OrderDrawer({ order, onClose }: { order: Order; onClose:
         </div>
 
         <Block title="Journey">
-          {ORDER_STAGES.map((stage, i) => {
-            const done = i <= reached;
-            return (
-              <div
-                key={stage}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
-                    background: done ? 'var(--emerald)' : 'var(--line)',
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 12.5, textTransform: 'capitalize',
-                    color: done ? 'var(--text)' : 'var(--text-3)',
-                    fontWeight: done ? 600 : 400,
-                  }}
-                >
-                  {stage}
-                </span>
-              </div>
-            );
-          })}
-          {order.status === 'cancelled' && (
-            <p style={{ margin: '8px 0 4px', fontSize: 12, color: 'var(--stop)' }}>
-              This order was cancelled before it moved.
-            </p>
-          )}
+          <OrderTimeline order={order} />
         </Block>
 
         <Block title="Basket">

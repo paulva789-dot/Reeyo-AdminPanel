@@ -159,3 +159,211 @@ export interface ApiKey {
   lastUsed: string | null;
   revoked: boolean;
 }
+
+/* ------------------------------------------------------------------------ */
+/* Everything below is backed by a real admin-api route. See                  */
+/* docs/ADMIN-API-ENDPOINT-REFERENCE.md — nothing here is speculative.        */
+/* ------------------------------------------------------------------------ */
+
+/** Approval queues — vendors and riders waiting on a decision. */
+export type ApprovalDecision = 'pending' | 'approved' | 'rejected' | 'suspended';
+
+export interface PendingVendor {
+  id: string;
+  name: string;
+  category: string;
+  zone: Zone;
+  city: string;
+  region: Region;
+  owner: string;
+  phone: string;
+  email: string;
+  submittedAgo: string;
+  status: ApprovalDecision;
+  commissionRate: number | null;
+  featured: boolean;
+}
+
+/** The five document types /riders/:id/verify-documents accepts. */
+export const RIDER_DOCUMENT_TYPES = [
+  'NATIONAL_ID',
+  'DRIVERS_LICENSE',
+  'VEHICLE_REGISTRATION',
+  'PROFILE_PHOTO',
+  'INSURANCE',
+] as const;
+
+export type RiderDocumentType = (typeof RIDER_DOCUMENT_TYPES)[number];
+export type DocumentDecision = 'pending' | 'approved' | 'rejected';
+
+export interface RiderDocument {
+  type: RiderDocumentType;
+  status: DocumentDecision;
+  url: string | null;
+  reason: string | null;
+}
+
+export interface PendingRider {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  vehicle: string;
+  plate: string;
+  zone: Zone;
+  city: string;
+  region: Region;
+  submittedAgo: string;
+  status: ApprovalDecision;
+  documents: RiderDocument[];
+}
+
+/** Analytics — one shape per endpoint. */
+export interface PlatformStats {
+  orders: number;
+  revenue: number;
+  customers: number;
+  vendors: number;
+  riders: number;
+  averageBasket: number;
+  cancelRate: number;
+}
+
+export interface RevenuePoint {
+  label: string;
+  value: number;
+}
+
+export interface RankedEntity {
+  id: string;
+  name: string;
+  value: number;
+  orders: number;
+}
+
+export interface OrderStatusCount {
+  status: string;
+  count: number;
+}
+
+export interface LiveSnapshot {
+  activeOrders: number;
+  onlineRiders: number;
+  onlineVendors: number;
+  ordersToday: number;
+  revenueToday: number;
+  pendingApprovals: number;
+}
+
+/** Logistics — a delivery zone as the API stores it. */
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  countryCode: string;
+  polygon: [number, number][];      // [lat, lng], at least three points
+  deliveryFeeOverride: number | null;
+  isActive: boolean;
+}
+
+/** Engagement. */
+export interface EngagementBanner {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  destination: string;
+  isActive: boolean;
+  taps: number;
+}
+
+export interface Popup {
+  id: string;
+  title: string;
+  body: string;
+  imageUrl: string | null;
+  isActive: boolean;
+  impressions: number;
+  clicks: number;
+}
+
+export interface SpinWheelSegment {
+  id: string;
+  label: string;
+  weight: number;
+  rewardType: string;
+}
+
+export interface SpinWheel {
+  id: string;
+  name: string;
+  isActive: boolean;
+  segments: SpinWheelSegment[];
+}
+
+export interface LoyaltyRule {
+  id: string;
+  name: string;
+  pointsPerOrder: number;
+  isActive: boolean;
+}
+
+export interface LoyaltyReward {
+  id: string;
+  name: string;
+  pointsCost: number;
+  imageUrl: string | null;
+  isActive: boolean;
+}
+
+export interface PreferenceTag {
+  tag: string;
+  usageCount: number;
+}
+
+export interface TrackingFact {
+  id: string;
+  text: string;
+  isActive: boolean;
+}
+
+export interface SharedCart {
+  id: string;
+  owner: string;
+  participants: number;
+  total: number;
+  createdAgo: string;
+}
+
+/** Admin users — managing other admins. */
+export type AdminRole = 'ADMIN' | 'SUPER_ADMIN';
+export type AdminStatus = 'ACTIVE' | 'SUSPENDED';
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole;
+  status: AdminStatus;
+  lastLogin: string | null;
+}
+
+/** Platform config and feature flags. */
+export interface PlatformConfig {
+  commissionRate: number | null;
+  serviceFee: number | null;
+  riderCut: number | null;
+  baseDeliveryFare: number | null;
+}
+
+export interface FeatureFlag {
+  key: string;
+  enabled: boolean;
+  description: string;
+}
+
+/** An order's real journey, from /orders/:id/timeline. */
+export interface TimelineEvent {
+  id: string;
+  status: string;
+  at: string;
+  note: string | null;
+}

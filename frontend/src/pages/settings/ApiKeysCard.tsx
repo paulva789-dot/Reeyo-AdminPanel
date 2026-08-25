@@ -6,6 +6,8 @@ import DataTable from '../../components/ui/DataTable';
 import type { Column } from '../../components/ui/DataTable';
 import Field from '../../components/ui/Field';
 import { Modal, FooterSpacer } from '../../components/ui/Overlay';
+import SuperAdminOnly from '../../components/ui/SuperAdminOnly';
+import { useAuth } from '../../state/useAuth';
 import { useAppState } from '../../state/useAppState';
 import { API_KEY_SCOPES } from '../../data/seed';
 import type { ApiKey } from '../../data/types';
@@ -194,6 +196,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 export default function ApiKeysCard() {
   const { apiKeys, revokeApiKey } = useAppState();
+  const { isSuperAdmin } = useAuth();
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<ApiKey | null>(null);
 
@@ -250,8 +253,14 @@ export default function ApiKeysCard() {
     <>
       <Card
         title="API keys"
-        action={<Button variant="outline" onClick={() => setCreating(true)}>New key</Button>}
+        action={isSuperAdmin
+          ? <Button variant="outline" onClick={() => setCreating(true)}>New key</Button>
+          : undefined}
       >
+        {!isSuperAdmin ? (
+          <SuperAdminOnly what="API keys">{null}</SuperAdminOnly>
+        ) : (
+        <>
         <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-2)' }}>
           For bots and automations. The full key is shown once, at creation, and
           only the prefix afterwards.
@@ -267,6 +276,8 @@ export default function ApiKeysCard() {
             action: <Button variant="primary" onClick={() => setCreating(true)}>Create the first key</Button>,
           }}
         />
+        </>
+        )}
       </Card>
 
       {creating && <CreateModal onClose={() => setCreating(false)} />}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -12,6 +12,10 @@ import { FilterInput } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/useAppState';
+import { useDetail } from '../state/useDetail';
+import { platform } from '../services/platformResources';
+import OrderHistory from '../components/domain/OrderHistory';
+import ReasonModal from './approvals/ReasonModal';
 import { money, initials } from '../lib/format';
 import { menus } from '../data/seed';
 import type { Vendor, MenuCategory } from '../data/types';
@@ -33,9 +37,19 @@ function Avatar({ name, token }: { name: string; token: string }) {
   );
 }
 
+/**
+ * A vendor's menu.
+ *
+ * `GET /vendors/:id/menu-items` returns a flat list of items and no write
+ * route, so in live mode this reads and does not edit. The seeded view keeps
+ * its categories and toggles because sample mode is explicitly a rehearsal —
+ * but nothing here claims a change reaches the platform.
+ */
 function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void }) {
   const [categories, setCategories] = useState<MenuCategory[]>(menus[vendor.id] ?? []);
-  const { pushToast, isSample } = useAppState();
+  const { isSample } = useAppState();
+  const fetcher = useCallback(() => platform.vendorMenuItems(vendor.id), [vendor.id]);
+  const live = useDetail(vendor.id, fetcher);
 
   const toggleCategory = (id: string) => {
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, visible: !c.visible } : c)));
@@ -50,36 +64,93 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
       : c)));
   };
 
-  return (
-    <Modal
-      title={`${vendor.name} menu`}
-      subtitle={`${vendor.category} · ${vendor.zone}`}
-      onClose={onClose}
-      footer={(
+  const body = () => {
+    if (!isSample) {
+      if (live.loading) {
+        return <EmptyState heading="Loading…" line="Fetching the menu from the platform." />;
+      }
+      if (live.error) {
+        return <EmptyState heading="Could not load the menu" line={live.error} />;
+      }
+      const items = live.value ?? [];
+      if (items.length === 0) {
+        return (
+          <EmptyState
+            heading="No items on this menu"
+            line={`${vendor.name} cannot receive orders until at least one available item exists.`}
+          />
+        );
+      }
+      return (
         <>
-          <FooterSpacer />
-          <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button
-            variant="primary"
-            onClick={() => { pushToast(`${vendor.name} menu saved`); onClose(); }}
+          <div
+            style={{
+              background: 'var(--card)', border: '1px solid var(--line)',
+              borderRadius: 'var(--r-card)', overflow: 'hidden',
+            }}
           >
-            Save menu
-          </Button>
+            {items.map((item, i) => (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                  borderBottom: i === items.length - 1 ? 'none' : '1px solid var(--line-soft)',
+                  opacity: item.available ? 1 : 0.65,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5 }}>{item.name}</div>
+                  <div
+                    style={{
+                      display: 'flex', alignItems: 'baseline', gap: 7,
+                      marginTop: 3, flexWrap: 'wrap',
+                    }}
+                  >
+                    <span className="mono" style={{ fontSize: 12, color: 'var(--forest)' }}>
+                      {money(item.price)}
+                    </span>
+                    {item.wasPrice && (
+                      <span
+                        className="mono"
+                        style={{
+                          fontSize: 11, color: 'var(--text-3)',
+                          textDecoration: 'line-through',
+                        }}
+                      >
+                        {money(item.wasPrice)}
+                      </span>
+                    )}
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                      {item.stock} in stock · {item.addOns} add-ons
+                    </span>
+                  </div>
+                </div>
+                {item.stock === 0 && <Pill status="out of stock" token="stop" />}
+                {!item.available && <Pill status="hidden" token="calm" />}
+              </div>
+            ))}
+          </div>
+          <p style={{ margin: '12px 0 0', fontSize: 11.5, color: 'var(--text-3)' }}>
+            Read-only. The admin API serves this menu but exposes no write on it —
+            a vendor edits their own, and price changes arrive here as menu
+            approvals.
+          </p>
         </>
-      )}
-    >
-      {categories.length === 0 ? (
+      );
+    }
+
+    if (categories.length === 0) {
+      return (
         <EmptyState
-          heading={isSample
-            ? 'This vendor has not published a menu'
-            : 'Menus are not available here yet'}
-          line={isSample
-            ? `${vendor.name} cannot receive orders until at least one category with one available item exists.`
-            : 'The admin API has no menu route, so this console cannot read or edit what a vendor is serving.'}
-          action={isSample ? <Button variant="primary">Add first category</Button> : undefined}
+          heading="This vendor has not published a menu"
+          line={`${vendor.name} cannot receive orders until at least one category with one available item exists.`}
         />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
           {categories.map((c) => (
             <div
               key={c.id}
@@ -159,35 +230,53 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
               ))}
             </div>
           ))}
-        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Modal
+      title={`${vendor.name} menu`}
+      subtitle={`${vendor.category} · ${vendor.zone}`}
+      onClose={onClose}
+      footer={(
+        <>
+          <FooterSpacer />
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </>
       )}
+    >
+      {body()}
     </Modal>
   );
 }
 
 function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void }) {
-  const { pushToast } = useAppState();
+  const { orders, suspendVendor } = useAppState();
+  const [suspending, setSuspending] = useState(false);
+  const fetcher = useCallback(() => platform.vendorOrders(vendor.id), [vendor.id]);
+  const history = useDetail(vendor.id, fetcher);
+
+  // Without the endpoint, the best we can do is the orders already on screen.
+  const theirs = useMemo(
+    () => orders.filter((o) => o.vendor === vendor.name),
+    [orders, vendor.name],
+  );
 
   return (
+    <>
     <Drawer
       title={vendor.name}
       subtitle={`${vendor.category} · ${vendor.zone} · joined ${vendor.joined}`}
       onClose={onClose}
       footer={(
         <>
-          <Button
-            variant="destructive"
-            onClick={() => { pushToast(`${vendor.name} suspended`); onClose(); }}
-          >
+          {/* "Release payout" is gone: money moves through the payouts queue,
+              and there is no vendor-level route that releases anything. */}
+          <Button variant="destructive" onClick={() => setSuspending(true)}>
             Suspend
           </Button>
           <FooterSpacer />
-          <Button
-            variant="primary"
-            onClick={() => { pushToast(`FCFA ${money(vendor.revenue)} released to ${vendor.name}`); onClose(); }}
-          >
-            Release payout
-          </Button>
         </>
       )}
     >
@@ -253,7 +342,36 @@ function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void
           ))}
         </div>
       </div>
+      <div style={{ marginTop: 18 }}>
+        <div className="eyebrow" style={{ marginBottom: 9 }}>Recent orders</div>
+        <div
+          style={{
+            background: 'var(--card)', border: '1px solid var(--line)',
+            borderRadius: 'var(--r-card)', padding: '4px 14px 12px',
+          }}
+        >
+          <OrderHistory
+            history={history}
+            fallback={theirs}
+            emptyLine={`${vendor.name} has taken no orders.`}
+          />
+        </div>
+      </div>
     </Drawer>
+
+    {suspending && (
+      <ReasonModal
+        title="Suspend this vendor"
+        subtitle={`${vendor.name} · ${vendor.zone}`}
+        explain="They stop taking orders immediately. A Super Admin can lift it later."
+        placeholder="Repeated cancellations after accepting orders."
+        confirmLabel="Suspend vendor"
+        cancelLabel="Leave trading"
+        onConfirm={(reason) => { suspendVendor(vendor.id, reason); setSuspending(false); onClose(); }}
+        onClose={() => setSuspending(false)}
+      />
+    )}
+    </>
   );
 }
 

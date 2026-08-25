@@ -13,6 +13,7 @@
     "checks": "node checks/run.mjs"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@tailwindcss/vite": "^4.0.0",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^26.2.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

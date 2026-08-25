@@ -8,17 +8,22 @@ import ColumnChart from '../components/charts/ColumnChart';
 import BarList from '../components/charts/BarList';
 import Donut from '../components/charts/Donut';
 import { useAppState } from '../state/useAppState';
-import { money } from '../lib/format';
+import { useAnalytics } from '../state/useAnalytics';
+import type { AnalyticsBundle, Loadable } from '../state/useAnalytics';
+import { ALL_REGIONS } from '../data/geography';
+import { money, statusToken } from '../lib/format';
 import {
   grossValue, cancelRate, averageBasket, averageEta, ratingAverage,
   topVendorsByRevenue, revenueByVertical, segmentCounts, deliveryByZone,
+  topRidersByTrips, orderStatusCounts,
 } from '../lib/insights';
 import {
-  gmv30Days, returningCustomers, cancellationReasons, ratingDistribution,
-  openComplaints, gmvSparkline,
+  returningCustomers, ratingDistribution, openComplaints,
+  gmvSparkline, gmv30Days,
 } from '../data/seed';
 
 const DAY_LABELS = Array.from({ length: 30 }, (_, i) => `${i + 1}`);
+
 const WEEK_LABELS = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'];
 
 /** Delivery time thresholds decide the bar colour, so it is never decorative. */
@@ -29,9 +34,72 @@ function deliveryToken(minutes: number): string {
 }
 
 /**
- * Wraps a card whose content the API gives us no way to compute. In live mode
- * it says so instead of showing a seeded shape that would read as real.
+ * Says where the numbers on a tab came from — and, when a region is selected,
+ * that these particular numbers ignore it. The analytics endpoints take no
+ * region parameter, so a figure from them covers the whole country however the
+ * topbar is set. Saying nothing would let the filter take credit for a total
+ * it did not produce.
  */
+function SourceNote({ live, error }: { live: boolean; error: string | null }) {
+  const { region } = useAppState();
+  const scoped = region !== ALL_REGIONS;
+
+  const text = error
+    ? `${error} Showing figures worked out from the rows already loaded.`
+    : live
+      ? scoped
+        ? `Platform analytics cover all ten regions — the ${region} filter does not
+           apply to these figures.`
+        : 'From the platform analytics endpoints.'
+      : 'Worked out from the rows on screen.';
+
+  return (
+    <p
+      style={{
+        margin: '9px 0 0', fontSize: 11.5,
+        color: error ? 'var(--stop)' : 'var(--text-3)',
+      }}
+    >
+      {text.replace(/\s+/g, ' ')}
+    </p>
+  );
+}
+
+/**
+ * A chart whose data now has a real endpoint. In live mode it plots what came
+ * back; in sample mode it plots the seed shape. What it never does is plot
+ * seed data while claiming to be live.
+ */
+function SeriesCard<T>({
+  title, source, sample, children, emptyLine,
+}: {
+  title: string;
+  source: Loadable<T[]>;
+  /** The seeded stand-in, used only when the console is in sample mode. */
+  sample: React.ReactNode;
+  children: (rows: T[]) => React.ReactNode;
+  emptyLine: string;
+}) {
+  const { isSample } = useAppState();
+
+  if (isSample) return <Card title={title}>{sample}</Card>;
+
+  return (
+    <Card title={title}>
+      {source.loading ? (
+        <EmptyState heading="Loading…" line="Fetching this from the analytics API." />
+      ) : source.error ? (
+        <EmptyState heading="Could not load this" line={source.error} />
+      ) : !source.value || source.value.length === 0 ? (
+        <EmptyState heading="Nothing to plot yet" line={emptyLine} />
+      ) : (
+        children(source.value)
+      )}
+    </Card>
+  );
+}
+
+/** In live mode a card with no endpoint behind it says so rather than inventing one. */
 function HistoricalCard({
   title, isSample, children,
 }: { title: string; isSample: boolean; children: React.ReactNode }) {
@@ -47,41 +115,58 @@ function HistoricalCard({
   );
 }
 
-function Money({ isSample }: { isSample: boolean }) {
+function Money({ analytics }: { analytics: AnalyticsBundle }) {
   const { orders, sampleOnly } = useAppState();
-  const gross = grossValue(orders);
-  const revenue = revenueByVertical(orders);
+  const { stats, revenue } = analytics;
+  const s = stats.value;
+  const vertical = revenueByVertical(orders);
 
   return (
     <>
       <MetricRow>
         <MetricTile
-          label="Gross value" value={money(gross)} prefix="FCFA"
+          label="Gross value" value={money(s ? s.revenue : grossValue(orders))} prefix="FCFA"
           delta={sampleOnly(14)} series={sampleOnly(gmvSparkline)}
         />
         <MetricTile
-          label="Average basket" value={money(averageBasket(orders))} prefix="FCFA"
+          label="Average basket"
+          value={money(s ? s.averageBasket : averageBasket(orders))} prefix="FCFA"
           delta={sampleOnly(3)}
         />
-        <MetricTile label="Orders counted" value={String(orders.length)} />
         <MetricTile
-          label="Cancel rate" value={`${cancelRate(orders)}%`}
+          label="Orders" value={String(s ? s.orders : orders.length)}
+          note={s ? 'platform total' : 'loaded on screen'}
+        />
+        <MetricTile
+          label="Cancel rate"
+          value={`${s ? Math.round(s.cancelRate * 10) / 10 : cancelRate(orders)}%`}
           delta={sampleOnly(-1)} invertDelta
         />
       </MetricRow>
+      <SourceNote live={s !== null} error={stats.error} />
 
       <div className="reeyo-split-even" style={{ marginTop: 14 }}>
-        <HistoricalCard title="Gross value, last 30 days" isSample={isSample}>
-          <ColumnChart data={gmv30Days} labels={DAY_LABELS} />
-        </HistoricalCard>
+        <SeriesCard
+          title="Revenue over time"
+          source={revenue}
+          sample={<ColumnChart data={gmv30Days} labels={DAY_LABELS} />}
+          emptyLine="No revenue has been recorded in the period the API reports on."
+        >
+          {(rows) => (
+            <ColumnChart
+              data={rows.map((r) => r.value)}
+              labels={rows.map((r) => r.label)}
+            />
+          )}
+        </SeriesCard>
         <Card title="Revenue by service">
-          {revenue.length === 0 ? (
+          {vertical.length === 0 ? (
             <EmptyState
               heading="No revenue to split yet"
               line="Once orders complete, the share each service takes shows here."
             />
           ) : (
-            <Donut slices={revenue} format={(v) => money(v)} />
+            <Donut slices={vertical} format={(v) => money(v)} />
           )}
         </Card>
       </div>
@@ -89,21 +174,26 @@ function Money({ isSample }: { isSample: boolean }) {
   );
 }
 
-function Growth({ isSample }: { isSample: boolean }) {
+function Growth({ analytics, isSample }: { analytics: AnalyticsBundle; isSample: boolean }) {
   const { customers, vendors, orders, sampleOnly } = useAppState();
+  const { stats, topVendors } = analytics;
+  const s = stats.value;
   const segments = segmentCounts(customers);
-  const top = topVendorsByRevenue(vendors);
-  const perCustomer = customers.length
-    ? (orders.length / customers.length).toFixed(1) : '—';
+
+  const customerCount = s ? s.customers : customers.length;
+  const orderCount = s ? s.orders : orders.length;
+  const perCustomer = customerCount
+    ? (orderCount / customerCount).toFixed(1) : '—';
 
   return (
     <>
       <MetricRow>
-        <MetricTile label="Customers" value={String(customers.length)} delta={sampleOnly(22)} />
+        <MetricTile label="Customers" value={String(customerCount)} delta={sampleOnly(22)} />
         <MetricTile label="Loyal" value={String(segments.loyal)} note="ordered 40+ times" />
         <MetricTile label="Lapsed" value={String(segments.lapsed)} note="worth a nudge" />
         <MetricTile label="Orders per customer" value={perCustomer} delta={sampleOnly(2)} />
       </MetricRow>
+      <SourceNote live={s !== null} error={stats.error} />
 
       <div className="reeyo-split-even" style={{ marginTop: 14 }}>
         <HistoricalCard title="Returning customers by week" isSample={isSample}>
@@ -111,23 +201,30 @@ function Growth({ isSample }: { isSample: boolean }) {
             data={returningCustomers} labels={WEEK_LABELS} colour="var(--grocery-vivid)"
           />
         </HistoricalCard>
-        <Card title="Top vendors by revenue">
-          {top.length === 0 ? (
-            <EmptyState
-              heading="No vendor revenue yet"
-              line="Vendors appear here once they have taken their first orders."
+        <SeriesCard
+          title="Top vendors by revenue"
+          source={topVendors}
+          sample={<BarList items={topVendorsByRevenue(vendors)} format={(v) => money(v)} />}
+          emptyLine="Vendors appear here once they have taken their first orders."
+        >
+          {(rows) => (
+            <BarList
+              items={rows.map((r) => ({
+                label: r.name, value: r.value, token: 'food',
+              }))}
+              format={(v) => money(v)}
             />
-          ) : (
-            <BarList items={top} format={(v) => money(v)} />
           )}
-        </Card>
+        </SeriesCard>
       </div>
     </>
   );
 }
 
-function Operations({ isSample }: { isSample: boolean }) {
+function Operations({ analytics }: { analytics: AnalyticsBundle }) {
   const { orders, riders, sampleOnly } = useAppState();
+  const { stats, orderStatus, topRiders } = analytics;
+  const s = stats.value;
   const avgEta = averageEta(orders);
   const inFlight = orders.filter(
     (o) => o.status !== 'delivered' && o.status !== 'cancelled',
@@ -144,16 +241,55 @@ function Operations({ isSample }: { isSample: boolean }) {
         />
         <MetricTile label="Orders in flight" value={String(inFlight)} />
         <MetricTile
-          label="Cancel rate" value={`${cancelRate(orders)}%`}
+          label="Cancel rate"
+          value={`${s ? Math.round(s.cancelRate * 10) / 10 : cancelRate(orders)}%`}
           delta={sampleOnly(-1)} invertDelta
         />
         <MetricTile
-          label="Riders on shift" value={String(onShift)}
-          note={`of ${riders.length}`}
+          label="Riders" value={String(s ? s.riders : riders.length)}
+          note={s ? 'platform total' : `${onShift} on shift`}
         />
       </MetricRow>
+      <SourceNote live={s !== null} error={stats.error} />
 
       <div className="reeyo-split-even" style={{ marginTop: 14 }}>
+        <SeriesCard
+          title="Orders by status"
+          source={orderStatus}
+          sample={(
+            <Donut
+              slices={orderStatusCounts(orders).map((r) => ({
+                label: r.status, value: r.count, token: statusToken(r.status),
+              }))}
+            />
+          )}
+          emptyLine="No orders have been placed in the period the API reports on."
+        >
+          {(rows) => (
+            <Donut
+              slices={rows.map((r) => ({
+                label: r.status, value: r.count, token: statusToken(r.status),
+              }))}
+            />
+          )}
+        </SeriesCard>
+        <SeriesCard
+          title="Top riders by deliveries"
+          source={topRiders}
+          sample={<BarList items={topRidersByTrips(riders)} />}
+          emptyLine="Riders appear here once they have completed deliveries."
+        >
+          {(rows) => (
+            <BarList
+              items={rows.map((r) => ({
+                label: r.name, value: r.orders || r.value, token: 'parcel',
+              }))}
+            />
+          )}
+        </SeriesCard>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
         <Card title="Delivery time by zone">
           {zones.length === 0 ? (
             <EmptyState
@@ -169,9 +305,6 @@ function Operations({ isSample }: { isSample: boolean }) {
             />
           )}
         </Card>
-        <HistoricalCard title="Why orders get cancelled" isSample={isSample}>
-          <BarList items={cancellationReasons} format={(v) => `${v}%`} />
-        </HistoricalCard>
       </div>
     </>
   );
@@ -212,6 +345,9 @@ function Experience({ isSample }: { isSample: boolean }) {
 export default function Analytics() {
   const { isSample } = useAppState();
   const [tab, setTab] = useState('money');
+  // Every tab but Experience reads at least one of these, and the hook caches
+  // per mount, so asking once here beats five hooks that refetch on each tab.
+  const analytics = useAnalytics(['stats', 'revenue', 'topVendors', 'topRiders', 'orderStatus']);
 
   return (
     <>
@@ -231,9 +367,9 @@ export default function Analytics() {
         />
       </div>
 
-      {tab === 'money' && <Money isSample={isSample} />}
-      {tab === 'growth' && <Growth isSample={isSample} />}
-      {tab === 'operations' && <Operations isSample={isSample} />}
+      {tab === 'money' && <Money analytics={analytics} />}
+      {tab === 'growth' && <Growth analytics={analytics} isSample={isSample} />}
+      {tab === 'operations' && <Operations analytics={analytics} />}
       {tab === 'experience' && <Experience isSample={isSample} />}
     </>
   );

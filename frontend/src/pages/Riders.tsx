@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -7,14 +7,92 @@ import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
+import { Drawer, FooterSpacer } from '../components/ui/Overlay';
+import OrderHistory from '../components/domain/OrderHistory';
+import ReasonModal from './approvals/ReasonModal';
+import { platform } from '../services/platformResources';
+import { useDetail } from '../state/useDetail';
 import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 
 import type { Rider } from '../data/types';
 
+function RiderDrawer({ rider, onClose }: { rider: Rider; onClose: () => void }) {
+  const { orders, suspendRider } = useAppState();
+  const [suspending, setSuspending] = useState(false);
+  const fetcher = useCallback(() => platform.riderDeliveries(rider.id), [rider.id]);
+  const history = useDetail(rider.id, fetcher);
+
+  const theirs = useMemo(
+    () => orders.filter((o) => o.rider === rider.name),
+    [orders, rider.name],
+  );
+
+  return (
+    <>
+      <Drawer
+        title={rider.name}
+        subtitle={`${rider.vehicle} · ${rider.zone} · ${rider.city}`}
+        onClose={onClose}
+        footer={(
+          <>
+            <Button variant="destructive" onClick={() => setSuspending(true)}>Suspend</Button>
+            <FooterSpacer />
+          </>
+        )}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Pill status={rider.state} />
+        </div>
+
+        <MetricRow>
+          <MetricTile label="Trips" value={String(rider.trips)} />
+          <MetricTile label="Rating" value={String(rider.rating)} />
+          <MetricTile label="Owed" value={money(rider.owed)} prefix="FCFA" />
+        </MetricRow>
+
+        <div style={{ marginTop: 18 }}>
+          <div className="eyebrow" style={{ marginBottom: 9 }}>Deliveries</div>
+          <div
+            style={{
+              background: 'var(--card)', border: '1px solid var(--line)',
+              borderRadius: 'var(--r-card)', padding: '4px 14px 12px',
+            }}
+          >
+            <OrderHistory
+              history={history}
+              fallback={theirs}
+              emptyLine={`${rider.name} has completed no deliveries.`}
+            />
+          </div>
+        </div>
+
+        <p style={{ margin: '14px 0 0', fontSize: 11, color: 'var(--text-3)' }}>
+          What {rider.name} is owed is released from the payouts queue, not from
+          here — there is no rider-level route that releases money.
+        </p>
+      </Drawer>
+
+      {suspending && (
+        <ReasonModal
+          title="Suspend this rider"
+          subtitle={`${rider.name} · ${rider.zone}`}
+          explain="They stop receiving deliveries immediately. A Super Admin can lift it."
+          placeholder="Three orders marked delivered without reaching the customer."
+          confirmLabel="Suspend rider"
+          cancelLabel="Leave on shift"
+          onConfirm={(reason) => { suspendRider(rider.id, reason); setSuspending(false); onClose(); }}
+          onClose={() => setSuspending(false)}
+        />
+      )}
+    </>
+  );
+}
+
 export default function Riders() {
-  const { riders, pushToast, sampleOnly } = useAppState();
+  const { riders, sampleOnly } = useAppState();
   const [query, setQuery] = useState('');
+  const [open, setOpen] = useState<Rider | null>(null);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -72,14 +150,11 @@ export default function Riders() {
     },
     { key: 'state', header: 'State', render: (r) => <Pill status={r.state} /> },
     {
+      // Releasing money happens in the payouts queue; there is no rider-level
+      // route for it, so this opens what the console can actually show.
       key: 'action', header: '', align: 'right',
       render: (r) => (
-        <Button
-          variant="soft"
-          onClick={() => pushToast(`FCFA ${money(r.owed)} released to ${r.name}`)}
-        >
-          Release payout
-        </Button>
+        <Button variant="soft" onClick={() => setOpen(r)}>Deliveries</Button>
       ),
     },
   ];
@@ -116,6 +191,8 @@ export default function Riders() {
           }}
         />
       </Card>
+
+      {open && <RiderDrawer rider={open} onClose={() => setOpen(null)} />}
     </>
   );
 }

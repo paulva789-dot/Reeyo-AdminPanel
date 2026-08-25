@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -7,9 +7,118 @@ import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
+import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
+import OrderHistory from '../components/domain/OrderHistory';
+import ReasonModal from './approvals/ReasonModal';
+import { platform } from '../services/platformResources';
+import { useDetail } from '../state/useDetail';
 import { money } from '../lib/format';
 import { useAppState } from '../state/useAppState';
 import type { Customer } from '../data/types';
+
+function CustomerDrawer({ customer, onClose }: { customer: Customer; onClose: () => void }) {
+  const { orders, suspendCustomer, unsuspendCustomer, deleteCustomer } = useAppState();
+  const [suspending, setSuspending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const fetcher = useCallback(() => platform.userOrders(customer.id), [customer.id]);
+  const history = useDetail(customer.id, fetcher);
+
+  const theirs = useMemo(
+    () => orders.filter((o) => o.customer === customer.name),
+    [orders, customer.name],
+  );
+
+  return (
+    <>
+      <Drawer
+        title={customer.name}
+        subtitle={`${customer.zone} · ${customer.city} · last ordered ${customer.lastOrder}`}
+        onClose={onClose}
+        footer={(
+          <>
+            <Button variant="destructive" onClick={() => setDeleting(true)}>Delete</Button>
+            <FooterSpacer />
+            <Button variant="outline" onClick={() => unsuspendCustomer(customer.id)}>
+              Reinstate
+            </Button>
+            <Button variant="outline" onClick={() => setSuspending(true)}>Suspend</Button>
+          </>
+        )}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Pill status={customer.segment} token={SEGMENT_TOKEN[customer.segment]} />
+        </div>
+
+        <MetricRow>
+          <MetricTile label="Orders" value={String(customer.orders)} />
+          <MetricTile label="Spend" value={money(customer.spend)} prefix="FCFA" />
+        </MetricRow>
+
+        <div style={{ marginTop: 18 }}>
+          <div className="eyebrow" style={{ marginBottom: 9 }}>Order history</div>
+          <div
+            style={{
+              background: 'var(--card)', border: '1px solid var(--line)',
+              borderRadius: 'var(--r-card)', padding: '4px 14px 12px',
+            }}
+          >
+            <OrderHistory
+              history={history}
+              fallback={theirs}
+              emptyLine={`${customer.name} has not ordered.`}
+            />
+          </div>
+        </div>
+
+        <p style={{ margin: '14px 0 0', fontSize: 11, color: 'var(--text-3)' }}>
+          The customers list carries no suspension state, so this drawer cannot
+          show whether {customer.name} is currently suspended — only carry the
+          act out.
+        </p>
+      </Drawer>
+
+      {suspending && (
+        <ReasonModal
+          title="Suspend this customer"
+          subtitle={`${customer.name} · ${customer.zone}`}
+          explain="They can no longer place orders. Reinstating is one click, from here."
+          placeholder="Repeated refused deliveries at the door."
+          confirmLabel="Suspend customer"
+          cancelLabel="Leave as is"
+          onConfirm={(reason) => { suspendCustomer(customer.id, reason); setSuspending(false); }}
+          onClose={() => setSuspending(false)}
+        />
+      )}
+
+      {deleting && (
+        <Modal
+          title="Delete this customer"
+          subtitle={customer.name}
+          onClose={() => setDeleting(false)}
+          width={440}
+          footer={(
+            <>
+              <FooterSpacer />
+              <Button variant="outline" onClick={() => setDeleting(false)}>Keep the account</Button>
+              <Button
+                variant="destructive"
+                onClick={() => { deleteCustomer(customer.id); setDeleting(false); onClose(); }}
+              >
+                Delete account
+              </Button>
+            </>
+          )}
+        >
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-2)' }}>
+            This removes the account from the platform and cannot be undone from
+            here. If you only want to stop them ordering, suspend them instead —
+            that keeps their history and can be lifted.
+          </p>
+        </Modal>
+      )}
+    </>
+  );
+}
 
 /** Segments are not order states, so they carry their own tokens. */
 const SEGMENT_TOKEN: Record<string, string> = {
@@ -22,6 +131,7 @@ const SEGMENT_TOKEN: Record<string, string> = {
 export default function Customers() {
   const { customers, sampleOnly } = useAppState();
   const [query, setQuery] = useState('');
+  const [open, setOpen] = useState<Customer | null>(null);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -102,6 +212,7 @@ export default function Customers() {
           columns={columns}
           rows={rows}
           rowKey={(c) => c.id}
+          onRowClick={setOpen}
           minWidth={860}
           empty={{
             heading: 'No customer matches that filter',
@@ -110,6 +221,8 @@ export default function Customers() {
           }}
         />
       </Card>
+
+      {open && <CustomerDrawer customer={open} onClose={() => setOpen(null)} />}
     </>
   );
 }

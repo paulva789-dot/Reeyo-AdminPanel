@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Pill from '../components/ui/Pill';
@@ -8,6 +8,10 @@ import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import RiderMap from '../components/domain/RiderMap';
 import LocalOnly from '../components/ui/LocalOnly';
+
+// Leaflet is a third of the bundle and only this tab needs it, so it loads when
+// the tab is opened rather than on every page of the console.
+const ZonesPanel = lazy(() => import('./dispatch/ZonesPanel'));
 import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 import EmptyState from '../components/ui/EmptyState';
@@ -37,13 +41,13 @@ function capacityToken(pct: number): string {
   return 'go';
 }
 
-function Zones() {
+function Capacity() {
   const { region, zoneStatsInScope } = useDispatchGeography();
 
   if (zoneStatsInScope.length === 0) {
     return (
       <>
-        <LocalOnly what="Delivery zones" endpoint="/logistics/zones" />
+        <LocalOnly what="Zone capacity" />
         <Card>
           <EmptyState
             heading={`No delivery zones in ${region}`}
@@ -63,7 +67,7 @@ function Zones() {
 
   return (
     <>
-      <LocalOnly what="Delivery zones" endpoint="/logistics/zones" />
+      <LocalOnly what="Zone capacity" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {[...byRegion.entries()].map(([regionName, zones]) => (
           <section key={regionName}>
@@ -287,6 +291,7 @@ export default function Dispatch() {
           segments={[
             { value: 'map', label: 'Map' },
             { value: 'zones', label: 'Zones' },
+            { value: 'capacity', label: 'Capacity' },
             { value: 'teams', label: 'Teams' },
             { value: 'fees', label: 'Delivery fees' },
           ]}
@@ -309,7 +314,18 @@ export default function Dispatch() {
         </div>
       )}
 
-      {tab === 'zones' && <Zones />}
+      {tab === 'zones' && (
+        <Suspense
+          fallback={(
+            <Card>
+              <EmptyState heading="Loading the map…" line="Fetching the map library and your zones." />
+            </Card>
+          )}
+        >
+          <ZonesPanel />
+        </Suspense>
+      )}
+      {tab === 'capacity' && <Capacity />}
       {tab === 'teams' && <Teams />}
       {tab === 'fees' && <Fees />}
     </>

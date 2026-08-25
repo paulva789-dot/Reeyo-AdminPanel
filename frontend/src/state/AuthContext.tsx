@@ -106,6 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isSample: mode === 'sample',
     isLoading,
     role: admin?.role ?? null,
+    // Sample mode gets the full console so every screen is reachable; the
+    // banner already says nothing there is real.
+    isSuperAdmin: mode === 'sample'
+      || String(admin?.role ?? '').toUpperCase().replace(/[\s-]/g, '_') === 'SUPER_ADMIN',
     login,
     useSampleData,
     logout,

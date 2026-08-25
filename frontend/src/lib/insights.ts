@@ -232,3 +232,21 @@ export function deliveryByZone(orders: Order[]) {
     }))
     .sort((a, b) => a.value - b.value);
 }
+
+/** Riders ranked by completed trips — the local stand-in for /analytics/top-riders. */
+export function topRidersByTrips(riders: Rider[], limit = 5) {
+  return [...riders]
+    .filter((r) => r.trips > 0)
+    .sort((a, b) => b.trips - a.trips)
+    .slice(0, limit)
+    .map((r) => ({ label: r.name, value: r.trips, token: 'parcel' }));
+}
+
+/** How the loaded orders split by status — the stand-in for /analytics/order-status. */
+export function orderStatusCounts(orders: Order[]) {
+  const counts = new Map<string, number>();
+  for (const o of orders) counts.set(o.status, (counts.get(o.status) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([status, count]) => ({ status, count }))
+    .sort((a, b) => b.count - a.count);
+}

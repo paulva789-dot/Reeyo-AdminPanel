@@ -161,15 +161,51 @@ ws.onopen = async () => {
   const payAfter = await ev(BADGE('Payments'));
   check('approving a payout decrements the Payments badge', payAfter === payBefore - 1, `${payBefore} -> ${payAfter}`);
 
-  // --- keyboard reordering on Storefront ---
+  // --- banners on Storefront ---
+  // Reordering is gone: /engagement/banners exposes no position, so a drag
+  // handle would have been a control that changes nothing. What replaced it is
+  // create, edit, delete and a visibility toggle, all against the real route.
   await go('Storefront'); await wait(1300);
-  const firstBefore = await ev(`document.querySelectorAll('[aria-label^="Move "]').length`);
-  const orderBefore = await ev(`[...document.querySelectorAll('[aria-label^="Move "][aria-label$=" up"]')].map(b => b.getAttribute('aria-label'))[1]`);
-  await ev(`[...document.querySelectorAll('[aria-label$=" up"]')].filter(b => !b.disabled)[0].click()`);
+  const bannerRows = await ev(`document.querySelectorAll('[aria-label$=" visibility"]').length`);
+  check('banners list with a visibility toggle each', bannerRows > 0, `${bannerRows} toggles`);
+
+  const noReorder = await ev(`document.querySelectorAll('[aria-label^="Move "]').length`);
+  check('no reorder controls remain, since the API cannot save an order', noReorder === 0);
+
+  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'New banner').click()`);
   await wait(700);
-  const orderAfter = await ev(`[...document.querySelectorAll('[aria-label^="Move "][aria-label$=" up"]')].map(b => b.getAttribute('aria-label'))[1]`);
-  check('banner reorder controls exist and are keyboard operable', firstBefore > 0, `${firstBefore} controls`);
-  check('reorder actually changes the order', orderBefore !== orderAfter, `${orderBefore} -> ${orderAfter}`);
+  const formOpen = await ev(`!!document.querySelector('[role=dialog]')
+    && document.body.innerText.includes('Headline')`);
+  check('the new banner form opens', formOpen === true);
+
+  await ev(`[...document.querySelectorAll('[role=dialog] button')].find(b => b.textContent.trim() === 'Save banner').click()`);
+  await wait(500);
+  const refused = await ev(`document.body.innerText.includes('the line a customer will read')`);
+  check('saving an empty banner is refused with a reason', refused === true);
+  await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await wait(400);
+
+  // --- the approval queues ---
+  await go('Approvals'); await wait(1200);
+  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('Riders')).click()`);
+  await wait(800);
+  const riderQueue = await ev(`document.body.innerText.includes('Documents')`);
+  check('the rider approval queue is reachable', riderQueue === true);
+
+  const approveDisabled = await ev(`(() => {
+    const rows = [...document.querySelectorAll('tbody tr')];
+    for (const r of rows) {
+      const b = [...r.querySelectorAll('button')].find(x => x.textContent.trim() === 'Approve');
+      if (b && b.disabled) return true;
+    }
+    return false;
+  })()`);
+  check('a rider with unreviewed documents cannot be approved', approveDisabled === true);
+
+  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Documents').click()`);
+  await wait(800);
+  const kyc = await ev(`document.body.innerText.includes('does not approve the rider')`);
+  check('the document review says it does not approve the rider', kyc === true);
 
   console.log(failed === 0 ? '\nAll interaction checks pass.' : `\n${failed} failing.`);
   ws.close();

@@ -30,6 +30,12 @@ export interface AuthValue {
   isSample: boolean;
   isLoading: boolean;
   role: string | null;
+  /**
+   * A large part of admin-api is SuperAdmin-only — config writes, feature
+   * flags, API keys, admin users, every engagement write. Without this the
+   * console shows those controls to everyone and the request 403s in silence.
+   */
+  isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   useSampleData: () => void;
   logout: () => Promise<void>;

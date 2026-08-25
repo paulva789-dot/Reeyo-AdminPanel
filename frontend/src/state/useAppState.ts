@@ -7,7 +7,9 @@ import { createContext, useContext } from 'react';
 import type {
   Order, PayoutRequest, Vendor, Rider, Customer, Payment,
   Offer, Banner, FeeRule, Dispute, MenuApproval, ApiKey,
+  PendingVendor, PendingRider,
 } from '../data/types';
+import type { DocumentVerdict } from '../services/platformResources';
 import type { RegionScope } from '../data/geography';
 
 /** A row in the customer app's home screen ordering. */
@@ -45,8 +47,16 @@ export interface AppStateValue {
   vendorsState: Loaded<Vendor>;
   riders: Rider[];
   ridersState: Loaded<Rider>;
+  suspendRider: (id: string, reason: string) => void;
   customers: Customer[];
   customersState: Loaded<Customer>;
+  /**
+   * `/users` returns no suspension state, so the console cannot show whether a
+   * customer is currently suspended — only carry out the act and say it did.
+   */
+  suspendCustomer: (id: string, reason: string) => void;
+  unsuspendCustomer: (id: string) => void;
+  deleteCustomer: (id: string) => void;
   payments: Payment[];
   paymentsState: Loaded<Payment>;
 
@@ -64,6 +74,20 @@ export interface AppStateValue {
   approvalsState: Loaded<MenuApproval>;
   approveMenu: (id: string) => void;
   rejectMenu: (id: string, reason: string) => void;
+
+  /** Vendors and riders waiting on a decision. */
+  pendingVendors: PendingVendor[];
+  pendingVendorsState: Loaded<PendingVendor>;
+  approveVendor: (id: string) => void;
+  rejectVendor: (id: string, reason: string) => void;
+  suspendVendor: (id: string, reason: string) => void;
+
+  pendingRiders: PendingRider[];
+  pendingRidersState: Loaded<PendingRider>;
+  approveRider: (id: string) => void;
+  rejectRider: (id: string, reason: string) => void;
+  /** Reviewing documents never changes the rider's own approval status. */
+  verifyRiderDocuments: (id: string, decisions: DocumentVerdict[]) => void;
 
   apiKeys: ApiKey[];
   apiKeysState: Loaded<ApiKey>;
@@ -85,6 +109,7 @@ export interface AppStateValue {
   openOrders: number;
   pendingPayouts: number;
   openDisputes: number;
+  /** Menus, vendors and riders together — everything waiting on a decision. */
   pendingApprovals: number;
 
   /**

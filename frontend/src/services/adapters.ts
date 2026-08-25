@@ -16,12 +16,12 @@ import type {
   DisputeMessage, MenuApproval, ApprovalStatus, ChangeType, ApiKey,
 } from '../data/types';
 
-type Raw = Record<string, unknown>;
+export type Raw = Record<string, unknown>;
 
 /** Where a row goes when the API gives us nothing we can place. */
 const UNPLACED_REGION: Region = REGIONS[0];
 
-function pick(row: Raw, keys: string[]): unknown {
+export function pick(row: Raw, keys: string[]): unknown {
   for (const key of keys) {
     const value = row[key];
     if (value !== undefined && value !== null && value !== '') return value;
@@ -29,12 +29,12 @@ function pick(row: Raw, keys: string[]): unknown {
   return undefined;
 }
 
-function str(row: Raw, keys: string[], fallback = ''): string {
+export function str(row: Raw, keys: string[], fallback = ''): string {
   const v = pick(row, keys);
   return v === undefined ? fallback : String(v);
 }
 
-function num(row: Raw, keys: string[], fallback = 0): number {
+export function num(row: Raw, keys: string[], fallback = 0): number {
   const v = pick(row, keys);
   if (v === undefined) return fallback;
   const n = Number(v);
@@ -42,7 +42,7 @@ function num(row: Raw, keys: string[], fallback = 0): number {
 }
 
 /** The API may use SCREAMING_SNAKE for enums; the console uses lowercase words. */
-function normaliseEnum(value: string): string {
+export function normaliseEnum(value: string): string {
   return value.replace(/_/g, ' ').trim().toLowerCase();
 }
 
@@ -135,7 +135,7 @@ export function toEta(value: unknown, status: OrderStatus): string {
   return mins < 0 ? `late ${Math.abs(mins)} min` : `${mins} min`;
 }
 
-function nested(row: Raw, keys: string[], inner: string[]): string {
+export function nested(row: Raw, keys: string[], inner: string[]): string {
   for (const key of keys) {
     const value = row[key];
     if (value && typeof value === 'object') {
