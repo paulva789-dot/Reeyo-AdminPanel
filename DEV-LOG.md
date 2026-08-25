@@ -158,6 +158,60 @@ history instead of derived summaries.
 
 Newest first. Every entry names what changed and why.
 
+### 2026-08-25 — What `main` had that this branch did not
+
+Read both branches end to end and compared them route by route. `main` is the
+old JavaScript panel; this branch is the TypeScript rebuild.
+
+**One real capability was missing, and it is now restored.**
+
+`main` polled `GET /riders/live-locations` every 12 seconds and plotted real
+coordinates on Leaflet. This branch shipped a hand-drawn SVG with seeded dots
+in that spot — the DEV-LOG had even recorded the endpoint as "assumed none
+existed". Dispatch → Map is now the real thing: real positions, a rider list
+that flies the map to whoever you pick, colour by whether they are carrying an
+order, and a 12-second poll that **suspends while the tab is in the
+background** rather than polling forever at something nobody is looking at. A
+failed poll keeps the last known positions and labels them, instead of blanking
+the map. In sample mode it says plainly that it has no positions to plot —
+drawing invented riders on a real map of Cameroon would be the least honest
+thing in the console.
+
+Field names came from `main`, which read them off the live API in production:
+`rider_id`, `name`, `lat`, `lng`, `current_order_id`. That makes this the one
+adapter here whose shape is known rather than guessed.
+
+**Everything else `main` has and this branch does not is a screen that never
+contacted a server.** Counted by `apiClient` calls in each:
+
+| `main` screen | API calls | Verdict |
+|---|---|---|
+| Live rider tracker | polls `/riders/live-locations` | **Ported.** |
+| Forgot password | 0 — a `setTimeout` and a success message | Not ported. |
+| Chat (sidebar + window) | 0 — reads `chatMocks.js` | Not ported. |
+| App version control | 0 | Not ported. |
+| Data backup | 0 | Not ported. |
+| User access | 0 | Not ported. |
+| CMS customers | 0 | Not ported. |
+| Integrations | `/config/feature-flags` | Already covered. |
+| Platform services | `/config/feature-flags` | Already covered. |
+
+The last two are filtered views of the same feature-flag list this branch
+already shows in full, so there is nothing to add.
+
+**The forgot-password screen is worth naming specifically.** It collects an
+email, waits on a `setTimeout`, and tells the user a reset link has been sent.
+No request is made, and admin-api has no password-reset route for one to be
+made to. This is exactly the defect `audit/bugs-and-gaps.md` was written to
+record — "success screens for flows that never contacted a server" — so
+porting it would have meant re-importing the specific bug this rebuild exists
+to avoid. If password reset is wanted, it needs a backend route first.
+
+**Not missing, but a deliberate difference:** `main` has a dark-mode toggle.
+`CLAUDE.md` §3 defines a single light palette and §15 says to ask rather than
+invent, so this is a product decision rather than a gap. Say the word and it is
+a token-layer change, not a rewrite.
+
 ### 2026-08-25 — Sign-in was broken in dev and in production, for different reasons
 
 Reported as "login not working". It was three separate defects.

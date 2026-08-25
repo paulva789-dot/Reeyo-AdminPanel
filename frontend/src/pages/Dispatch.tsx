@@ -12,6 +12,7 @@ import LocalOnly from '../components/ui/LocalOnly';
 // Leaflet is a third of the bundle and only this tab needs it, so it loads when
 // the tab is opened rather than on every page of the console.
 const ZonesPanel = lazy(() => import('./dispatch/ZonesPanel'));
+const LiveMapPanel = lazy(() => import('./dispatch/LiveMapPanel'));
 import { useAppState } from '../state/useAppState';
 import { money } from '../lib/format';
 import EmptyState from '../components/ui/EmptyState';
@@ -262,7 +263,7 @@ function Fees() {
 }
 
 export default function Dispatch() {
-  const { riders } = useAppState();
+  const { riders, isSample } = useAppState();
   const [tab, setTab] = useState('map');
 
   const riderColumns: Column<Rider>[] = [
@@ -299,19 +300,31 @@ export default function Dispatch() {
       </div>
 
       {tab === 'map' && (
-        <div className="reeyo-split">
-          <Card title="Fleet position">
-            <RiderMap />
-          </Card>
-          <Card title="Riders on shift">
-            <DataTable
-              columns={riderColumns}
-              rows={riders}
-              rowKey={(r) => r.id}
-              minWidth={320}
-            />
-          </Card>
-        </div>
+        <Suspense
+          fallback={(
+            <Card>
+              <EmptyState heading="Loading the map…" line="Fetching the map library and rider positions." />
+            </Card>
+          )}
+        >
+          {isSample ? (
+            <div className="reeyo-split">
+              <Card title="Fleet position">
+                <RiderMap />
+              </Card>
+              <Card title="Riders on shift">
+                <DataTable
+                  columns={riderColumns}
+                  rows={riders}
+                  rowKey={(r) => r.id}
+                  minWidth={320}
+                />
+              </Card>
+            </div>
+          ) : (
+            <LiveMapPanel />
+          )}
+        </Suspense>
       )}
 
       {tab === 'zones' && (

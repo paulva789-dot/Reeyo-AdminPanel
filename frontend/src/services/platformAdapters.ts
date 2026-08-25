@@ -13,7 +13,7 @@ import { RIDER_DOCUMENT_TYPES } from '../data/types';
 import type {
   ApprovalDecision, PendingVendor, PendingRider, RiderDocument, DocumentDecision,
   PlatformStats, RevenuePoint, RankedEntity, OrderStatusCount, LiveSnapshot,
-  DeliveryZone, EngagementBanner, Popup, SpinWheel, SpinWheelSegment,
+  DeliveryZone, RiderLocation, EngagementBanner, Popup, SpinWheel, SpinWheelSegment,
   LoyaltyRule, LoyaltyReward, PreferenceTag, TrackingFact, SharedCart,
   AdminUser, PlatformConfig, FeatureFlag, TimelineEvent,
 } from '../data/types';
@@ -152,6 +152,17 @@ export function adaptLiveSnapshot(payload: unknown): LiveSnapshot {
 }
 
 /* ---- Logistics --------------------------------------------------------- */
+
+export function adaptRiderLocation(row: Raw): RiderLocation {
+  const order = pick(row, ['current_order_id', 'currentOrderId', 'order_id']);
+  return {
+    riderId: str(row, ['rider_id', 'riderId', 'id', '_id'], '—'),
+    name: str(row, ['name', 'full_name', 'rider_name'], 'Unknown rider'),
+    lat: num(row, ['lat', 'latitude']),
+    lng: num(row, ['lng', 'lon', 'longitude']),
+    currentOrderId: order === undefined || order === null ? null : String(order),
+  };
+}
 
 export function adaptZone(row: Raw): DeliveryZone {
   const raw = pick(row, ['polygon', 'coordinates', 'boundary']);

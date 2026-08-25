@@ -255,6 +255,22 @@ export interface LiveSnapshot {
   pendingApprovals: number;
 }
 
+/**
+ * A rider's position from /riders/live-locations.
+ *
+ * Field names are the ones the previous admin panel read off this endpoint in
+ * production, so unlike most of this file they are known rather than guessed:
+ * rider_id, name, lat, lng, current_order_id.
+ */
+export interface RiderLocation {
+  riderId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  /** The order they are carrying, or null when they are free. */
+  currentOrderId: string | null;
+}
+
 /** Logistics — a delivery zone as the API stores it. */
 export interface DeliveryZone {
   id: string;

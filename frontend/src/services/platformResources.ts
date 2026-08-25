@@ -11,12 +11,12 @@ import {
   adaptRanked, adaptOrderStatusCount, adaptLiveSnapshot, adaptZone, adaptBanner,
   adaptPopup, adaptSpinWheel, adaptLoyaltyRule, adaptLoyaltyReward,
   adaptPreferenceTag, adaptTrackingFact, adaptSharedCart, adaptAdminUser,
-  adaptConfig, adaptFeatureFlag, adaptTimelineEvent,
+  adaptConfig, adaptFeatureFlag, adaptTimelineEvent, adaptRiderLocation,
 } from './platformAdapters';
 import type {
   PendingVendor, PendingRider, RiderDocumentType,
   PlatformStats, RevenuePoint, RankedEntity, OrderStatusCount, LiveSnapshot,
-  DeliveryZone, EngagementBanner, Popup, SpinWheel, LoyaltyRule, LoyaltyReward,
+  DeliveryZone, RiderLocation, EngagementBanner, Popup, SpinWheel, LoyaltyRule, LoyaltyReward,
   PreferenceTag, TrackingFact, SharedCart, AdminUser, AdminRole, AdminStatus,
   PlatformConfig, FeatureFlag, TimelineEvent, MenuItem, Order,
 } from '../data/types';
@@ -106,6 +106,17 @@ export const platform = {
   updateZone: (id: string, patch: Partial<Omit<DeliveryZone, 'id'>>) =>
     apiClient.patch(ENDPOINTS.zone(id), patch),
   deleteZone: (id: string) => apiClient.delete(ENDPOINTS.zone(id)),
+
+  /**
+   * Where every rider is right now. Polled rather than streamed — the API
+   * offers no socket — so the caller decides the interval.
+   */
+  riderLocations: (country?: string) =>
+    list<RiderLocation>(
+      ENDPOINTS.riderLiveLocations,
+      adaptRiderLocation,
+      country ? { country } : undefined,
+    ),
 
   /* ---- Engagement — writes are SuperAdmin ------------------------------ */
 
