@@ -158,6 +158,57 @@ history instead of derived summaries.
 
 Newest first. Every entry names what changed and why.
 
+### 2026-08-25 — Sign-in was broken in dev and in production, for different reasons
+
+Reported as "login not working". It was three separate defects.
+
+**1. Dev pointed at a backend nobody was running.** `VITE_PROXY_TARGET`
+defaulted to `http://localhost:3005`. Unless you happened to have admin-api
+running locally, every request hit a refused connection, which Vite turns into
+a bare `500` with a plain-text body. The default is now the deployed API, which
+is the one that is actually up; set `VITE_PROXY_TARGET` to localhost to work
+against a local one. Signing in with a wrong password now returns a real
+`401 AUTH_TOKEN_INVALID` instead of a 500.
+
+**2. The console blamed the backend for that 500.** `apiClient` fell back to
+`response.statusText` when a body would not parse, so Vite's proxy failure
+reached the screen as "Internal Server Error" — indistinguishable from the API
+rejecting the sign-in, and it sends anyone debugging it to the wrong place. A
+failure that is not in the API's envelope did not come from the API, and now
+says so.
+
+**3. Production 404'd on every deep link.** No SPA fallback was configured, so
+`/orders` — or a refresh anywhere but `/` — returned Vercel's NOT_FOUND.
+`frontend/vercel.json` adds the fallback, and also rewrites `/api/v1/*` to the
+API so the browser sees a single origin. Deep links are fixed and verified.
+
+**Still failing: production sign-in.** The deployed API keeps an
+`ALLOWED_ORIGINS` allowlist and answers **500 with no CORS headers** — not a
+clean rejection — for any origin outside it. Measured:
+
+| Origin | Result |
+|---|---|
+| *(none — a server-side client)* | `401` + correct envelope |
+| `https://usereeyo.com` | `401` + `access-control-allow-origin` |
+| `https://admin.usereeyo.com` | `401` + `access-control-allow-origin` |
+| `https://www.usereeyo.com` | **500**, no CORS headers |
+| `http://localhost:5173` | **500**, no CORS headers |
+| `https://reeyo-admin-panel-rho.vercel.app` | **500**, no CORS headers |
+
+The Vercel rewrite does not fix this on its own: Vercel forwards the browser's
+`Origin` header unchanged, and browsers send `Origin` on same-origin POSTs too.
+
+Note that **`admin.usereeyo.com` is already allowlisted but has no DNS record**
+— it looks like the intended home for this console, never set up. Pointing it
+at the Vercel project fixes sign-in with no backend change and no allowlist
+bypass. Awaiting a decision before doing anything about it.
+
+**Check hardened.** `auth.mjs` had a check that passed on the broken state: it
+asserted "a request was made" and "an error appeared", both of which a proxy
+500 satisfies. That is how a completely dead sign-in stayed green. It now
+asserts the API itself answered `401`, and that the message shown reads as a
+credentials problem rather than an infrastructure failure.
+
 ### 2026-08-25 — Phase 8: Settings stops being a mock-up
 
 `state/usePlatformAdmin.ts` loads `/config`, `/config/feature-flags` and

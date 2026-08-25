@@ -4,7 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const target = env.VITE_PROXY_TARGET || 'http://localhost:3005';
+  // The deployed API is the default because it is the one that is actually up.
+  // Defaulting to a local admin-api meant that unless someone happened to be
+  // running one on :3005, every request hit a refused connection which Vite
+  // turned into a bare 500 — indistinguishable, on screen, from the backend
+  // rejecting the sign-in. Point VITE_PROXY_TARGET at localhost to develop
+  // against a local API.
+  const target = env.VITE_PROXY_TARGET || 'https://admin-api.usereeyo.com';
   const remote = /^https:/i.test(target);
 
   // The deployed admin-api keeps an origin allowlist and returns 500 — not a

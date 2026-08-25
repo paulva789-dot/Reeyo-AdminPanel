@@ -143,6 +143,22 @@ async function request<T>(
   }
 
   if (!response.ok || payload?.success === false) {
+    // A failure that is not in the API's envelope did not come from the API.
+    // A dev proxy with nothing behind it, a gateway, or a CDN error page all
+    // arrive as a bare status with a plain-text body — and reporting
+    // `statusText` for one of those puts the words "Internal Server Error" on
+    // screen as though the backend had said them, which sends anyone
+    // debugging it straight to the wrong place.
+    if (payload === null) {
+      throw new ApiError(
+        'UPSTREAM_UNREACHABLE',
+        `The admin API did not answer (HTTP ${response.status}). Either nothing `
+        + `is serving ${API_BASE_URL}, or something between the browser and the `
+        + 'API replied instead of it.',
+        response.status,
+      );
+    }
+
     const error = payload?.error as
       { code?: string; message?: string; details?: unknown } | undefined;
     throw new ApiError(

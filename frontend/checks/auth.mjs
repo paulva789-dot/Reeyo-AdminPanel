@@ -130,7 +130,26 @@ ws.onopen = async () => {
   const errShown = await ev(`(() => { const el = document.querySelector('[role=alert]'); return el ? el.innerText : null; })()`);
   check('sign in reaches the real backend', hitLogin,
     requests.join(', ') || sent.join(', ') || 'no /api calls seen');
-  check('backend rejection is shown to the user', typeof errShown === 'string' && errShown.length > 0, errShown || 'no alert rendered');
+
+  // Not just "an error appeared": the request has to have been answered by the
+  // admin-api itself. This check used to pass on a 500 from the dev proxy with
+  // nothing behind it, which is how a completely broken sign-in went unnoticed
+  // — the screen said "Internal Server Error" and the suite called it a
+  // backend rejection.
+  const loginStatus = requests.find((r) => r.includes('/auth/login'));
+  check('the backend answered, rather than a proxy failing in front of it',
+    typeof loginStatus === 'string' && loginStatus.startsWith('401'),
+    loginStatus || 'no /auth/login response seen');
+
+  // The console rewrites AUTH_TOKEN_INVALID into something that tells the user
+  // what to do, so this asserts the meaning rather than the API's wording: a
+  // credentials problem, and specifically not an infrastructure failure
+  // wearing a credentials failure's clothes.
+  check('the rejection reads as wrong credentials, not a broken server',
+    typeof errShown === 'string'
+      && /password|credential/i.test(errShown)
+      && !/internal server error|did not answer|could not reach/i.test(errShown),
+    errShown || 'no alert rendered');
 
   // --- Sample mode: no network, banner shown, rail appears ---
   requests.length = 0;
