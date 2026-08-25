@@ -5,7 +5,7 @@
 
 import { createContext, useContext } from 'react';
 import type {
-  Order, OrderStatus, PayoutRequest, Vendor, Rider, Customer, Payment,
+  Order, PayoutRequest, Vendor, Rider, Customer, Payment,
   Offer, Banner, FeeRule, Dispute, MenuApproval, ApiKey,
 } from '../data/types';
 import type { RegionScope } from '../data/geography';
@@ -34,7 +34,11 @@ export interface Loaded<T> {
 export interface AppStateValue {
   orders: Order[];
   ordersState: Loaded<Order>;
-  setOrderStatus: (id: string, status: OrderStatus) => void;
+  /**
+   * Cancelling is the only order status a console can write — admin-api has no
+   * generic status endpoint — and it requires a reason.
+   */
+  cancelOrder: (id: string, reason: string) => void;
   assignRider: (id: string, rider: string) => void;
 
   vendors: Vendor[];
@@ -49,13 +53,12 @@ export interface AppStateValue {
   payouts: PayoutRequest[];
   payoutsState: Loaded<PayoutRequest>;
   approvePayout: (id: string) => void;
-  declinePayout: (id: string) => void;
+  declinePayout: (id: string, reason: string) => void;
 
   disputes: Dispute[];
   disputesState: Loaded<Dispute>;
   resolveDispute: (id: string, resolution: string, refund?: number) => void;
   rejectDispute: (id: string, reason: string) => void;
-  replyToDispute: (id: string, message: string) => void;
 
   approvals: MenuApproval[];
   approvalsState: Loaded<MenuApproval>;

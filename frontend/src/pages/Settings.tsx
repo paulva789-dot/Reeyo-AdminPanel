@@ -101,7 +101,7 @@ export default function Settings() {
         Settings
       </PageTitle>
 
-      <LocalOnly what="Platform configuration" />
+      <LocalOnly what="Platform configuration" endpoint="/config" />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="reeyo-split-even">

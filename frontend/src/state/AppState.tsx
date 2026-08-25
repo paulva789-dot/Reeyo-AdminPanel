@@ -121,17 +121,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [isAuthenticated, live, reloadKey]);
 
-  const setOrderStatus = useCallback((id: string, status: OrderStatus) => {
+  const cancelOrder = useCallback((id: string, reason: string) => {
     setOrdersState((prev) => ({
       ...prev,
       rows: prev.rows.map((o) => (o.id === id
-        ? { ...o, status, eta: CLOSED.includes(status) ? 'done' : o.eta }
+        ? { ...o, status: 'cancelled' as OrderStatus, eta: 'done' }
         : o)),
     }));
-    pushToast(`${id} is now ${status}`);
+    pushToast(`${id} is now cancelled`);
 
     if (live) {
-      resources.setOrderStatus(id, status).catch((err) => {
+      resources.cancelOrder(id, reason).catch((err) => {
         pushToast(`${id} did not save — ${describe(err)}`);
         reload();
       });
@@ -164,28 +164,31 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     if (target) pushToast(`FCFA released to ${target.who}`);
 
-    if (live) {
-      resources.approvePayout(id).catch((err) => {
+    if (live && target) {
+      resources.approvePayout(id, target.kind === 'Vendor' ? 'VENDOR' : 'RIDER').catch((err) => {
         pushToast(`${id} did not save — ${describe(err)}`);
         reload();
       });
     }
   }, [live, payoutsState.rows, pushToast, reload]);
 
-  const declinePayout = useCallback((id: string) => {
+  const declinePayout = useCallback((id: string, reason: string) => {
+    const target = payoutsState.rows.find((p) => p.id === id);
     setPayoutsState((prev) => ({
       ...prev,
       rows: prev.rows.map((p) => (p.id === id ? { ...p, status: 'failed' as const } : p)),
     }));
     pushToast(`${id} declined`);
 
-    if (live) {
-      resources.declinePayout(id, 'Declined from the operations console').catch((err) => {
-        pushToast(`${id} did not save — ${describe(err)}`);
-        reload();
-      });
+    if (live && target) {
+      resources
+        .rejectPayout(id, target.kind === 'Vendor' ? 'VENDOR' : 'RIDER', reason)
+        .catch((err) => {
+          pushToast(`${id} did not save — ${describe(err)}`);
+          reload();
+        });
     }
-  }, [live, pushToast, reload]);
+  }, [live, payoutsState.rows, pushToast, reload]);
 
   /** Optimistic write, then the API call; a failure says so and re-syncs. */
   const writeThrough = useCallback((label: string, call: () => Promise<unknown>) => {
@@ -215,22 +218,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     }));
     pushToast(`${id} rejected`);
     writeThrough(id, () => resources.rejectDispute(id, reason));
-  }, [pushToast, writeThrough]);
-
-  const replyToDispute = useCallback((id: string, message: string) => {
-    setDisputesState((prev) => ({
-      ...prev,
-      rows: prev.rows.map((d) => (d.id === id
-        ? {
-          ...d,
-          messages: [...d.messages, {
-            id: `local-${Date.now()}`, author: 'Support', body: message, sentAt: 'just now',
-          }],
-        }
-        : d)),
-    }));
-    pushToast('Reply sent');
-    writeThrough(id, () => resources.replyToDispute(id, message));
   }, [pushToast, writeThrough]);
 
   const approveMenu = useCallback((id: string) => {
@@ -451,14 +438,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: AppStateValue = {
-    orders, ordersState, setOrderStatus, assignRider,
+    orders, ordersState, cancelOrder, assignRider,
     vendors: scopedVendors, vendorsState,
     riders: scopedRiders, ridersState,
     customers: scopedCustomers, customersState,
     payments: scopedPayments, paymentsState,
     payouts, payoutsState, approvePayout, declinePayout,
     disputes: scopedDisputes, disputesState,
-    resolveDispute, rejectDispute, replyToDispute,
+    resolveDispute, rejectDispute,
     approvals: scopedApprovals, approvalsState,
     approveMenu, rejectMenu,
     apiKeys: apiKeysState.rows, apiKeysState,

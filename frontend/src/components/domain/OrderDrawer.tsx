@@ -5,7 +5,7 @@ import { useAppState } from '../../state/useAppState';
 import { Drawer, Modal, FooterSpacer } from '../ui/Overlay';
 import Button from '../ui/Button';
 import Pill from '../ui/Pill';
-import { Select } from '../ui/Field';
+import { Select, TextArea } from '../ui/Field';
 
 const DELIVERY_FEE = 700;
 
@@ -42,8 +42,11 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export default function OrderDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
-  const { setOrderStatus, assignRider, riders } = useAppState();
+  const { cancelOrder, assignRider, riders } = useAppState();
   const [reassigning, setReassigning] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [reason, setReason] = useState('');
+  const [reasonError, setReasonError] = useState('');
   const [pick, setPick] = useState(riders[0]?.name ?? '');
 
   // The journey stops at the current stage; a cancelled order never advanced.
@@ -63,19 +66,17 @@ export default function OrderDrawer({ order, onClose }: { order: Order; onClose:
           <>
             <Button
               variant="destructive"
-              onClick={() => { setOrderStatus(order.id, 'cancelled'); onClose(); }}
+              disabled={order.status === 'cancelled'}
+              onClick={() => setCancelling(true)}
             >
               Cancel order
             </Button>
+            <FooterSpacer />
+            {/* "Mark delivered" is gone: the platform moves an order through
+                its stages and admin-api exposes no status write. Cancelling and
+                reassigning are the only two things a console can actually do. */}
             <Button variant="outline" onClick={() => setReassigning(true)}>
               Reassign rider
-            </Button>
-            <FooterSpacer />
-            <Button
-              variant="primary"
-              onClick={() => { setOrderStatus(order.id, 'delivered'); onClose(); }}
-            >
-              Mark delivered
             </Button>
           </>
         )}
@@ -148,6 +149,56 @@ export default function OrderDrawer({ order, onClose }: { order: Order; onClose:
           <Row label="Payment" value={order.payment} />
         </Block>
       </Drawer>
+
+
+      {cancelling && (
+        <Modal
+          title="Cancel this order"
+          subtitle={`${order.id} · ${order.customer}`}
+          onClose={() => { setCancelling(false); setReason(''); setReasonError(''); }}
+          width={460}
+          footer={(
+            <>
+              <FooterSpacer />
+              <Button
+                variant="outline"
+                onClick={() => { setCancelling(false); setReason(''); setReasonError(''); }}
+              >
+                Keep the order
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!reason.trim()) {
+                    setReasonError('Give a reason — the customer and vendor both see it');
+                    return;
+                  }
+                  cancelOrder(order.id, reason.trim());
+                  setCancelling(false);
+                  onClose();
+                }}
+              >
+                Cancel order
+              </Button>
+            </>
+          )}
+        >
+          <p style={{ margin: '0 0 13px', fontSize: 12.5, color: 'var(--text-2)' }}>
+            Cancelling cannot be undone from here, and any refund has to go
+            through a dispute the customer files.
+          </p>
+          <TextArea
+            label="Reason"
+            value={reason}
+            onChange={(v) => { setReason(v); setReasonError(''); }}
+            placeholder="Vendor closed unexpectedly."
+            rows={3}
+          />
+          {reasonError && (
+            <p style={{ margin: '9px 0 0', fontSize: 12, color: 'var(--stop)' }}>{reasonError}</p>
+          )}
+        </Modal>
+      )}
 
       {reassigning && (
         <Modal

@@ -14,8 +14,7 @@ import { money } from '../lib/format';
 import type { Dispute } from '../data/types';
 
 function DisputeDrawer({ dispute, onClose }: { dispute: Dispute; onClose: () => void }) {
-  const { resolveDispute, rejectDispute, replyToDispute } = useAppState();
-  const [reply, setReply] = useState('');
+  const { resolveDispute, rejectDispute } = useAppState();
   const [resolving, setResolving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [resolution, setResolution] = useState('');
@@ -119,25 +118,10 @@ function DisputeDrawer({ dispute, onClose }: { dispute: Dispute; onClose: () => 
         </section>
 
         {!settled && (
-          <section>
-            <TextArea
-              label="Reply to the customer"
-              value={reply}
-              onChange={setReply}
-              placeholder="What should they know?"
-              rows={3}
-            />
-            <div style={{ display: 'flex', marginTop: 9 }}>
-              <FooterSpacer />
-              <Button
-                variant="outline"
-                disabled={!reply.trim()}
-                onClick={() => { replyToDispute(dispute.id, reply.trim()); setReply(''); }}
-              >
-                Send reply
-              </Button>
-            </div>
-          </section>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-2)' }}>
+            Replies are not sent from here. admin-api exposes only resolve and
+            reject on a dispute, so the conversation above is read-only.
+          </p>
         )}
       </Drawer>
 

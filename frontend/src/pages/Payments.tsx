@@ -7,7 +7,7 @@ import Segments from '../components/ui/Segments';
 import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
-import { FilterInput } from '../components/ui/Field';
+import { FilterInput, TextArea } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/useAppState';
@@ -206,6 +206,9 @@ function RiderSettlements() {
 function Requests() {
   const { payouts, approvePayout, declinePayout } = useAppState();
   const [confirm, setConfirm] = useState<PayoutRequest | null>(null);
+  const [declining, setDeclining] = useState<PayoutRequest | null>(null);
+  const [reason, setReason] = useState('');
+  const [reasonError, setReasonError] = useState('');
 
   const columns: Column<PayoutRequest>[] = [
     {
@@ -242,7 +245,7 @@ function Requests() {
       key: 'actions', header: '', align: 'right',
       render: (p) => (p.status === 'pending' ? (
         <div style={{ display: 'inline-flex', gap: 6 }}>
-          <Button variant="destructive" onClick={() => declinePayout(p.id)}>Decline</Button>
+          <Button variant="destructive" onClick={() => setDeclining(p)}>Decline</Button>
           <Button variant="primary" onClick={() => setConfirm(p)}>Release payout</Button>
         </div>
       ) : null),
@@ -258,6 +261,53 @@ function Requests() {
         />
         <DataTable columns={columns} rows={payouts} rowKey={(p) => p.id} minWidth={980} />
       </Card>
+
+
+      {declining && (
+        <Modal
+          title="Decline this payout"
+          subtitle={`${declining.id} · ${declining.who}`}
+          onClose={() => { setDeclining(null); setReason(''); setReasonError(''); }}
+          width={460}
+          footer={(
+            <>
+              <FooterSpacer />
+              <Button
+                variant="outline"
+                onClick={() => { setDeclining(null); setReason(''); setReasonError(''); }}
+              >
+                Keep pending
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!reason.trim()) {
+                    setReasonError('Give a reason — the recipient sees why');
+                    return;
+                  }
+                  declinePayout(declining.id, reason.trim());
+                  setDeclining(null);
+                  setReason('');
+                  setReasonError('');
+                }}
+              >
+                Decline payout
+              </Button>
+            </>
+          )}
+        >
+          <TextArea
+            label="Reason"
+            value={reason}
+            onChange={(v) => { setReason(v); setReasonError(''); }}
+            placeholder="Bank details do not match the registered account."
+            rows={3}
+          />
+          {reasonError && (
+            <p style={{ margin: '9px 0 0', fontSize: 12, color: 'var(--stop)' }}>{reasonError}</p>
+          )}
+        </Modal>
+      )}
 
       {confirm && (
         <Modal

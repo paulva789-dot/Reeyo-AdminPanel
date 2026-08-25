@@ -253,7 +253,10 @@ export default function Marketing() {
         Marketing
       </PageTitle>
 
-      <LocalOnly what="Offers, announcements and the spin wheel" />
+      <LocalOnly
+        what="Announcements, the spin wheel and loyalty"
+        endpoint="/broadcast/* and /engagement/*"
+      />
 
       <div style={{ marginBottom: 14 }}>
         <Segments

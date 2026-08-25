@@ -49,7 +49,7 @@ export default function Storefront() {
   return (
     <>
       <PageTitle>Storefront</PageTitle>
-      <LocalOnly what="Storefront merchandising" />
+      <LocalOnly what="Home banners" endpoint="/engagement/banners" />
 
       <div className="reeyo-split-even">
         <Card title="Home banners">

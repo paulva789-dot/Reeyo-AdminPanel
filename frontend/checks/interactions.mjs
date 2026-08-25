@@ -59,19 +59,42 @@ ws.onopen = async () => {
   await wait(1500);
   check('sample mode reaches the console', await ev(`!!document.querySelector('.reeyo-rail')`));
 
-  // --- status change moves the badge and fires a toast ---
+  // --- cancelling an order moves the badge and fires a toast ---
+  // The status dropdown is gone: admin-api has no generic status endpoint, so
+  // status is read-only and cancelling is the one status a console can set.
   await go('Orders'); await wait(1200);
   const before = await ev(BADGE('Orders'));
-  await ev(`(() => {
-    const sel = [...document.querySelectorAll('select')][0];
-    const set = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
-    set.call(sel, 'delivered');
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-  })()`);
+  check('order status is read-only, not a control',
+    await ev(`document.querySelectorAll('table select').length === 0`));
+
+  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Open').click()`);
+  await wait(800);
+  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Cancel order').click()`);
   await wait(700);
+  await ev(`(() => {
+    const b = [...document.querySelectorAll('[role=dialog] button')].filter(x => x.textContent.trim() === 'Cancel order');
+    if (b.length) b[b.length - 1].click();
+  })()`);
+  await wait(500);
+  check('cancelling refuses to proceed without a reason',
+    await ev(`document.body.innerText.includes('Give a reason')`));
+
+  await ev(`(() => {
+    const dialogs = [...document.querySelectorAll('[role=dialog]')];
+    const t = dialogs[dialogs.length - 1].querySelector('textarea');
+    const set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+    set.call(t, 'Vendor closed unexpectedly.');
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await wait(400);
+  await ev(`(() => {
+    const b = [...document.querySelectorAll('[role=dialog] button')].filter(x => x.textContent.trim() === 'Cancel order');
+    if (b.length) b[b.length - 1].click();
+  })()`);
+  await wait(900);
   const after = await ev(BADGE('Orders'));
-  check('order status change decrements the Orders badge', after === before - 1, `${before} -> ${after}`);
-  check('order status change fires a toast', await ev(`document.body.innerText.includes('is now delivered')`));
+  check('cancelling decrements the Orders badge', after === before - 1, `${before} -> ${after}`);
+  check('cancelling fires a toast', await ev(`document.body.innerText.includes('is now cancelled')`));
 
   // --- filter reaches the written empty state ---
   await ev(`(() => {

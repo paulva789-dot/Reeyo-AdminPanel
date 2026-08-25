@@ -9,7 +9,7 @@ import {
   toArray,
 } from './adapters';
 import type {
-  Order, Vendor, Rider, Customer, Payment, PayoutRequest, OrderStatus,
+  Order, Vendor, Rider, Customer, Payment, PayoutRequest,
   Dispute, MenuApproval, ApiKey,
 } from '../data/types';
 
@@ -41,7 +41,12 @@ async function list<T extends { id: string }>(
   return ensureUniqueIds(toArray(res.data).map(adapt));
 }
 
+/** Payout recipient type, as the API spells it. */
+export type PayoutType = 'VENDOR' | 'RIDER';
+
 export const resources = {
+  /* ---- Reads ---------------------------------------------------------- */
+
   orders: (params?: { status?: string; limit?: number }) =>
     list<Order>(ENDPOINTS.orders, adaptOrder, { limit: 100, ...params }),
 
@@ -54,11 +59,6 @@ export const resources = {
 
   customers: () => list<Customer>(ENDPOINTS.users, adaptCustomer, { limit: 100 }),
 
-  payments: () => list<Payment>(ENDPOINTS.payouts, adaptPayment, { limit: 100 }),
-
-  payoutRequests: () =>
-    list<PayoutRequest>(ENDPOINTS.payoutRequests, adaptPayoutRequest, { limit: 100 }),
-
   disputes: () => list<Dispute>(ENDPOINTS.disputes, adaptDispute, { limit: 100 }),
 
   menuApprovals: () =>
@@ -66,25 +66,58 @@ export const resources = {
 
   apiKeys: () => list<ApiKey>(ENDPOINTS.apiKeys, adaptApiKey),
 
-  /** Mutations — the console's own writes, not adapted on the way back. */
+  /**
+   * The settled ledger. `/payouts/history` is the only source of past
+   * movements; there is no general transactions endpoint.
+   */
+  payments: () => list<Payment>(ENDPOINTS.payoutsHistory, adaptPayment, { limit: 100 }),
+
+  /**
+   * Pending payouts are queried per recipient type, so the queue is the two
+   * lists merged. Each row keeps its type because approving needs it.
+   */
+  payoutRequests: async (): Promise<PayoutRequest[]> => {
+    const [vendors, riders] = await Promise.all([
+      list<PayoutRequest>(ENDPOINTS.payoutsPending, adaptPayoutRequest, { type: 'VENDOR' }),
+      list<PayoutRequest>(ENDPOINTS.payoutsPending, adaptPayoutRequest, { type: 'RIDER' }),
+    ]);
+    return ensureUniqueIds([
+      ...vendors.map((p) => ({ ...p, kind: 'Vendor' as const })),
+      ...riders.map((p) => ({ ...p, kind: 'Rider' as const })),
+    ]);
+  },
+
+  /* ---- Writes --------------------------------------------------------- */
+
+  /**
+   * There is no generic order status update. Cancelling is the only status a
+   * console can set, and the API requires a reason.
+   */
+  cancelOrder: (id: string, reason: string) =>
+    apiClient.post(ENDPOINTS.cancelOrder(id), { reason }),
+
+  assignRider: (orderId: string, riderId: string) =>
+    apiClient.post(ENDPOINTS.assignRider(orderId), { riderId }),
 
   resolveDispute: (id: string, resolution: string, refundAmount?: number) =>
     apiClient.post(ENDPOINTS.resolveDispute(id), {
       resolution,
       refundAmount: refundAmount || undefined,
-      refundToWallet: false,
     }),
 
   rejectDispute: (id: string, reason: string) =>
     apiClient.post(ENDPOINTS.rejectDispute(id), { reason }),
 
-  replyToDispute: (id: string, message: string) =>
-    apiClient.post(ENDPOINTS.disputeMessages(id), { message }),
-
   approveMenu: (id: string) => apiClient.post(ENDPOINTS.approveMenu(id)),
 
   rejectMenu: (id: string, reason: string) =>
     apiClient.post(ENDPOINTS.rejectMenu(id), { reason }),
+
+  approvePayout: (id: string, type: PayoutType) =>
+    apiClient.post(ENDPOINTS.approvePayout(id), { type }),
+
+  rejectPayout: (id: string, type: PayoutType, reason: string) =>
+    apiClient.post(ENDPOINTS.rejectPayout(id), { type, reason }),
 
   /** Returns the raw key, which the backend shows exactly once. */
   createApiKey: (name: string, scopes: string[], expiresAt?: string) =>
@@ -94,16 +127,4 @@ export const resources = {
     ),
 
   revokeApiKey: (id: string) => apiClient.delete(ENDPOINTS.apiKey(id)),
-
-  setOrderStatus: (id: string, status: OrderStatus) =>
-    apiClient.patch(`${ENDPOINTS.orders}/${id}`, { status }),
-
-  assignRider: (orderId: string, riderId: string) =>
-    apiClient.post(`${ENDPOINTS.orders}/${orderId}/assign-rider`, { riderId }),
-
-  approvePayout: (id: string) =>
-    apiClient.post(`${ENDPOINTS.payoutRequests}/${id}/approve`),
-
-  declinePayout: (id: string, reason: string) =>
-    apiClient.post(`${ENDPOINTS.payoutRequests}/${id}/decline`, { reason }),
 };

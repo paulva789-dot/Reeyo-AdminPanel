@@ -43,7 +43,7 @@ function Zones() {
   if (zoneStatsInScope.length === 0) {
     return (
       <>
-        <LocalOnly what="Delivery zones" />
+        <LocalOnly what="Delivery zones" endpoint="/logistics/zones" />
         <Card>
           <EmptyState
             heading={`No delivery zones in ${region}`}
@@ -63,7 +63,7 @@ function Zones() {
 
   return (
     <>
-      <LocalOnly what="Delivery zones" />
+      <LocalOnly what="Delivery zones" endpoint="/logistics/zones" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {[...byRegion.entries()].map(([regionName, zones]) => (
           <section key={regionName}>

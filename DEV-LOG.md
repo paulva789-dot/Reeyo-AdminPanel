@@ -93,7 +93,7 @@ feature currently running on seed data that could be real.
 Each phase is independently shippable and ends green: `npm run typecheck`,
 `npm run lint`, `npm run checks`. Every phase appends to the log in section 3.
 
-### Phase 0 — Correct what is wrong *(do first, nothing else is safe until this is done)*
+### Phase 0 — Correct what is wrong ✅ **done 2026-08-25**
 Fix the eight calls that target routes which do not exist, and rewrite the
 endpoint map from the reference. No new features. This is the phase that stops
 the console lying about what it can do.
@@ -114,7 +114,7 @@ controls to everyone and lets the request 403 in silence.
 - Gate API keys, feature flags, admin users, and every engagement write
 - Show a clear "needs Super Admin" state rather than a dead button
 
-### Phase 2 — Approval queues *(highest operational value)*
+### Phase 2 — Approval queues ← **next**
 Vendors and riders waiting on a decision, with the KYC review the old panel lost.
 
 - Vendor approvals: approve / reject with reason / suspend
@@ -153,6 +153,46 @@ history instead of derived summaries.
 ## 3. Change log
 
 Newest first. Every entry names what changed and why.
+
+### 2026-08-25 — Phase 0: corrected every call that targeted a route which does not exist
+
+`services/endpoints.ts` rewritten from the reference — the whole surface now,
+including the routes not yet used, with SuperAdmin-only paths marked and
+`HEALTH_PATH` noted as living outside `/api/v1`.
+
+**Calls corrected**
+
+- **Order status.** There is no generic status endpoint, so the dropdown was
+  writing to a route that does not exist. Status is now a read-only pill, and
+  `Mark delivered` is gone — the platform moves an order through its stages.
+  Cancelling is the one status a console can set and now goes to
+  `POST /orders/:id/cancel` with the reason the API requires, behind a
+  confirmation that says the cancellation cannot be undone from here.
+- **Payouts.** `/payouts` and `/payouts/requests` do not exist. The ledger now
+  reads `/payouts/history`; the queue merges `/payouts/pending?type=VENDOR` and
+  `?type=RIDER`, keeping each row's type because approve and reject both need
+  it. Approve posts `{ type }`, reject posts `{ type, reason }` — so declining
+  now asks for a reason instead of sending a canned string.
+- **Dispute replies.** `POST /disputes/:id/messages` never existed; I had
+  carried it over from the old panel. The reply box is gone and the drawer says
+  plainly that resolve and reject are the only dispute writes.
+- **Analytics.** `/analytics/overview` does not exist. The six real endpoints
+  are now in the map, ready for Phase 3.
+- **Config.** `/config/settings` replaced with `/config` and
+  `/config/feature-flags`.
+
+**Local-only notices corrected.** `LocalOnly` now distinguishes *no route
+exists* from *the route exists and this screen is not wired to it yet*, and
+names the path in the second case. Twelve features had been claiming the first
+when the second was true — delivery zones are `/logistics/zones`, banners and
+the spin wheel are under `/engagement`, announcements are `/broadcast`,
+platform config is `/config`. Only teams, fee rules as a standalone resource,
+and home-section ordering are genuinely absent.
+
+**Checks updated.** `interactions.mjs` drives the real cancel flow instead of
+the removed dropdown, and asserts the status column is no longer a control.
+
+Verified: typecheck, lint across 69 files, build, and all seven suites passing.
 
 ### 2026-08-25 — Reference received, gap analysis written
 - Added `docs/ADMIN-API-ENDPOINT-REFERENCE.md` as the API source of truth.

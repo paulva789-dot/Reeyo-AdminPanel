@@ -6,19 +6,16 @@ import Button from '../components/ui/Button';
 import Segments from '../components/ui/Segments';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
-import { FilterInput, Select } from '../components/ui/Field';
+import { FilterInput } from '../components/ui/Field';
+import Pill from '../components/ui/Pill';
 import OrderDrawer from '../components/domain/OrderDrawer';
 import { useAppState } from '../state/useAppState';
 import { resources } from '../services/resources';
 import { money, isLate } from '../lib/format';
-import type { Order, OrderStatus } from '../data/types';
-
-const STATUSES: OrderStatus[] = [
-  'new', 'accepted', 'preparing', 'ready', 'on the way', 'delivered', 'cancelled', 'delayed',
-];
+import type { Order } from '../data/types';
 
 export default function Orders() {
-  const { orders, setOrderStatus, isSample } = useAppState();
+  const { orders, isSample } = useAppState();
   const [params, setParams] = useSearchParams();
   const vertical = params.get('vertical') ?? 'all';
   const [query, setQuery] = useState('');
@@ -125,19 +122,12 @@ export default function Orders() {
       ),
     },
     {
+      // Read-only. admin-api has no generic status update: an order's status is
+      // moved by the platform, and the only status a console can set is
+      // cancelled, which lives in the drawer because it needs a reason.
       key: 'status',
       header: 'Status',
-      render: (o) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <Select
-            compact
-            label={`Status for ${o.id}`}
-            value={o.status}
-            onChange={(v) => setOrderStatus(o.id, v as OrderStatus)}
-            options={STATUSES.map((s) => ({ value: s, label: s }))}
-          />
-        </div>
-      ),
+      render: (o) => <Pill status={o.status} />,
     },
     {
       key: 'open',
