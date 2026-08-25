@@ -1,1 +1,5 @@
 .vercel
+
+# Local env files. .env.production is committed on purpose — it holds the
+# public admin-api origin, not a secret.
+.env*.local
