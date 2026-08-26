@@ -7,7 +7,9 @@ import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
-import { Drawer, FooterSpacer } from '../components/ui/Overlay';
+import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
+import Field, { Select } from '../components/ui/Field';
+import { ApiError } from '../services/apiClient';
 import OrderHistory from '../components/domain/OrderHistory';
 import ReasonModal from './approvals/ReasonModal';
 import { platform } from '../services/platformResources';
@@ -17,9 +19,106 @@ import { money } from '../lib/format';
 
 import type { Rider } from '../data/types';
 
+
+/**
+ * `PATCH /riders/:id`. Zone is deliberately absent: the console derives a
+ * rider's city and region from their zone, and there is no endpoint that
+ * returns the zone vocabulary the platform will accept, so offering a free-text
+ * zone field would invite writing a value nothing else recognises.
+ */
+function RiderEditModal({ rider, onClose }: { rider: Rider; onClose: () => void }) {
+  const { pushToast } = useAppState();
+  const [name, setName] = useState(rider.name);
+  const [phone, setPhone] = useState(rider.phone);
+  const [vehicle, setVehicle] = useState<string>(rider.vehicle);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const dirty = name.trim() !== rider.name
+    || phone.trim() !== rider.phone
+    || vehicle !== rider.vehicle;
+
+  const save = async () => {
+    if (!name.trim()) {
+      setError('A rider needs a name');
+      return;
+    }
+    if (!phone.trim()) {
+      setError('A rider needs a phone number — dispatch calls it');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await platform.updateRider(rider.id, {
+        name: name.trim(),
+        phone: phone.trim(),
+        vehicle_type: vehicle,
+      });
+      pushToast(`${name.trim()} updated`);
+      onClose();
+    } catch (err) {
+      setError(err instanceof ApiError
+        ? `Not saved — ${err.message}`
+        : 'Not saved.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={`Edit ${rider.name}`}
+      subtitle={`${rider.zone} · ${rider.city}`}
+      onClose={onClose}
+      width={460}
+      footer={(
+        <>
+          <FooterSpacer />
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            disabled={busy || !dirty}
+            title={dirty ? undefined : 'Nothing has changed'}
+            onClick={() => void save()}
+          >
+            {busy ? 'Saving…' : 'Save rider'}
+          </Button>
+        </>
+      )}
+    >
+      <Field label="Name" value={name} onChange={(v) => { setName(v); setError(''); }} />
+      <div style={{ marginTop: 12 }}>
+        <Field
+          label="Phone"
+          value={phone}
+          onChange={(v) => { setPhone(v); setError(''); }}
+          mono
+        />
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <Select
+          label="Vehicle"
+          value={vehicle}
+          onChange={setVehicle}
+          options={[
+            { value: 'Moto', label: 'Moto' },
+            { value: 'Bicycle', label: 'Bicycle' },
+            { value: 'Car', label: 'Car' },
+          ]}
+        />
+      </div>
+      {error && (
+        <p style={{ margin: '9px 0 0', fontSize: 12, color: 'var(--stop)' }}>{error}</p>
+      )}
+    </Modal>
+  );
+}
+
 function RiderDrawer({ rider, onClose }: { rider: Rider; onClose: () => void }) {
   const { orders, suspendRider } = useAppState();
   const [suspending, setSuspending] = useState(false);
+  const [editing, setEditing] = useState(false);
   const fetcher = useCallback(() => platform.riderDeliveries(rider.id), [rider.id]);
   const history = useDetail(rider.id, fetcher);
 
@@ -38,6 +137,7 @@ function RiderDrawer({ rider, onClose }: { rider: Rider; onClose: () => void }) 
           <>
             <Button variant="destructive" onClick={() => setSuspending(true)}>Suspend</Button>
             <FooterSpacer />
+            <Button variant="primary" onClick={() => setEditing(true)}>Edit rider</Button>
           </>
         )}
       >
@@ -72,6 +172,8 @@ function RiderDrawer({ rider, onClose }: { rider: Rider; onClose: () => void }) 
           here — there is no rider-level route that releases money.
         </p>
       </Drawer>
+
+      {editing && <RiderEditModal rider={rider} onClose={() => setEditing(false)} />}
 
       {suspending && (
         <ReasonModal

@@ -158,6 +158,64 @@ history instead of derived summaries.
 
 Newest first. Every entry names what changed and why.
 
+### 2026-08-26 — Full audit against `main`, and the fifteen capabilities it found
+
+The previous comparison was done route by route and concluded one thing was
+missing. That was the wrong method and the wrong answer: matching route names
+says nothing about what happens **inside** a page. Redone by extracting every
+`apiClient` call from both branches and diffing them — 108 distinct call sites
+in `main` against this branch's endpoint map.
+
+**Fifteen real capabilities were missing. All are now built.**
+
+| Capability | Endpoint | Where it landed |
+|---|---|---|
+| Change your own password | `POST /auth/change-password` | Settings |
+| Edit a vendor | `PATCH /vendors/:id` | Vendor drawer → Edit |
+| Set a vendor's commission | `PATCH /vendors/:id/commission` | same |
+| Feature a vendor | `PATCH /vendors/:id/feature` | same |
+| Vendor badges | `PATCH /engagement/vendors/:id/badges` | same |
+| Edit a rider | `PATCH /riders/:id` | Rider drawer → Edit |
+| Menu-item upsell | `PATCH /engagement/menu-items/:id/upsell` | Vendor menu |
+| Create / delete loyalty rules | `POST`, `DELETE /engagement/loyalty/rules` | Storefront → Loyalty |
+| Create / edit / delete rewards | `POST`, `PATCH`, `DELETE .../rewards` | same |
+| A customer's points and ledger | `GET .../loyalty/accounts/:id[/ledger]` | same |
+| Create / delete preference tags | `POST`, `DELETE .../preference-tags` | Storefront → Audience |
+| Create / edit / delete facts | `POST`, `PATCH`, `DELETE .../tracking-facts` | same |
+| Create / delete spin wheels | `POST`, `DELETE .../spin-wheels` | Marketing → Spin wheel |
+| Add / remove wheel slices | `POST`, `DELETE .../segments` | same |
+| Recent spins | `GET .../spin-wheels/:id/results` | same |
+| Full popup breakdown | `GET /engagement/popups/:id/stats` | Storefront → Popups |
+| Delete a feature flag | `DELETE /config/feature-flags/:key` | Settings |
+
+**One earlier claim was wrong and is worth correcting.** The loyalty panel said
+it was read-only because "the API offers no PATCH on a rule". That is true of
+rules — and irrelevant to rewards, which take `PATCH` perfectly well. Making
+both read-only on the strength of one of them was a bad inference. Rules now
+offer create and delete (their real verbs), rewards offer create, edit and
+delete, and neither pretends the other's limits apply to it.
+
+**What `main` calls that does not exist.** Its own bugs, confirmed against the
+reference and left unported: `/analytics/orders`, `/analytics/riders`,
+`/analytics/revenue/daily|monthly` (revenue takes no granularity segment),
+`/broadcast/history`, and `/disputes/:id/messages`. Phase 0 had already removed
+the last of those from this branch for the same reason.
+
+**Still deliberately unused**, because a list already carries what they return:
+`GET /config/commission-rate` (covered by `/config`), and the single-entity
+reads `GET /orders/:id`, `/users/:id`, `/vendors/:id`, `/riders/:id`,
+`/disputes/:id`.
+
+Two notes on honesty in the new screens. The vendors list returns neither the
+current commission rate nor current badges, so those fields start empty and say
+so rather than showing a value that might be wrong — and badges save as a
+complete replacement, which the panel states, because a partial save would
+silently drop the ones it never knew about. The vendor edit modal saves each
+section separately against its own endpoint: one Save button would have to claim
+four writes succeeded when one of them might not have.
+
+Verified: typecheck, lint, production build, all seven check suites.
+
 ### 2026-08-25 — What `main` had that this branch did not
 
 Read both branches end to end and compared them route by route. `main` is the

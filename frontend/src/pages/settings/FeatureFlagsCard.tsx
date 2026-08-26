@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import Toggle from '../../components/ui/Toggle';
+import { Modal, FooterSpacer } from '../../components/ui/Overlay';
 import EmptyState from '../../components/ui/EmptyState';
 import { SuperAdminBadge } from '../../components/ui/SuperAdminOnly';
 import { useAuth } from '../../state/useAuth';
@@ -19,7 +22,8 @@ function humanise(key: string): string {
  */
 export default function FeatureFlagsCard({ state }: { state: PlatformAdminState }) {
   const { isSuperAdmin } = useAuth();
-  const { flags, flagsError, setFlag } = state;
+  const { flags, flagsError, setFlag, deleteFlag } = state;
+  const [removing, setRemoving] = useState<string | null>(null);
 
   return (
     <Card
@@ -63,11 +67,16 @@ export default function FeatureFlagsCard({ state }: { state: PlatformAdminState 
                 </p>
               </div>
               {isSuperAdmin ? (
-                <Toggle
-                  checked={f.enabled}
-                  onChange={(next) => setFlag(f.key, next)}
-                  label={humanise(f.key)}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Toggle
+                    checked={f.enabled}
+                    onChange={(next) => setFlag(f.key, next)}
+                    label={humanise(f.key)}
+                  />
+                  <Button variant="destructive" onClick={() => setRemoving(f.key)}>
+                    Remove
+                  </Button>
+                </div>
               ) : (
                 <span
                   className="mono"
@@ -82,6 +91,33 @@ export default function FeatureFlagsCard({ state }: { state: PlatformAdminState 
             </div>
           ))}
         </div>
+      )}
+
+      {removing && (
+        <Modal
+          title="Remove this flag"
+          subtitle={removing}
+          onClose={() => setRemoving(null)}
+          width={440}
+          footer={(
+            <>
+              <FooterSpacer />
+              <Button variant="outline" onClick={() => setRemoving(null)}>Keep it</Button>
+              <Button
+                variant="destructive"
+                onClick={() => { deleteFlag(removing); setRemoving(null); }}
+              >
+                Remove flag
+              </Button>
+            </>
+          )}
+        >
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-2)' }}>
+            The platform falls back to whatever this feature does by default,
+            which may not be what the switch currently says. Turning it off is
+            the safer move if you only want the feature disabled.
+          </p>
+        </Modal>
       )}
     </Card>
   );

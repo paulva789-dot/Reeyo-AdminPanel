@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Button from '../../components/ui/Button';
 import Toggle from '../../components/ui/Toggle';
 import Field, { TextArea } from '../../components/ui/Field';
 import { Modal, FooterSpacer } from '../../components/ui/Overlay';
 import ImageField from '../../components/ui/ImageField';
 import { CollectionCard, WriteGate, Stat } from './shared';
+import { platform } from '../../services/platformResources';
+import { useDetail } from '../../state/useDetail';
 import type { EngagementState } from '../../state/useEngagement';
 import type { Popup } from '../../data/types';
 
@@ -12,6 +14,55 @@ import type { Popup } from '../../data/types';
 function tapRate(p: Popup): string {
   if (p.impressions === 0) return '—';
   return `${Math.round((p.clicks / p.impressions) * 1000) / 10}%`;
+}
+
+
+/**
+ * The fuller breakdown behind one popup.
+ *
+ * The list already carries impressions and clicks; this endpoint adds
+ * dismissals and unique viewers, which is the difference between "how often was
+ * it shown" and "how many people did it interrupt". It loads on demand, because
+ * nobody needs four numbers per popup while scanning a list.
+ */
+function PopupBreakdown({ popupId }: { popupId: string }) {
+  const fetcher = useCallback(() => platform.popupStats(popupId), [popupId]);
+  const stats = useDetail(popupId, fetcher);
+
+  if (stats.sample) {
+    return (
+      <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-3)' }}>
+        The full breakdown is recorded by the platform, so there is nothing to
+        show in sample mode.
+      </p>
+    );
+  }
+  if (stats.loading) {
+    return (
+      <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--text-3)' }}>Loading…</p>
+    );
+  }
+  if (stats.error) {
+    return (
+      <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--stop)' }}>{stats.error}</p>
+    );
+  }
+  if (!stats.value) return null;
+
+  const s = stats.value;
+  return (
+    <div
+      style={{
+        display: 'flex', gap: 20, marginTop: 11, paddingTop: 11,
+        borderTop: '1px solid var(--line-soft)', flexWrap: 'wrap',
+      }}
+    >
+      <Stat label="shown" value={s.impressions.toLocaleString('fr-FR')} />
+      <Stat label="people reached" value={s.uniqueViewers.toLocaleString('fr-FR')} />
+      <Stat label="tapped" value={s.clicks.toLocaleString('fr-FR')} />
+      <Stat label="dismissed" value={s.dismissals.toLocaleString('fr-FR')} />
+    </div>
+  );
 }
 
 function PopupForm({
@@ -80,6 +131,7 @@ export default function PopupsPanel({ engagement }: { engagement: EngagementStat
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Popup | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Popup | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <>
@@ -102,12 +154,13 @@ export default function PopupsPanel({ engagement }: { engagement: EngagementStat
               <div
                 key={p.id}
                 style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12,
+                  padding: 12,
                   border: '1px solid var(--line)', borderRadius: 'var(--r-card)',
                   background: 'var(--card)',
                   opacity: p.isActive ? 1 : 0.72,
                 }}
               >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600 }}>{p.title}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-2)', marginTop: 3 }}>
@@ -132,6 +185,17 @@ export default function PopupsPanel({ engagement }: { engagement: EngagementStat
                     />
                   </div>
                 </WriteGate>
+                </div>
+
+                <div style={{ display: 'flex', marginTop: 9 }}>
+                  <Button
+                    variant="soft"
+                    onClick={() => setExpanded(expanded === p.id ? null : p.id)}
+                  >
+                    {expanded === p.id ? 'Hide breakdown' : 'Full breakdown'}
+                  </Button>
+                </div>
+                {expanded === p.id && <PopupBreakdown popupId={p.id} />}
               </div>
             ))}
           </div>

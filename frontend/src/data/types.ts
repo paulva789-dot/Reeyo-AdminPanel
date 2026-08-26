@@ -301,6 +301,14 @@ export interface Popup {
   clicks: number;
 }
 
+/** The fuller breakdown behind a popup, from /engagement/popups/:id/stats. */
+export interface PopupStats {
+  impressions: number;
+  clicks: number;
+  dismissals: number;
+  uniqueViewers: number;
+}
+
 export interface SpinWheelSegment {
   id: string;
   label: string;
@@ -328,6 +336,29 @@ export interface LoyaltyReward {
   pointsCost: number;
   imageUrl: string | null;
   isActive: boolean;
+}
+
+/** One spin recorded by /engagement/spin-wheels/:id/results. */
+export interface SpinResult {
+  id: string;
+  user: string;
+  prize: string;
+  wonAt: string;
+}
+
+/** A customer's loyalty balance, from /engagement/loyalty/accounts/:userId. */
+export interface LoyaltyAccount {
+  userId: string;
+  points: number;
+  tier: string | null;
+}
+
+/** One movement on that balance, from the account's /ledger. */
+export interface LoyaltyEntry {
+  id: string;
+  points: number;          // signed: earned is positive, redeemed negative
+  reason: string;
+  at: string;
 }
 
 export interface PreferenceTag {

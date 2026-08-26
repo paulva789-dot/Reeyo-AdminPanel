@@ -62,8 +62,32 @@ export interface EngagementState {
   deletePopup: (id: string) => void;
 
   toggleSpinWheel: (id: string, isActive: boolean) => void;
+  createSpinWheel: (name: string) => void;
+  deleteSpinWheel: (id: string) => void;
+  addSegment: (wheelId: string, segment: SegmentDraft) => void;
+  deleteSegment: (wheelId: string, segmentId: string) => void;
+
+  createLoyaltyRule: (name: string, pointsPerOrder: number) => void;
+  deleteLoyaltyRule: (id: string) => void;
+  createLoyaltyReward: (body: { name: string; pointsCost: number }) => void;
+  updateLoyaltyReward: (id: string, patch: Partial<LoyaltyReward>) => void;
+  deleteLoyaltyReward: (id: string) => void;
+
+  createPreferenceTag: (tag: string) => void;
+  deletePreferenceTag: (tag: string) => void;
+
+  createTrackingFact: (text: string) => void;
+  updateTrackingFact: (id: string, patch: { text?: string; isActive?: boolean }) => void;
+  deleteTrackingFact: (id: string) => void;
 
   reload: () => void;
+}
+
+/** A new slice, before the platform gives it an id. */
+export interface SegmentDraft {
+  label: string;
+  weight: number;
+  rewardType: string;
 }
 
 /** Which collections a page needs. Loading all eight for one tab is eight requests. */
@@ -215,12 +239,145 @@ export function useEngagement(want: EngagementKey[]): EngagementState {
     write('Updating the wheel', () => platform.updateSpinWheel(id, { isActive }));
   }, [write]);
 
+
+  /* ---- Spin wheels ------------------------------------------------------ */
+
+  const createSpinWheel = useCallback((name: string) => {
+    setSpinWheels((prev) => ({
+      ...prev,
+      rows: [...prev.rows, {
+        id: `new-${Date.now()}`, name, isActive: false, segments: [],
+      }],
+    }));
+    pushToast(`${name} created`);
+    write('Creating the wheel', () => platform.createSpinWheel(name));
+  }, [write, pushToast]);
+
+  const deleteSpinWheel = useCallback((id: string) => {
+    const target = spinWheels.rows.find((w) => w.id === id);
+    setSpinWheels((prev) => ({ ...prev, rows: prev.rows.filter((w) => w.id !== id) }));
+    pushToast(target ? `${target.name} deleted` : 'Wheel deleted');
+    write('Deleting the wheel', () => platform.deleteSpinWheel(id));
+  }, [write, spinWheels.rows, pushToast]);
+
+  const addSegment = useCallback((wheelId: string, segment: SegmentDraft) => {
+    setSpinWheels((prev) => ({
+      ...prev,
+      rows: prev.rows.map((w) => (w.id === wheelId
+        ? { ...w, segments: [...w.segments, { id: `new-${Date.now()}`, ...segment }] }
+        : w)),
+    }));
+    pushToast(`${segment.label} added`);
+    write('Adding the slice', () => platform.addSpinWheelSegment(wheelId, segment));
+  }, [write, pushToast]);
+
+  const deleteSegment = useCallback((wheelId: string, segmentId: string) => {
+    setSpinWheels((prev) => ({
+      ...prev,
+      rows: prev.rows.map((w) => (w.id === wheelId
+        ? { ...w, segments: w.segments.filter((sg) => sg.id !== segmentId) }
+        : w)),
+    }));
+    pushToast('Slice removed');
+    write('Removing the slice', () => platform.deleteSpinWheelSegment(wheelId, segmentId));
+  }, [write, pushToast]);
+
+  /* ---- Loyalty ---------------------------------------------------------- */
+
+  const createLoyaltyRule = useCallback((name: string, pointsPerOrder: number) => {
+    setLoyaltyRules((prev) => ({
+      ...prev,
+      rows: [...prev.rows, {
+        id: `new-${Date.now()}`, name, pointsPerOrder, isActive: true,
+      }],
+    }));
+    pushToast(`${name} created`);
+    write('Creating the rule', () => platform.createLoyaltyRule(name, pointsPerOrder));
+  }, [write, pushToast]);
+
+  const deleteLoyaltyRule = useCallback((id: string) => {
+    setLoyaltyRules((prev) => ({ ...prev, rows: prev.rows.filter((r) => r.id !== id) }));
+    pushToast('Rule deleted');
+    write('Deleting the rule', () => platform.deleteLoyaltyRule(id));
+  }, [write, pushToast]);
+
+  const createLoyaltyReward = useCallback((body: { name: string; pointsCost: number }) => {
+    setLoyaltyRewards((prev) => ({
+      ...prev,
+      rows: [...prev.rows, {
+        id: `new-${Date.now()}`, ...body, imageUrl: null, isActive: true,
+      }],
+    }));
+    pushToast(`${body.name} created`);
+    write('Creating the reward', () => platform.createLoyaltyReward(body));
+  }, [write, pushToast]);
+
+  const updateLoyaltyReward = useCallback((id: string, patch: Partial<LoyaltyReward>) => {
+    setLoyaltyRewards((prev) => ({
+      ...prev,
+      rows: prev.rows.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    }));
+    write('Updating the reward', () => platform.updateLoyaltyReward(id, patch));
+  }, [write]);
+
+  const deleteLoyaltyReward = useCallback((id: string) => {
+    setLoyaltyRewards((prev) => ({ ...prev, rows: prev.rows.filter((r) => r.id !== id) }));
+    pushToast('Reward deleted');
+    write('Deleting the reward', () => platform.deleteLoyaltyReward(id));
+  }, [write, pushToast]);
+
+  /* ---- Tags and facts --------------------------------------------------- */
+
+  const createPreferenceTag = useCallback((tag: string) => {
+    setPreferenceTags((prev) => ({
+      ...prev,
+      rows: [...prev.rows, { tag, usageCount: 0 }],
+    }));
+    pushToast(`${tag} added`);
+    write('Adding the tag', () => platform.createPreferenceTag(tag));
+  }, [write, pushToast]);
+
+  const deletePreferenceTag = useCallback((tag: string) => {
+    setPreferenceTags((prev) => ({ ...prev, rows: prev.rows.filter((t) => t.tag !== tag) }));
+    pushToast(`${tag} removed`);
+    write('Removing the tag', () => platform.deletePreferenceTag(tag));
+  }, [write, pushToast]);
+
+  const createTrackingFact = useCallback((text: string) => {
+    setTrackingFacts((prev) => ({
+      ...prev,
+      rows: [...prev.rows, { id: `new-${Date.now()}`, text, isActive: true }],
+    }));
+    pushToast('Fact added');
+    write('Adding the fact', () => platform.createTrackingFact(text));
+  }, [write, pushToast]);
+
+  const updateTrackingFact = useCallback((
+    id: string, patch: { text?: string; isActive?: boolean },
+  ) => {
+    setTrackingFacts((prev) => ({
+      ...prev,
+      rows: prev.rows.map((f) => (f.id === id ? { ...f, ...patch } : f)),
+    }));
+    write('Updating the fact', () => platform.updateTrackingFact(id, patch));
+  }, [write]);
+
+  const deleteTrackingFact = useCallback((id: string) => {
+    setTrackingFacts((prev) => ({ ...prev, rows: prev.rows.filter((f) => f.id !== id) }));
+    pushToast('Fact removed');
+    write('Removing the fact', () => platform.deleteTrackingFact(id));
+  }, [write, pushToast]);
+
   return {
     banners, popups, spinWheels, loyaltyRules, loyaltyRewards,
     preferenceTags, trackingFacts, sharedCarts,
     createBanner, updateBanner, deleteBanner,
     createPopup, updatePopup, deletePopup,
-    toggleSpinWheel,
+    toggleSpinWheel, createSpinWheel, deleteSpinWheel, addSegment, deleteSegment,
+    createLoyaltyRule, deleteLoyaltyRule,
+    createLoyaltyReward, updateLoyaltyReward, deleteLoyaltyReward,
+    createPreferenceTag, deletePreferenceTag,
+    createTrackingFact, updateTrackingFact, deleteTrackingFact,
     reload,
   };
 }

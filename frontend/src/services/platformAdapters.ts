@@ -15,6 +15,7 @@ import type {
   PlatformStats, RevenuePoint, RankedEntity, OrderStatusCount, LiveSnapshot,
   DeliveryZone, RiderLocation, EngagementBanner, Popup, SpinWheel, SpinWheelSegment,
   LoyaltyRule, LoyaltyReward, PreferenceTag, TrackingFact, SharedCart,
+  SpinResult, LoyaltyAccount, LoyaltyEntry, PopupStats,
   AdminUser, PlatformConfig, FeatureFlag, TimelineEvent,
 } from '../data/types';
 
@@ -243,6 +244,44 @@ export function adaptLoyaltyReward(row: Raw): LoyaltyReward {
     pointsCost: num(row, ['points_cost', 'pointsCost', 'cost', 'points']),
     imageUrl: str(row, ['image_url', 'imageUrl']) || null,
     isActive: flag(row, ['is_active', 'isActive', 'active']),
+  };
+}
+
+export function adaptPopupStats(payload: unknown): PopupStats {
+  const row = (payload ?? {}) as Raw;
+  return {
+    impressions: num(row, ['impressions', 'views', 'shown', 'total_impressions']),
+    clicks: num(row, ['clicks', 'taps', 'total_clicks']),
+    dismissals: num(row, ['dismissals', 'dismissed', 'closes']),
+    uniqueViewers: num(row, ['unique_viewers', 'uniqueViewers', 'unique_users']),
+  };
+}
+
+export function adaptSpinResult(row: Raw): SpinResult {
+  return {
+    id: str(row, ['id', '_id'], '—'),
+    user: str(row, ['user_name', 'userName', 'user', 'user_id'], 'Unknown'),
+    prize: str(row, ['prize', 'label', 'segment_label', 'reward'], '—'),
+    wonAt: toRelative(pick(row, ['created_at', 'createdAt', 'won_at', 'spun_at'])),
+  };
+}
+
+export function adaptLoyaltyAccount(payload: unknown): LoyaltyAccount {
+  const row = (payload ?? {}) as Raw;
+  const tier = pick(row, ['tier', 'level']);
+  return {
+    userId: str(row, ['user_id', 'userId', 'id'], '—'),
+    points: num(row, ['points', 'balance', 'points_balance']),
+    tier: tier === undefined || tier === null ? null : String(tier),
+  };
+}
+
+export function adaptLoyaltyEntry(row: Raw): LoyaltyEntry {
+  return {
+    id: str(row, ['id', '_id'], '—'),
+    points: num(row, ['points', 'amount', 'delta']),
+    reason: str(row, ['reason', 'description', 'type'], '—'),
+    at: toRelative(pick(row, ['created_at', 'createdAt', 'at'])),
   };
 }
 

@@ -12,10 +12,12 @@ import { FilterInput } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/useAppState';
+import { useAuth } from '../state/useAuth';
 import { useDetail } from '../state/useDetail';
 import { platform } from '../services/platformResources';
 import OrderHistory from '../components/domain/OrderHistory';
 import ReasonModal from './approvals/ReasonModal';
+import VendorEditModal from './vendors/VendorEditModal';
 import { money, initials } from '../lib/format';
 import { menus } from '../data/seed';
 import type { Vendor, MenuCategory } from '../data/types';
@@ -34,6 +36,39 @@ function Avatar({ name, token }: { name: string; token: string }) {
     >
       {initials(name)}
     </span>
+  );
+}
+
+
+/**
+ * `PATCH /engagement/menu-items/:id/upsell` — SuperAdmin.
+ *
+ * The menu list does not report whether an item is already an upsell, so this
+ * starts off and says what it does rather than showing a state it cannot know.
+ */
+function UpsellToggle({ itemId, name }: { itemId: string; name: string }) {
+  const { isSuperAdmin } = useAuth();
+  const { pushToast } = useAppState();
+  const [on, setOn] = useState(false);
+
+  if (!isSuperAdmin) return null;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+      <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>upsell</span>
+      <Toggle
+        checked={on}
+        onChange={(next) => {
+          setOn(next);
+          pushToast(next ? `${name} set as an upsell` : `${name} no longer an upsell`);
+          platform.setMenuItemUpsell(itemId, next).catch(() => {
+            setOn(!next);
+            pushToast(`${name} did not save`);
+          });
+        }}
+        label={`${name} upsell`}
+      />
+    </div>
   );
 }
 
@@ -127,6 +162,8 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
                 </div>
                 {item.stock === 0 && <Pill status="out of stock" token="stop" />}
                 {!item.available && <Pill status="hidden" token="calm" />}
+                {/* The one write the API does offer on a menu item. */}
+                <UpsellToggle itemId={item.id} name={item.name} />
               </div>
             ))}
           </div>
@@ -254,6 +291,7 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
 function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void }) {
   const { orders, suspendVendor } = useAppState();
   const [suspending, setSuspending] = useState(false);
+  const [editing, setEditing] = useState(false);
   const fetcher = useCallback(() => platform.vendorOrders(vendor.id), [vendor.id]);
   const history = useDetail(vendor.id, fetcher);
 
@@ -277,6 +315,7 @@ function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void
             Suspend
           </Button>
           <FooterSpacer />
+          <Button variant="primary" onClick={() => setEditing(true)}>Edit vendor</Button>
         </>
       )}
     >
@@ -358,6 +397,8 @@ function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void
         </div>
       </div>
     </Drawer>
+
+    {editing && <VendorEditModal vendor={vendor} onClose={() => setEditing(false)} />}
 
     {suspending && (
       <ReasonModal

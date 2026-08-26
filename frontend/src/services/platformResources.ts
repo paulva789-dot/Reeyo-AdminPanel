@@ -12,12 +12,14 @@ import {
   adaptPopup, adaptSpinWheel, adaptLoyaltyRule, adaptLoyaltyReward,
   adaptPreferenceTag, adaptTrackingFact, adaptSharedCart, adaptAdminUser,
   adaptConfig, adaptFeatureFlag, adaptTimelineEvent, adaptRiderLocation,
+  adaptSpinResult, adaptLoyaltyAccount, adaptLoyaltyEntry, adaptPopupStats,
 } from './platformAdapters';
 import type {
   PendingVendor, PendingRider, RiderDocumentType,
   PlatformStats, RevenuePoint, RankedEntity, OrderStatusCount, LiveSnapshot,
   DeliveryZone, RiderLocation, EngagementBanner, Popup, SpinWheel, LoyaltyRule, LoyaltyReward,
   PreferenceTag, TrackingFact, SharedCart, AdminUser, AdminRole, AdminStatus,
+  SpinResult, LoyaltyAccount, LoyaltyEntry, PopupStats,
   PlatformConfig, FeatureFlag, TimelineEvent, MenuItem, Order,
 } from '../data/types';
 
@@ -60,6 +62,11 @@ export const platform = {
     apiClient.patch(ENDPOINTS.featureVendor(id), { featured }),
   setVendorCommission: (id: string, commissionRate: number) =>
     apiClient.patch(ENDPOINTS.vendorCommission(id), { commissionRate }),
+
+  updateVendor: (id: string, patch: Record<string, unknown>) =>
+    apiClient.patch(ENDPOINTS.updateVendor(id), patch),
+  updateRider: (id: string, patch: Record<string, unknown>) =>
+    apiClient.patch(ENDPOINTS.updateRider(id), patch),
 
   approveRider: (id: string) => apiClient.post(ENDPOINTS.approveRider(id)),
   rejectRider: (id: string, reason: string) =>
@@ -137,15 +144,59 @@ export const platform = {
   updateSpinWheel: (id: string, body: Record<string, unknown>) =>
     apiClient.patch(ENDPOINTS.spinWheel(id), body),
 
+  popupStats: (id: string) => one<PopupStats>(ENDPOINTS.popupStats(id), adaptPopupStats),
+
+  /**
+   * Spin wheels. The wheel and its slices are separate resources — a slice is
+   * added to and removed from an existing wheel, never sent as part of it.
+   */
+  createSpinWheel: (name: string) =>
+    apiClient.post(ENDPOINTS.spinWheels, { name, isActive: false }),
+  deleteSpinWheel: (id: string) => apiClient.delete(ENDPOINTS.spinWheel(id)),
+  addSpinWheelSegment: (
+    id: string,
+    segment: { label: string; weight: number; rewardType: string },
+  ) => apiClient.post(ENDPOINTS.spinWheelSegments(id), segment),
+  deleteSpinWheelSegment: (id: string, segmentId: string) =>
+    apiClient.delete(ENDPOINTS.spinWheelSegment(id, segmentId)),
+  spinWheelResults: (id: string) =>
+    list<SpinResult>(ENDPOINTS.spinWheelResults(id), adaptSpinResult, { limit: 50 }),
+
   loyaltyRules: () => list<LoyaltyRule>(ENDPOINTS.loyaltyRules, adaptLoyaltyRule),
+  createLoyaltyRule: (name: string, pointsPerOrder: number) =>
+    apiClient.post(ENDPOINTS.loyaltyRules, { name, pointsPerOrder, isActive: true }),
+  deleteLoyaltyRule: (id: string) => apiClient.delete(ENDPOINTS.loyaltyRule(id)),
+
   loyaltyRewards: () => list<LoyaltyReward>(ENDPOINTS.loyaltyRewards, adaptLoyaltyReward),
+  createLoyaltyReward: (body: { name: string; pointsCost: number; imageUrl?: string }) =>
+    apiClient.post(ENDPOINTS.loyaltyRewards, { ...body, isActive: true }),
+  updateLoyaltyReward: (id: string, patch: Record<string, unknown>) =>
+    apiClient.patch(ENDPOINTS.loyaltyReward(id), patch),
+  deleteLoyaltyReward: (id: string) => apiClient.delete(ENDPOINTS.loyaltyReward(id)),
+
+  /** One customer's points balance, and how they got there. */
+  loyaltyAccount: (userId: string) =>
+    one<LoyaltyAccount>(ENDPOINTS.loyaltyAccount(userId), adaptLoyaltyAccount),
+  loyaltyLedger: (userId: string) =>
+    list<LoyaltyEntry>(ENDPOINTS.loyaltyLedger(userId), adaptLoyaltyEntry, { limit: 50 }),
 
   preferenceTags: () => list<PreferenceTag>(ENDPOINTS.preferenceTags, adaptPreferenceTag),
+  createPreferenceTag: (tag: string) => apiClient.post(ENDPOINTS.preferenceTags, { tag }),
+  deletePreferenceTag: (tag: string) => apiClient.delete(ENDPOINTS.preferenceTag(tag)),
+
   trackingFacts: () => list<TrackingFact>(ENDPOINTS.trackingFacts, adaptTrackingFact),
+  createTrackingFact: (text: string) =>
+    apiClient.post(ENDPOINTS.trackingFacts, { text, isActive: true }),
+  updateTrackingFact: (id: string, patch: { text?: string; isActive?: boolean }) =>
+    apiClient.patch(ENDPOINTS.trackingFact(id), patch),
+  deleteTrackingFact: (id: string) => apiClient.delete(ENDPOINTS.trackingFact(id)),
+
   sharedCarts: () => list<SharedCart>(ENDPOINTS.sharedCarts, adaptSharedCart),
 
   setVendorBadges: (id: string, badges: string[]) =>
     apiClient.patch(ENDPOINTS.vendorBadges(id), { badges }),
+  setMenuItemUpsell: (itemId: string, isUpsell: boolean) =>
+    apiClient.patch(ENDPOINTS.menuItemUpsell(itemId), { is_upsell: isUpsell }),
 
   /* ---- Broadcast ------------------------------------------------------- */
 
@@ -205,6 +256,11 @@ export const platform = {
   config: () => one<PlatformConfig>(ENDPOINTS.config, adaptConfig),
   updateConfig: (patch: Record<string, unknown>) =>
     apiClient.patch(ENDPOINTS.updateConfig, patch),
+
+  deleteFeatureFlag: (key: string) => apiClient.delete(ENDPOINTS.featureFlag(key)),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiClient.post(ENDPOINTS.changePassword, { currentPassword, newPassword }),
 
   featureFlags: async (): Promise<FeatureFlag[]> => {
     const res = await apiClient.get<unknown>(ENDPOINTS.featureFlags);

@@ -31,6 +31,7 @@ export interface PlatformAdminState {
 
   saveConfig: (patch: Partial<PlatformConfig>) => void;
   setFlag: (key: string, enabled: boolean) => void;
+  deleteFlag: (key: string) => void;
   createAdmin: (email: string, name: string, role: AdminRole) => void;
   updateAdmin: (id: string, patch: { role?: AdminRole; status?: AdminStatus }) => void;
   deleteAdmin: (id: string) => void;
@@ -128,6 +129,12 @@ export function usePlatformAdmin(): PlatformAdminState {
     write(`Switching ${key}`, () => platform.setFeatureFlag(key, enabled));
   }, [write]);
 
+  const deleteFlag = useCallback((key: string) => {
+    setFlags((prev) => prev.filter((f) => f.key !== key));
+    pushToast(`${key} removed`);
+    write('Removing the flag', () => platform.deleteFeatureFlag(key));
+  }, [write, pushToast]);
+
   const createAdmin = useCallback((email: string, name: string, role: AdminRole) => {
     setAdmins((prev) => [...prev, {
       id: `new-${Date.now()}`, name, email, role,
@@ -159,6 +166,6 @@ export function usePlatformAdmin(): PlatformAdminState {
     admins: !isLive || isSuperAdmin ? admins : [],
     adminsError,
     sample,
-    saveConfig, setFlag, createAdmin, updateAdmin, deleteAdmin, reload,
+    saveConfig, setFlag, deleteFlag, createAdmin, updateAdmin, deleteAdmin, reload,
   };
 }

@@ -7,6 +7,7 @@ import ApiKeysCard from './settings/ApiKeysCard';
 import ConfigCard from './settings/ConfigCard';
 import FeatureFlagsCard from './settings/FeatureFlagsCard';
 import AdminUsersCard from './settings/AdminUsersCard';
+import ChangePasswordCard from './settings/ChangePasswordCard';
 import { usePlatformAdmin } from '../state/usePlatformAdmin';
 import { PAYMENT_METHODS } from '../data/seed';
 
@@ -54,6 +55,8 @@ export default function Settings() {
         </div>
 
         <FeatureFlagsCard state={state} />
+
+        <ChangePasswordCard />
 
         <ApiKeysCard />
 
