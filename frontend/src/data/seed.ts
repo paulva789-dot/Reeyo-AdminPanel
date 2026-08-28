@@ -1,7 +1,7 @@
 import { regionOfZone, cityOfZone } from './geography';
 import type { Region } from './geography';
 import type {
-  Order, Vendor, Rider, Customer, Payment, PayoutRequest, Offer, Banner,
+  Order, Vendor, Rider, Customer, Payment, PayoutRequest, Offer,
   MenuCategory, Announcement, SpinPrize, Team, FeeRule, RiderPosition,
   Dispute, MenuApproval, ApiKey,
 } from './types';
@@ -496,21 +496,6 @@ export const offers: Offer[] = [
     id: 3, name: 'Parcel weekend', code: 'SENDFREE', vertical: 'Parcel',
     ...place('Bonduma'), type: 'Free delivery', value: 'Delivery waived', payer: 'Vendor',
     uses: 76, spent: 60800, active: false, ends: '2026-08-10',
-  },
-];
-
-export const banners: Banner[] = [
-  {
-    id: 1, name: 'Ndolé season at Chez Mado', vertical: 'Food', zone: 'All zones',
-    destination: 'Vendor · Chez Mado', active: true, taps: 4820,
-  },
-  {
-    id: 2, name: 'Stock up at UrbanMart', vertical: 'Grocery', ...place('Molyko'),
-    destination: 'Vendor · UrbanMart', active: true, taps: 3140,
-  },
-  {
-    id: 3, name: 'Send anything, same day', vertical: 'Parcel', zone: 'All zones',
-    destination: 'Service · Parcel', active: false, taps: 1290,
   },
 ];
 

@@ -7,7 +7,7 @@ import Segments from '../components/ui/Segments';
 import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
-import LocalOnly from '../components/ui/LocalOnly';
+import NoEndpoint from '../components/ui/NoEndpoint';
 import { useAppState } from '../state/useAppState';
 import { useEngagement } from '../state/useEngagement';
 import { money } from '../lib/format';
@@ -104,7 +104,6 @@ export default function Marketing() {
         Marketing
       </PageTitle>
 
-      {tab === 'offers' && <LocalOnly what="Promo codes and offers" />}
 
       <div style={{ marginBottom: 14 }}>
         <Segments
@@ -119,7 +118,14 @@ export default function Marketing() {
         />
       </div>
 
-      {tab === 'offers' && <Offers />}
+      {tab === 'offers' && (
+        <NoEndpoint
+          what="Promo codes and offers"
+          consequence="Discount codes, who absorbs their cost and what they have spent are not exposed."
+        >
+          <Offers />
+        </NoEndpoint>
+      )}
       {tab === 'broadcast' && <BroadcastPanel />}
       {tab === 'wheel' && <SpinWheelPanel engagement={engagement} />}
     </>

@@ -3,7 +3,7 @@ import { AppStateContext } from './useAppState';
 import type { AppStateValue, Loaded, Toast } from './useAppState';
 import type {
   Order, OrderStatus, PayoutRequest, Vendor, Rider, Customer, Payment,
-  Offer, Banner, FeeRule, Dispute, MenuApproval, ApiKey,
+  Offer, FeeRule, Dispute, MenuApproval, ApiKey,
   PendingVendor, PendingRider,
 } from '../data/types';
 import {
@@ -17,7 +17,6 @@ import {
   menuApprovals as seedApprovals,
   apiKeys as seedApiKeys,
   offers as seedOffers,
-  banners as seedBanners,
   homeSections as seedSections,
   feeRules as seedFeeRules,
 } from '../data/seed';
@@ -69,7 +68,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     useState<Loaded<PendingRider>>(idle(seedPendingRiders));
 
   const [offers, setOffers] = useState<Offer[]>(seedOffers);
-  const [banners, setBanners] = useState<Banner[]>(seedBanners);
   const [sections, setSections] = useState(seedSections);
   const [feeRules, setFeeRules] = useState<FeeRule[]>(seedFeeRules);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -420,31 +418,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setOffers((prev) => prev.map((o) => (o.id === id ? { ...o, active: !o.active } : o)));
   }, []);
 
-  const toggleBanner = useCallback((id: number) => {
-    setBanners((prev) => prev.map((b) => (b.id === id ? { ...b, active: !b.active } : b)));
-  }, []);
-
-  const reorderBanners = useCallback((from: number, to: number) => {
-    setBanners((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
-  }, []);
-
   /** Keyboard-operable equivalent of the drag handle — section 11. */
-  const moveBanner = useCallback((id: number, direction: -1 | 1) => {
-    setBanners((prev) => {
-      const index = prev.findIndex((b) => b.id === id);
-      const target = index + direction;
-      if (index === -1 || target < 0 || target >= prev.length) return prev;
-      const next = [...prev];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-  }, []);
-
   const toggleSection = useCallback((id: number) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, active: !s.active } : s)));
   }, []);
@@ -602,7 +576,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     apiKeys: apiKeysState.rows, apiKeysState,
     createApiKey, revokeApiKey,
     offers, toggleOffer,
-    banners, toggleBanner, reorderBanners, moveBanner,
     sections, toggleSection,
     feeRules, toggleFeeRule,
     openOrders, pendingPayouts, openDisputes, pendingApprovals,

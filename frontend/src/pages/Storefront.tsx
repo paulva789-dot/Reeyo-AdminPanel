@@ -4,7 +4,7 @@ import Card from '../components/ui/Card';
 import Toggle from '../components/ui/Toggle';
 import Pill from '../components/ui/Pill';
 import Segments from '../components/ui/Segments';
-import LocalOnly from '../components/ui/LocalOnly';
+import NoEndpoint from '../components/ui/NoEndpoint';
 import { useAppState } from '../state/useAppState';
 import { useEngagement } from '../state/useEngagement';
 import BannersPanel from './engagement/BannersPanel';
@@ -22,8 +22,10 @@ function Sections() {
   const { sections, toggleSection } = useAppState();
 
   return (
-    <>
-      <LocalOnly what="Home section ordering" />
+    <NoEndpoint
+      what="Home section ordering"
+      consequence="The order customers scroll the home screen in cannot be changed from here."
+    >
       <Card title="Section order">
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-2)' }}>
           The order here decides what the customer scrolls past first.
@@ -63,7 +65,7 @@ function Sections() {
           ))}
         </div>
       </Card>
-    </>
+    </NoEndpoint>
   );
 }
 

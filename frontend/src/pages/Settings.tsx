@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Toggle from '../components/ui/Toggle';
-import LocalOnly from '../components/ui/LocalOnly';
+import NoEndpoint from '../components/ui/NoEndpoint';
 import ApiKeysCard from './settings/ApiKeysCard';
 import ConfigCard from './settings/ConfigCard';
 import FeatureFlagsCard from './settings/FeatureFlagsCard';
@@ -16,8 +16,11 @@ function PaymentMethods() {
   const [methods, setMethods] = useState<string[]>(PAYMENT_METHODS.slice(0, 4));
 
   return (
+    <NoEndpoint
+      what="Payment method availability"
+      consequence="Which methods customers may pay with is set on the backend, not here."
+    >
     <Card title="Payment methods">
-      <LocalOnly what="Payment method availability" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {PAYMENT_METHODS.map((m) => (
           <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
@@ -33,6 +36,7 @@ function PaymentMethods() {
         ))}
       </div>
     </Card>
+    </NoEndpoint>
   );
 }
 

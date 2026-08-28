@@ -158,6 +158,54 @@ history instead of derived summaries.
 
 Newest first. Every entry names what changed and why.
 
+### 2026-08-28 — Seed data no longer renders in live mode
+
+Six panels were showing seeded rows against the real API, each under a notice
+saying "nothing you change here is saved". That was honest wording wrapped
+around a dishonest screen: invented rider loads and invented campaign spend sit
+in the same columns as real figures, and nobody reads the banner twice.
+
+`components/ui/NoEndpoint.tsx` replaces that notice and enforces one rule —
+**seed rows render in sample mode and nowhere else.** In live mode it says what
+is missing and what it costs, which an admin can act on, instead of numbers
+they cannot.
+
+| Panel | Live mode now shows |
+|---|---|
+| Dispatch → Capacity | Zone capacity is not on the admin API |
+| Dispatch → Teams | Delivery teams is not on the admin API |
+| Dispatch → Delivery fees | Delivery fee rules is not on the admin API |
+| Marketing → Offers | Promo codes and offers is not on the admin API |
+| Storefront → Sections | Home section ordering is not on the admin API |
+| Settings → Payment methods | Payment method availability is not on the admin API |
+
+The Offers tab was the worst of the six: fabricated redemption counts and
+fabricated FCFA spend, presented beside real payouts.
+
+**Settlements stopped assuming what the platform charges.** `Payments.tsx` had
+`COMMISSION = 0.15`, `SERVICE_FEE = 0.025` and `RIDER_CUT = 0.10` hard-coded,
+while Settings read and wrote the real rates through `/config`. Commission
+could be changed to 18% in one screen while every settlement on another was
+still worked out at 15% — two screens disagreeing about money, with nothing on
+either to say which was right. Both settlement tabs now read `/config`, print
+the rate they actually used, and say whether it came from the platform or from
+a fallback.
+
+**Dead code removed.** `LocalOnly` (superseded), and `toggleBanner`,
+`reorderBanners`, `moveBanner` plus the seeded banner rows in AppState, left
+over from before banners moved to `/engagement/banners`.
+
+**A new check suite guards the rule.** `checks/source.mjs` asserts it at the
+source, because asserting it in a browser would need a working sign-in these
+suites do not have. Eighteen assertions: each panel is wrapped, `NoEndpoint`
+still withholds, `LocalOnly` stays deleted, no settlement rate is hard-coded,
+and the six pages that went live import no seed data.
+
+**Known, pre-existing:** one browser suite per run occasionally fails and passes
+on retry — it moves between `interactions` and `capabilities`, so it is timing
+rather than either suite. The runner retries once and names which suite was
+flaky rather than hiding it.
+
 ### 2026-08-26 — Full audit against `main`, and the fifteen capabilities it found
 
 The previous comparison was done route by route and concluded one thing was

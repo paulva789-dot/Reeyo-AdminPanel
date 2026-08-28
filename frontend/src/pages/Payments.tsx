@@ -11,13 +11,55 @@ import { FilterInput, TextArea } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/useAppState';
+import { usePlatformAdmin } from '../state/usePlatformAdmin';
 import { money } from '../lib/format';
 
 import type { Payment, PayoutRequest } from '../data/types';
 
-const COMMISSION = 0.15;
-const SERVICE_FEE = 0.025;
-const RIDER_CUT = 0.10;
+/**
+ * What the platform charges, read from `/config` rather than assumed.
+ *
+ * These were hard-coded at 15% / 2.5% / 10%, which meant Settings could show a
+ * commission of 18% while every settlement on this page was still worked out at
+ * 15% — two screens disagreeing about money, with nothing on either to say
+ * which was right. The fallbacks below are only reached when `/config` has not
+ * answered, and the page says so when that happens.
+ */
+const FALLBACK = { commission: 0.15, serviceFee: 0.025, riderCut: 0.10 };
+
+function useRates() {
+  const { config, configError, sample } = usePlatformAdmin();
+  const pct = (value: number | null, fallback: number) => (
+    value === null ? fallback : value / 100
+  );
+  return {
+    commission: pct(config.commissionRate, FALLBACK.commission),
+    serviceFee: pct(config.serviceFee, FALLBACK.serviceFee),
+    riderCut: pct(config.riderCut, FALLBACK.riderCut),
+    // True when the figures came from the platform rather than the fallbacks.
+    live: !sample && !configError,
+    error: configError,
+  };
+}
+
+/** Says where the deduction rates came from, because they decide what people are paid. */
+function RateSource({ live, error }: { live: boolean; error: string | null }) {
+  return (
+    <p
+      style={{
+        margin: '0 0 14px', fontSize: 11.5,
+        color: error ? 'var(--stop)' : 'var(--text-3)',
+      }}
+    >
+      {error
+        ? `${error} Deductions below use this console's default rates, which may not
+           be what the platform charges.`.replace(/\s+/g, ' ')
+        : live
+          ? 'Deduction rates come from the platform configuration.'
+          : 'Sample rates — the platform configuration has not been read.'}
+    </p>
+  );
+}
 
 function Deduction({ label, value }: { label: string; value: number }) {
   return (
@@ -94,6 +136,7 @@ function Ledger() {
 
 function VendorSettlements() {
   const { vendors } = useAppState();
+  const rates = useRates();
   const settleable = vendors.filter((v) => v.status === 'active');
 
   if (settleable.length === 0) {
@@ -108,6 +151,8 @@ function VendorSettlements() {
   }
 
   return (
+    <>
+    <RateSource live={rates.live} error={rates.error} />
     <div
       style={{
         display: 'grid', gap: 14,
@@ -115,8 +160,8 @@ function VendorSettlements() {
       }}
     >
       {settleable.map((v) => {
-        const commission = Math.round(v.revenue * COMMISSION);
-        const service = Math.round(v.revenue * SERVICE_FEE);
+        const commission = Math.round(v.revenue * rates.commission);
+        const service = Math.round(v.revenue * rates.serviceFee);
         const net = v.revenue - commission - service;
         return (
           <Card key={v.id} title={v.name}>
@@ -129,8 +174,14 @@ function VendorSettlements() {
               <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Gross</span>
               <span className="mono" style={{ fontSize: 12 }}>{money(v.revenue)}</span>
             </div>
-            <Deduction label={`Commission ${COMMISSION * 100}%`} value={commission} />
-            <Deduction label={`Service fee ${SERVICE_FEE * 100}%`} value={service} />
+            <Deduction
+              label={`Commission ${Math.round(rates.commission * 1000) / 10}%`}
+              value={commission}
+            />
+            <Deduction
+              label={`Service fee ${Math.round(rates.serviceFee * 1000) / 10}%`}
+              value={service}
+            />
             <div style={{ height: 1, background: 'var(--line-soft)', margin: '6px 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--forest)' }}>Net</span>
@@ -146,11 +197,13 @@ function VendorSettlements() {
         );
       })}
     </div>
+    </>
   );
 }
 
 function RiderSettlements() {
   const { riders } = useAppState();
+  const rates = useRates();
 
   if (riders.length === 0) {
     return (
@@ -164,6 +217,8 @@ function RiderSettlements() {
   }
 
   return (
+    <>
+    <RateSource live={rates.live} error={rates.error} />
     <div
       style={{
         display: 'grid', gap: 14,
@@ -171,7 +226,7 @@ function RiderSettlements() {
       }}
     >
       {riders.map((r) => {
-        const gross = Math.round(r.owed / (1 - RIDER_CUT));
+        const gross = Math.round(r.owed / (1 - rates.riderCut));
         const cut = gross - r.owed;
         return (
           <Card key={r.id} title={r.name}>
@@ -184,7 +239,10 @@ function RiderSettlements() {
               <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Gross</span>
               <span className="mono" style={{ fontSize: 12 }}>{money(gross)}</span>
             </div>
-            <Deduction label={`Platform cut ${RIDER_CUT * 100}%`} value={cut} />
+            <Deduction
+              label={`Platform cut ${Math.round(rates.riderCut * 1000) / 10}%`}
+              value={cut}
+            />
             <div style={{ height: 1, background: 'var(--line-soft)', margin: '6px 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--forest)' }}>Net</span>
@@ -200,6 +258,7 @@ function RiderSettlements() {
         );
       })}
     </div>
+    </>
   );
 }
 

@@ -6,7 +6,7 @@
 import { createContext, useContext } from 'react';
 import type {
   Order, PayoutRequest, Vendor, Rider, Customer, Payment,
-  Offer, Banner, FeeRule, Dispute, MenuApproval, ApiKey,
+  Offer, FeeRule, Dispute, MenuApproval, ApiKey,
   PendingVendor, PendingRider,
 } from '../data/types';
 import type { DocumentVerdict } from '../services/platformResources';
@@ -94,13 +94,12 @@ export interface AppStateValue {
   createApiKey: (name: string, scopes: string[], expiresAt?: string) => Promise<string | null>;
   revokeApiKey: (id: string) => void;
 
-  // Local-only: no backend route exists for these (see services/endpoints.ts).
+  /**
+   * No backend route exists for these. They render in sample mode only — see
+   * components/ui/NoEndpoint.tsx for why they are withheld when live.
+   */
   offers: Offer[];
   toggleOffer: (id: number) => void;
-  banners: Banner[];
-  toggleBanner: (id: number) => void;
-  reorderBanners: (from: number, to: number) => void;
-  moveBanner: (id: number, direction: -1 | 1) => void;
   sections: HomeSection[];
   toggleSection: (id: number) => void;
   feeRules: FeeRule[];

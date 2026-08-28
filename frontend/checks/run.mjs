@@ -25,6 +25,10 @@ const PORT = 9222;
 const PROFILE = mkdtempSync(join(tmpdir(), 'reeyo-checks-'));
 
 const SUITES = [
+  // Source-level, so it needs no browser — but it is the only place the
+  // "seed data never renders in live mode" rule can be asserted, because
+  // reaching live mode needs a sign-in these suites do not have.
+  ['source.mjs', 'seed data stays out of live mode, and money is not assumed'],
   ['logic.mjs', 'pure logic and adapters, including empty and malformed input'],
   ['pages.mjs', 'every page renders, with no console errors'],
   ['interactions.mjs', 'the behaviours section 14 requires'],

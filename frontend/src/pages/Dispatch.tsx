@@ -7,7 +7,7 @@ import Segments from '../components/ui/Segments';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import RiderMap from '../components/domain/RiderMap';
-import LocalOnly from '../components/ui/LocalOnly';
+import NoEndpoint from '../components/ui/NoEndpoint';
 
 // Leaflet is a third of the bundle and only this tab needs it, so it loads when
 // the tab is opened rather than on every page of the console.
@@ -47,15 +47,17 @@ function Capacity() {
 
   if (zoneStatsInScope.length === 0) {
     return (
-      <>
-        <LocalOnly what="Zone capacity" />
+      <NoEndpoint
+        what="Zone capacity"
+        consequence="You cannot see how loaded each area's riders are."
+      >
         <Card>
           <EmptyState
             heading={`No delivery zones in ${region}`}
             line="reeyo has not opened a zone in this region yet, so there is no capacity to report."
           />
         </Card>
-      </>
+      </NoEndpoint>
     );
   }
 
@@ -67,8 +69,10 @@ function Capacity() {
   }
 
   return (
-    <>
-      <LocalOnly what="Zone capacity" />
+    <NoEndpoint
+      what="Zone capacity"
+      consequence="You cannot see how loaded each area's riders are."
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {[...byRegion.entries()].map(([regionName, zones]) => (
           <section key={regionName}>
@@ -158,7 +162,7 @@ function Capacity() {
           </section>
         ))}
       </div>
-    </>
+    </NoEndpoint>
   );
 }
 
@@ -195,8 +199,10 @@ function Teams() {
   ];
 
   return (
-    <>
-      <LocalOnly what="Delivery teams" />
+    <NoEndpoint
+      what="Delivery teams"
+      consequence="Riders cannot be grouped into teams or given a shift from here."
+    >
       <Card title="Delivery teams">
         <DataTable
           columns={columns}
@@ -209,7 +215,7 @@ function Teams() {
           }}
         />
       </Card>
-    </>
+    </NoEndpoint>
   );
 }
 
@@ -217,8 +223,10 @@ function Fees() {
   const { feeRules, toggleFeeRule } = useAppState();
 
   return (
-    <>
-    <LocalOnly what="Delivery fee rules" />
+    <NoEndpoint
+      what="Delivery fee rules"
+      consequence="Base fares and per-km rates cannot be read or changed from here."
+    >
     <div
       style={{
         display: 'grid',
@@ -258,7 +266,7 @@ function Fees() {
         </Card>
       ))}
     </div>
-    </>
+    </NoEndpoint>
   );
 }
 
