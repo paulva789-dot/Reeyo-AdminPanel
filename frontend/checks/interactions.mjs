@@ -212,6 +212,66 @@ ws.onopen = async () => {
   const kyc = await ev(`document.body.innerText.includes('does not approve the rider')`);
   check('the document review says it does not approve the rider', kyc === true);
 
+  // --- shell: theme, language, and the controls that used to do nothing ---
+  await go('Overview'); await wait(900);
+
+  // Start from a known theme. The suites share a browser profile, so a previous
+  // run can leave this in dark and make "did it change?" unanswerable.
+  await ev(`(() => {
+    document.documentElement.setAttribute('data-theme', 'light');
+    try { localStorage.setItem('reeyo.theme', 'light'); } catch (e) { /* private window */ }
+  })()`);
+  await wait(300);
+  const canvasBefore = await ev(`getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim()`);
+
+  // The control cycles light -> dark -> system, so at most three clicks reach dark.
+  for (let i = 0; i < 3; i++) {
+    const now = await ev(`document.documentElement.getAttribute('data-theme')`);
+    if (now === 'dark') break;
+    await ev(`(() => {
+      const b = [...document.querySelectorAll('button')].find(x => /^(Theme|Thème)/.test(x.getAttribute('aria-label') || ''));
+      if (b) b.click();
+    })()`);
+    await wait(400);
+  }
+
+  const themeAttr = await ev(`document.documentElement.getAttribute('data-theme')`);
+  const canvasAfter = await ev(`getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim()`);
+
+  check('the theme toggle reaches dark', themeAttr === 'dark', String(themeAttr));
+  check('dark repaints the surface tokens', canvasAfter !== canvasBefore,
+    canvasBefore + ' -> ' + canvasAfter);
+
+  // Status colours must keep working against the dark ground, not vanish.
+  const signals = await ev(`(() => {
+    const s = getComputedStyle(document.documentElement);
+    return ['--go','--watch','--stop','--calm'].map(n => s.getPropertyValue(n).trim());
+  })()`);
+  check('every signal colour is still defined in dark',
+    Array.isArray(signals) && signals.every(v => v && v.length > 0), String(signals));
+
+  await ev(`(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'en');
+    if (b) b.click();
+  })()`);
+  await wait(500);
+  const lang = await ev(`document.documentElement.getAttribute('lang')`);
+  check('the language switcher changes the document language', lang === 'en', String(lang));
+
+  const dateChip = await ev(`(() => {
+    const b = [...document.querySelectorAll('button')].find(x => /Date range|Période/.test(x.getAttribute('aria-label') || ''));
+    return b ? b.innerText.replace(/\s+/g, ' ').trim() : null;
+  })()`);
+  check('the date filter shows the active range as a chip',
+    typeof dateChip === 'string' && dateChip.length > 0, String(dateChip));
+
+  const wired = await ev(`(() => {
+    const has = (re) => [...document.querySelectorAll('button')].some(x => re.test(x.getAttribute('aria-label') || ''));
+    return { refresh: has(/Refresh|Actualiser/), alerts: has(/Alerts|Alertes/) };
+  })()`);
+  check('the refresh control is present and labelled', wired && wired.refresh === true);
+  check('the alerts control is present and labelled', wired && wired.alerts === true);
+
   console.log(failed === 0 ? '\nAll interaction checks pass.' : `\n${failed} failing.`);
   ws.close();
   process.exit(failed ? 1 : 0);

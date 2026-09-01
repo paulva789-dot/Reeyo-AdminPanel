@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
@@ -11,6 +11,23 @@
       rel="stylesheet"
     />
     <title>reeyo — Operations Console</title>
+    <script>
+      // Theme and language before first paint (spec 2.2). Anything that waits
+      // for React has already shown the wrong one for a frame, which is the
+      // white flash the spec asks to avoid.
+      (function () {
+        try {
+          var t = localStorage.getItem('reeyo.theme');
+          if (t === 'dark' || t === 'light') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+          var l = localStorage.getItem('reeyo.language');
+          document.documentElement.setAttribute('lang', l === 'en' ? 'en' : 'fr');
+        } catch (e) {
+          // Storage can throw outright in a private window; the defaults hold.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,6 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Shell from './components/layout/Shell';
 import ToastHost from './components/ui/Toast';
 import { AuthProvider } from './state/AuthContext';
+import { PreferencesProvider } from './state/PreferencesContext';
+import { DateRangeProvider } from './state/DateRangeContext';
+import { AlertsProvider } from './state/AlertsContext';
 import { useAuth } from './state/useAuth';
 import { AppStateProvider } from './state/AppState';
 import { useAppState } from './state/useAppState';
@@ -96,17 +99,23 @@ function Gate() {
 
   // AppState lives inside the gate so it only ever loads for a real session.
   return (
-    <AppStateProvider>
+    <DateRangeProvider>
+      <AppStateProvider>
+        <AlertsProvider>
       <SignedIn />
       <ToastHost />
-    </AppStateProvider>
+        </AlertsProvider>
+      </AppStateProvider>
+    </DateRangeProvider>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
+    <PreferencesProvider>
+      <AuthProvider>
       <Gate />
-    </AuthProvider>
+      </AuthProvider>
+    </PreferencesProvider>
   );
 }

@@ -8,6 +8,7 @@ import ConfigCard from './settings/ConfigCard';
 import FeatureFlagsCard from './settings/FeatureFlagsCard';
 import AdminUsersCard from './settings/AdminUsersCard';
 import ChangePasswordCard from './settings/ChangePasswordCard';
+import AlertsCard from './settings/AlertsCard';
 import { usePlatformAdmin } from '../state/usePlatformAdmin';
 import { PAYMENT_METHODS } from '../data/seed';
 
@@ -57,6 +58,8 @@ export default function Settings() {
           <ConfigCard state={state} />
           <PaymentMethods />
         </div>
+
+        <AlertsCard />
 
         <FeatureFlagsCard state={state} />
 

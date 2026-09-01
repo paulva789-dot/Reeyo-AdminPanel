@@ -102,3 +102,103 @@ button { font-family: inherit; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ===================================================================== */
+/* Dark theme — specification §2.2                                        */
+/*                                                                        */
+/* Only surfaces, text and signals are redefined. The brand core is not a  */
+/* theme variable: forest and emerald mean the same thing in both modes,   */
+/* and re-tinting them would make the product a different product at       */
+/* night.                                                                 */
+/*                                                                        */
+/* Signal colours DO change, because they must. --go at #00743D is a       */
+/* 5.08:1 green on white and a 2.4:1 green on a dark surface, which is     */
+/* illegible — so each signal gets a lighter twin that carries the same    */
+/* meaning at the same strength against the dark ground.                  */
+/* ===================================================================== */
+
+:root[data-theme="dark"] {
+  /* Surfaces, from deepest to nearest. */
+  --canvas:#0A1614;
+  --card:#10201D;
+  --line:#22403A;
+  --line-soft:#1A312C;
+
+  /* Text. Never pure white — it vibrates against a dark ground. */
+  --text:#E8F1ED;
+  --text-2:#9FB5AE;
+  --text-3:#6E8880;
+
+  /* Signals, lightened to stay legible. Meaning is unchanged. */
+  --go:#4ADE96;       --go-soft:#0E3A28;
+  --watch:#E5B25C;    --watch-soft:#3A2E12;
+  --stop:#F08A78;     --stop-soft:#3D1C17;
+  --calm:#9FB5AE;     --calm-soft:#1C302B;
+
+  /* Service spectrum. The hues hold; the tints invert. */
+  --food:#E8916B;     --food-soft:#3A231A;    --food-vivid:#F0A480;
+  --grocery:#BCCB6E;  --grocery-soft:#2A3018;  --grocery-vivid:#CBD97F;
+  --parcel:#6FC4DE;   --parcel-soft:#132F3A;   --parcel-vivid:#84D2EA;
+
+  /* Green that is the words. On dark the contrast problem reverses: the
+     text-safe ink is now too dark, so links take the brighter emerald. */
+  --emerald-ink:#4ADE96;
+
+  /* Chrome. */
+  --on-brand:#FFFFFF;
+  --destructive-line:#5A2820;
+  --table-head:#162924;
+  --row-hover:#182E29;
+  --veil:#02100Ecc;
+  --focus-ring:#00BF6333;
+  --toggle-off:#2E4A43;
+  --dark-label:#FFFFFF33;
+
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -16px rgba(0,0,0,.7);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Surfaces, from deepest to nearest. */
+    --canvas:#0A1614;
+    --card:#10201D;
+    --line:#22403A;
+    --line-soft:#1A312C;
+
+    /* Text. Never pure white — it vibrates against a dark ground. */
+    --text:#E8F1ED;
+    --text-2:#9FB5AE;
+    --text-3:#6E8880;
+
+    /* Signals, lightened to stay legible. Meaning is unchanged. */
+    --go:#4ADE96;       --go-soft:#0E3A28;
+    --watch:#E5B25C;    --watch-soft:#3A2E12;
+    --stop:#F08A78;     --stop-soft:#3D1C17;
+    --calm:#9FB5AE;     --calm-soft:#1C302B;
+
+    /* Service spectrum. The hues hold; the tints invert. */
+    --food:#E8916B;     --food-soft:#3A231A;    --food-vivid:#F0A480;
+    --grocery:#BCCB6E;  --grocery-soft:#2A3018;  --grocery-vivid:#CBD97F;
+    --parcel:#6FC4DE;   --parcel-soft:#132F3A;   --parcel-vivid:#84D2EA;
+
+    /* Green that is the words. On dark the contrast problem reverses: the
+       text-safe ink is now too dark, so links take the brighter emerald. */
+    --emerald-ink:#4ADE96;
+
+    /* Chrome. */
+    --on-brand:#FFFFFF;
+    --destructive-line:#5A2820;
+    --table-head:#162924;
+    --row-hover:#182E29;
+    --veil:#02100Ecc;
+    --focus-ring:#00BF6333;
+    --toggle-off:#2E4A43;
+    --dark-label:#FFFFFF33;
+
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -16px rgba(0,0,0,.7);
+
+    color-scheme: dark;
+  }
+}
