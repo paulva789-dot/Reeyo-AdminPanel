@@ -91,10 +91,11 @@ function RightNow() {
 
 /** Orders an admin has to decide about: unassigned, late, or already in trouble. */
 function needsDecision(o: Order): boolean {
-  return o.status === 'delayed'
-    || o.status === 'new'
+  return o.isLate
+    || o.status === 'pending'
     || isLate(o.eta)
-    || (o.rider === null && o.status !== 'cancelled' && o.status !== 'delivered');
+    || (o.rider === null && o.status !== 'cancelled' && o.status !== 'failed'
+      && o.status !== 'delivered');
 }
 
 export default function Overview() {

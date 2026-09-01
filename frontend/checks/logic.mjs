@@ -47,7 +47,7 @@ const SUITE = `(async () => {
 
   // --- alerts name only entities that exist ---
   const alerts = ins.deriveAlerts(
-    [{ id:'F-1', status:'delayed', zone:'Muea', rider:'R', vertical:'food', total:1, eta:'late 3 min' }],
+    [{ id:'F-1', status:'in transit', isLate:true, zone:'Muea', rider:'R', vertical:'food', total:1, eta:'late 3 min' }],
     [{ id:'V1', name:'Testable Vendor', status:'suspended', vertical:'food', revenue:0, rating:0, orders:0 }],
     [{ id:'R1', name:'Slow Rider', rating:3.1, trips:7, state:'idle' }],
     [],
@@ -62,8 +62,14 @@ const SUITE = `(async () => {
   // --- adapters survive junk ---
   eq('adaptOrder on an empty object keeps a usable shape',
      typeof ad.adaptOrder({}).id, 'string');
-  eq('unknown status falls back to new', ad.toOrderStatus('WHO_KNOWS'), 'new');
-  eq('SCREAMING_SNAKE maps through', ad.toOrderStatus('OUT_FOR_DELIVERY'), 'on the way');
+  eq('unknown status falls back to pending', ad.toOrderStatus('WHO_KNOWS'), 'pending');
+  eq('SCREAMING_SNAKE maps through', ad.toOrderStatus('OUT_FOR_DELIVERY'), 'in transit');
+  // The old vocabulary still maps, so a backend speaking it does not collapse
+  // every order onto the first stage.
+  eq('the previous status names still map', ad.toOrderStatus('ACCEPTED'), 'confirmed');
+  eq('lateness is not a stage', ad.toOrderStatus('DELAYED'), 'in transit');
+  eq('the four payment methods normalise', ad.toPaymentMethod('MTN_MOMO'), 'MoMo');
+  eq('cash on delivery normalises', ad.toPaymentMethod('COD'), 'Cash on delivery');
   eq('COMPLETED maps to delivered', ad.toOrderStatus('COMPLETED'), 'delivered');
   eq('vertical falls back to the id prefix', ad.toVertical(undefined, 'P-0001'), 'parcel');
   eq('a known zone resolves to its city and region',

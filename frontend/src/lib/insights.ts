@@ -66,7 +66,7 @@ export function deriveAlerts(
     });
   }
 
-  const late = orders.filter((o) => o.status === 'delayed');
+  const late = orders.filter((o) => o.isLate);
   if (late.length > 0) {
     const zone = biggestGroup(late, (o) => o.zone);
     alerts.push({

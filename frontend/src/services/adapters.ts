@@ -14,6 +14,7 @@ import type {
   Order, OrderStatus, Vertical, Zone, Vendor, Rider, Customer,
   Payment, PayoutRequest, Dispute, DisputeStatus, DisputePriority,
   DisputeMessage, MenuApproval, ApprovalStatus, ChangeType, ApiKey,
+  PaymentMethod, PaymentStatus, Party, BasketLine, OrderEvent,
 } from '../data/types';
 
 export type Raw = Record<string, unknown>;
@@ -47,27 +48,43 @@ export function normaliseEnum(value: string): string {
 }
 
 const ORDER_STATUSES: OrderStatus[] = [
-  'new', 'accepted', 'preparing', 'ready', 'on the way', 'delivered',
-  'cancelled', 'delayed',
+  'pending', 'confirmed', 'ready for pickup', 'rider assigned',
+  'picked up', 'in transit', 'delivered', 'cancelled', 'failed',
 ];
 
+/**
+ * Names a backend might use for the same stage. The old vocabulary is kept
+ * here too, so an API still speaking it maps onto the new workflow rather than
+ * collapsing to "pending".
+ */
 const STATUS_ALIASES: Record<string, OrderStatus> = {
-  pending: 'new',
-  placed: 'new',
-  confirmed: 'accepted',
-  in_transit: 'on the way',
-  'in transit': 'on the way',
-  dispatched: 'on the way',
-  'out for delivery': 'on the way',
+  new: 'pending',
+  placed: 'pending',
+  accepted: 'confirmed',
+  preparing: 'confirmed',
+  ready: 'ready for pickup',
+  'ready for collection': 'ready for pickup',
+  assigned: 'rider assigned',
+  'rider allocated': 'rider assigned',
+  collected: 'picked up',
+  'on the way': 'in transit',
+  in_transit: 'in transit',
+  dispatched: 'in transit',
+  'out for delivery': 'in transit',
   completed: 'delivered',
   canceled: 'cancelled',
-  late: 'delayed',
+  returned: 'failed',
+  'failed delivery': 'failed',
+  // Lateness is a flag on the order, not a stage; an API reporting it as a
+  // status is telling us the order is in transit and running behind.
+  delayed: 'in transit',
+  late: 'in transit',
 };
 
 export function toOrderStatus(value: unknown): OrderStatus {
   const raw = normaliseEnum(String(value ?? ''));
   if ((ORDER_STATUSES as string[]).includes(raw)) return raw as OrderStatus;
-  return STATUS_ALIASES[raw] ?? 'new';
+  return STATUS_ALIASES[raw] ?? 'pending';
 }
 
 const VERTICALS: Vertical[] = ['food', 'grocery', 'parcel'];
@@ -146,6 +163,57 @@ export function nested(row: Raw, keys: string[], inner: string[]): string {
   return '';
 }
 
+const PAYMENT_METHODS: PaymentMethod[] = [
+  'Cash on delivery', 'MoMo', 'Orange Money', 'Pay online',
+];
+
+/** Maps whatever the API calls a payment method onto the four of section 8.1. */
+export function toPaymentMethod(value: unknown): PaymentMethod {
+  const raw = normaliseEnum(String(value ?? ''));
+  const exact = PAYMENT_METHODS.find((m) => m.toLowerCase() === raw);
+  if (exact) return exact;
+  if (raw.includes('cash') || raw.includes('cod')) return 'Cash on delivery';
+  if (raw.includes('orange')) return 'Orange Money';
+  if (raw.includes('momo') || raw.includes('mtn') || raw.includes('mobile')) return 'MoMo';
+  return 'Pay online';
+}
+
+const ORDER_PAYMENT_STATUSES: PaymentStatus[] = [
+  'Paid', 'Unpaid', 'Pending confirmation', 'Refunded',
+];
+
+export function toPaymentStatus(value: unknown, fallback: PaymentStatus): PaymentStatus {
+  const raw = normaliseEnum(String(value ?? ''));
+  const exact = ORDER_PAYMENT_STATUSES.find((s) => s.toLowerCase() === raw);
+  if (exact) return exact;
+  if (raw.includes('refund')) return 'Refunded';
+  if (raw.includes('unpaid')) return 'Unpaid';
+  if (raw.includes('pend')) return 'Pending confirmation';
+  if (raw.includes('paid') || raw === 'success') return 'Paid';
+  return fallback;
+}
+
+/**
+ * A party built from whatever the row carries. The API returns far less than
+ * section 3.4 asks for, so a missing half stays empty and the screen says so,
+ * rather than being filled with a plausible street.
+ */
+function toParty(row: Raw, keys: string[], name: string, place: {
+  zone: string; city: string; region: Region;
+}): Party {
+  const source = pick(row, keys);
+  const inner = (source && typeof source === 'object' ? source : {}) as Raw;
+  return {
+    name,
+    phone: str(inner, ['phone', 'phone_number', 'phoneNumber', 'msisdn'], ''),
+    address: str(inner, ['address', 'street', 'address_line', 'formatted_address'], ''),
+    addressNote: (pick(inner, ['address_note', 'landmark', 'instructions']) ?? null) as string | null,
+    ...place,
+    lat: num(inner, ['lat', 'latitude']),
+    lng: num(inner, ['lng', 'lon', 'longitude']),
+  };
+}
+
 export function adaptOrder(row: Raw): Order {
   const id = str(row, ['order_number', 'orderNumber', 'reference', 'id', '_id'], '—');
   const status = toOrderStatus(pick(row, ['status', 'state', 'order_status']));
@@ -157,19 +225,96 @@ export function adaptOrder(row: Raw): Order {
   const riderName = nested(row, ['rider', 'driver', 'courier'], ['name', 'full_name'])
     || str(row, ['rider_name', 'riderName'], '');
 
+  const placement = toPlacement(row);
+  const payment = toPaymentMethod(pick(row, ['payment_method', 'paymentMethod', 'payment']));
+  const eta = toEta(pick(row, ['eta', 'eta_minutes', 'etaMinutes', 'estimated_delivery_at']), status);
+  const rider = (pick(row, ['rider', 'driver', 'courier']) ?? {}) as Raw;
+
+  const basket: BasketLine[] = toArray(pick(row, ['items', 'line_items', 'lineItems', 'basket']))
+    .map((line, i) => ({
+      id: str(line, ['id', '_id'], `${id}-L${i + 1}`),
+      name: str(line, ['name', 'title', 'item_name'], '-'),
+      quantity: num(line, ['quantity', 'qty', 'count']) || 1,
+      unitPrice: num(line, ['unit_price', 'unitPrice', 'price']),
+      options: toArray(pick(line, ['options', 'add_ons', 'addOns', 'extras'])).map((opt) => ({
+        label: str(opt, ['name', 'label', 'title'], '-'),
+        price: num(opt, ['price', 'amount']),
+      })),
+      note: (pick(line, ['note', 'instructions']) ?? null) as string | null,
+      imageUrl: (pick(line, ['image_url', 'imageUrl', 'image']) ?? null) as string | null,
+    }));
+
+  const timeline: OrderEvent[] = toArray(pick(row, ['timeline', 'events', 'history']))
+    .map((event) => ({
+      stage: toOrderStatus(pick(event, ['status', 'state', 'stage'])),
+      at: str(event, ['at', 'created_at', 'timestamp', 'occurred_at'], ''),
+      by: str(event, ['by', 'actor', 'user', 'changed_by'], 'Platform'),
+      reason: (pick(event, ['reason']) ?? null) as string | null,
+      note: (pick(event, ['note', 'comment']) ?? null) as string | null,
+    }));
+
+  const discountRow = pick(row, ['discount', 'promo']);
+  const isLate = /late/i.test(eta);
+  const delivered = status === 'delivered';
+
   return {
     id,
     vertical: toVertical(pick(row, ['vertical', 'service', 'service_type', 'type', 'category']), id),
+    status,
     customer,
     vendor,
+    from: toParty(row, ['vendor', 'store', 'restaurant', 'merchant', 'pickup'], vendor, placement),
+    to: toParty(row, ['customer', 'user', 'client', 'dropoff'], customer, placement),
     rider: riderName || null,
-    items: str(row, ['items_summary', 'itemsSummary', 'summary', 'description'], '—'),
+    riderDetail: riderName
+      ? {
+        id: str(rider, ['id', '_id'], '') || null,
+        name: riderName,
+        phone: str(rider, ['phone', 'phone_number'], ''),
+        vehicle: str(rider, ['vehicle', 'vehicle_type'], '-'),
+        plate: str(rider, ['plate', 'plate_number'], '') || null,
+        team: str(rider, ['team', 'team_name'], '') || null,
+        zone: str(rider, ['zone'], '') || null,
+        photoUrl: str(rider, ['photo_url', 'photoUrl'], '') || null,
+        earnings: num(row, ['rider_earnings', 'riderEarnings']),
+      }
+      : null,
+    items: str(row, ['items_summary', 'itemsSummary', 'summary', 'description'], '-'),
+    basket,
+    packagingFee: num(row, ['packaging_fee', 'packagingFee']),
+    deliveryFee: num(row, ['delivery_fee', 'deliveryFee']),
+    discount: discountRow
+      ? {
+        code: str(discountRow as Raw, ['code'], '-'),
+        campaign: str(discountRow as Raw, ['campaign', 'name'], '-'),
+        amount: num(discountRow as Raw, ['amount', 'value']),
+      }
+      : null,
+    commission: num(row, ['commission', 'commission_amount', 'platform_fee']),
+    surcharges: toArray(pick(row, ['surcharges', 'fees'])).map((fee) => ({
+      label: str(fee, ['label', 'name', 'type'], 'Surcharge'),
+      amount: num(fee, ['amount', 'value']),
+    })),
     total: num(row, ['total', 'total_amount', 'totalAmount', 'amount', 'grand_total']),
-    status,
-    ...toPlacement(row),
+    payment,
+    paymentStatus: toPaymentStatus(
+      pick(row, ['payment_status', 'paymentStatus']),
+      delivered ? 'Paid' : payment === 'Cash on delivery' ? 'Unpaid' : 'Pending confirmation',
+    ),
+    paymentReference: str(row, ['payment_reference', 'paymentReference', 'transaction_reference'], '') || null,
+    orderNote: str(row, ['note', 'order_note', 'instructions'], '') || null,
+    ...placement,
+    distanceKm: num(row, ['distance_km', 'distanceKm', 'distance']),
+    placedAt: str(row, ['created_at', 'createdAt', 'placed_at', 'placedAt'], ''),
     placedAgo: toRelative(pick(row, ['created_at', 'createdAt', 'placed_at', 'placedAt'])),
-    eta: toEta(pick(row, ['eta', 'eta_minutes', 'etaMinutes', 'estimated_delivery_at']), status),
-    payment: str(row, ['payment_method', 'paymentMethod', 'payment'], '—'),
+    timeline,
+    eta,
+    isLate,
+    fulfilmentMinutes: delivered
+      ? num(row, ['fulfilment_minutes', 'fulfilmentMinutes']) || null
+      : null,
+    parcel: null,
+    acknowledged: status !== 'pending',
   };
 }
 

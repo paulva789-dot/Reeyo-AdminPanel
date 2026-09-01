@@ -18,7 +18,9 @@ function summarise(orders: Order[], vertical: Vertical) {
     orders: rows.length,
     value: rows.reduce((sum, o) => sum + o.total, 0),
     inFlight: rows.filter((o) => IN_FLIGHT.includes(o.status)).length,
-    problems: rows.filter((o) => o.status === 'delayed' || o.status === 'cancelled').length,
+    problems: rows.filter(
+      (o) => o.status === 'cancelled' || o.status === 'failed' || o.isLate,
+    ).length,
   };
 }
 

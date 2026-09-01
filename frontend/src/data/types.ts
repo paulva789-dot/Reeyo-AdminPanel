@@ -1,8 +1,15 @@
 import type { Region } from './geography';
 
 export type Vertical = 'food' | 'grocery' | 'parcel';
-export type OrderStatus = 'new' | 'accepted' | 'preparing' | 'ready'
-                        | 'on the way' | 'delivered' | 'cancelled' | 'delayed';
+/**
+ * The order workflow. Defined as OrderStage at the foot of this file (§3.2);
+ * this alias is kept because the name is used throughout the console.
+ *
+ * Lateness is deliberately not a status any more. An order running late is
+ * still "in transit" — it is late *and* in transit — and treating late as a
+ * status lost the stage the order was actually at. `Order.isLate` carries it.
+ */
+export type OrderStatus = OrderStage;
 /**
  * A delivery zone is a neighbourhood a rider works. The set is defined in
  * geography.ts, which also says which city and region each one sits in, so a
@@ -13,18 +20,53 @@ export type Zone = string;
 export interface Order {
   id: string;            // F-2841 | S-1192 | P-0774
   vertical: Vertical;
+  status: OrderStatus;
+
+  /* Parties (§3.4). `customer` and `vendor` stay as plain names for the list
+     columns; the full records behind them are `to` and `from`. On a parcel
+     these read as Sender and Receiver — see `parcel`. */
   customer: string;
   vendor: string;
-  rider: string | null;
-  items: string;
-  total: number;         // FCFA
-  status: OrderStatus;
+  from: Party;           // pickup — the vendor, or the parcel sender
+  to: Party;             // drop-off — the customer, or the parcel receiver
+
+  rider: string | null;  // name, for the list column
+  riderDetail: OrderRider | null;
+
+  /* Basket and money (§3.3). */
+  items: string;         // one-line summary for the list
+  basket: BasketLine[];
+  packagingFee: number;
+  deliveryFee: number;
+  discount: { code: string; campaign: string; amount: number } | null;
+  commission: number;    // the rule in force, frozen onto the order (§4.3)
+  surcharges: { label: string; amount: number }[];
+  total: number;         // FCFA — what the customer pays
+  payment: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  paymentReference: string | null;
+  orderNote: string | null;
+
+  /* Where (§3.6). Zone, city and region mirror the drop-off, for scoping. */
   zone: Zone;
   city: string;
   region: Region;
-  placedAgo: string;     // "12 min ago"
+  distanceKm: number;
+
+  /* When (§3.7). */
+  placedAt: string;      // ISO 8601
+  placedAgo: string;     // "12 min ago", precomputed for the list
+  timeline: OrderEvent[];
   eta: string;           // "8 min" | "late 14 min" | "done"
-  payment: string;       // "MTN MoMo" | "Orange Money" | "Cash" | "Card"
+  isLate: boolean;
+  /** Minutes from placed to delivered, once complete. */
+  fulfilmentMinutes: number | null;
+
+  /** Parcel service only (§3.8). */
+  parcel: ParcelDetails | null;
+
+  /** New orders stay pinned to the top of the list until opened (§3.1). */
+  acknowledged: boolean;
 }
 
 export interface Vendor {
@@ -413,4 +455,112 @@ export interface TimelineEvent {
   status: string;
   at: string;
   note: string | null;
+}
+
+/* ===================================================================== */
+/* Functional Specification v1.0 (1 September 2026)                       */
+/* ===================================================================== */
+
+/**
+ * The spec's nine-stage workflow (§3.2). This replaces the earlier eight-state
+ * set: "delayed" was never a stage an order sat in — it is a lateness flag on
+ * top of a real stage — and the new set separates "rider assigned" from
+ * "picked up", which the old one conflated.
+ */
+export type OrderStage =
+  | 'pending' | 'confirmed' | 'ready for pickup' | 'rider assigned'
+  | 'picked up' | 'in transit' | 'delivered' | 'cancelled' | 'failed';
+
+/** The stages an order moves through in order. Terminal states are not here. */
+export const ORDER_FLOW: OrderStage[] = [
+  'pending', 'confirmed', 'ready for pickup', 'rider assigned',
+  'picked up', 'in transit', 'delivered',
+];
+
+/** Ending an order requires a reason chosen from a list (§3.2). */
+export const CANCEL_REASONS = [
+  'Vendor closed', 'Customer cancelled', 'Out of stock',
+  'No rider available', 'Address unreachable', 'Duplicate order',
+] as const;
+
+export const FAILURE_REASONS = [
+  'Customer not reachable', 'Customer refused delivery',
+  'Wrong address', 'Package damaged', 'Payment failed on delivery',
+] as const;
+
+/** §8.1 — the four methods actually used on the ground. */
+export type PaymentMethod = 'Cash on delivery' | 'MoMo' | 'Orange Money' | 'Pay online';
+export const PAYMENT_METHOD_LIST: PaymentMethod[] = [
+  'Cash on delivery', 'MoMo', 'Orange Money', 'Pay online',
+];
+
+/** Tracked separately from order status (§8.1). */
+export type PaymentStatus = 'Paid' | 'Unpaid' | 'Pending confirmation' | 'Refunded';
+
+/** One line of the basket (§3.3). */
+export interface BasketLine {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  /** Variants, add-ons and extras, each with its own price. */
+  options: { label: string; price: number }[];
+  /** Customer instructions for this item, e.g. "no onions". */
+  note: string | null;
+  imageUrl: string | null;
+}
+
+/** A party on one end of the delivery (§3.4). */
+export interface Party {
+  name: string;
+  phone: string;
+  address: string;
+  /** Landmark or access instruction. */
+  addressNote: string | null;
+  zone: Zone;
+  city: string;
+  region: Region;
+  /** Decimal degrees, for the map pin and the distance calculation. */
+  lat: number;
+  lng: number;
+}
+
+/** One entry in the order's timeline (§3.7). */
+export interface OrderEvent {
+  stage: OrderStage;
+  /** ISO 8601. Rendered relative or absolute depending on the surface. */
+  at: string;
+  /** Who moved it — an admin name, or the actor's role. */
+  by: string;
+  reason: string | null;
+  note: string | null;
+}
+
+/** The rider attached to an order, registered or ad-hoc (§3.5). */
+export interface OrderRider {
+  id: string | null;
+  name: string;
+  phone: string;
+  vehicle: string;
+  plate: string | null;
+  team: string | null;
+  zone: Zone | null;
+  photoUrl: string | null;
+  /** What the rider earns on this order. */
+  earnings: number;
+}
+
+/** Parcel-only cargo details (§3.8). */
+export interface ParcelDetails {
+  description: string;
+  declaredValue: number;
+  sizeBand: 'Small' | 'Medium' | 'Large';
+  weightKg: number | null;
+  fragile: boolean;
+  /** The person actually collecting, where that differs from the receiver. */
+  recipientName: string | null;
+  recipientPhone: string | null;
+  /** Proof of delivery, captured at handover. */
+  signedBy: string | null;
+  proofPhotoUrl: string | null;
 }

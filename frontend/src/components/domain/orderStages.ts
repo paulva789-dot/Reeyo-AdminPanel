@@ -22,9 +22,14 @@ export const STAGES: StageDef[] = [
   { key: 'problem', label: 'Problem', token: 'stop' },
 ];
 
-/** Problem folds delayed and cancelled together — section 8.1a. */
+/**
+ * Problem folds the two terminal failures together with the running-late flag:
+ * a late order is still in transit, but it is a problem.
+ */
 export function matchesStage(order: Order, stage: Stage): boolean {
-  if (stage === 'problem') return order.status === 'delayed' || order.status === 'cancelled';
+  if (stage === 'problem') {
+    return order.status === 'cancelled' || order.status === 'failed' || order.isLate;
+  }
   return order.status === (stage as OrderStatus);
 }
 

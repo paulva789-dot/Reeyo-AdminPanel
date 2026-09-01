@@ -32,7 +32,7 @@ import {
 import { ApiError } from '../services/apiClient';
 import { useAuth } from './useAuth';
 
-const CLOSED: OrderStatus[] = ['delivered', 'cancelled'];
+const CLOSED: OrderStatus[] = ['delivered', 'cancelled', 'failed'];
 
 let toastSeq = 0;
 

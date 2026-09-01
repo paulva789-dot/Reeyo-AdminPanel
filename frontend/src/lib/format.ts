@@ -39,21 +39,27 @@ export function initials(name: string): string {
 
 /** Status -> token map, section 5.5. */
 const STATUS_TOKENS: Record<string, SignalToken> = {
-  new: 'parcel',
-  accepted: 'parcel',
-  preparing: 'watch',
-  ready: 'watch',
-  'on the way': 'go',
+  // The order workflow, §3.2. Waiting on someone reads as watch, moving reads
+  // as go, and the two ways an order can end badly read as stop.
+  pending: 'watch',
+  confirmed: 'parcel',
+  'ready for pickup': 'watch',
+  'rider assigned': 'parcel',
+  'picked up': 'go',
+  'in transit': 'go',
   delivered: 'go',
   cancelled: 'stop',
-  delayed: 'stop',
+  returned: 'stop',
+  late: 'stop',
+  // Payment status, §8.1 — tracked separately from the order.
+  unpaid: 'watch',
+  'pending confirmation': 'watch',
+  refunded: 'calm',
   completed: 'go',
   paid: 'go',
   active: 'go',
-  pending: 'watch',
   due: 'watch',
   review: 'watch',
-  failed: 'stop',
   suspended: 'stop',
   idle: 'calm',
   archived: 'calm',
@@ -88,11 +94,13 @@ export function isLate(eta: string): boolean {
   return eta.toLowerCase().startsWith('late');
 }
 
+/** The forward flow of §3.2, without the two terminal states. */
 export const ORDER_STAGES: OrderStatus[] = [
-  'new',
-  'accepted',
-  'preparing',
-  'ready',
-  'on the way',
+  'pending',
+  'confirmed',
+  'ready for pickup',
+  'rider assigned',
+  'picked up',
+  'in transit',
   'delivered',
 ];

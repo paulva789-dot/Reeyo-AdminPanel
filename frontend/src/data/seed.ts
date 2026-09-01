@@ -1,7 +1,7 @@
 import { regionOfZone, cityOfZone } from './geography';
 import type { Region } from './geography';
 import type {
-  Order, Vendor, Rider, Customer, Payment, PayoutRequest, Offer,
+  Vendor, Rider, Customer, Payment, PayoutRequest, Offer,
   MenuCategory, Announcement, SpinPrize, Team, FeeRule, RiderPosition,
   Dispute, MenuApproval, ApiKey,
 } from './types';
@@ -24,141 +24,7 @@ export const PAYMENT_METHODS = [
 ];
 
 /* Orders — 12, all three verticals, every live stage, one delayed, one cancelled. */
-export const orders: Order[] = [
-  {
-    id: 'F-2841', vertical: 'food', customer: 'Anna Mbella', vendor: 'Chez Mado',
-    rider: null, items: 'Ndolé with plantain · 2 × grilled fish', total: 8400,
-    status: 'new', ...place('Molyko'), placedAgo: '2 min ago', eta: '32 min',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'S-1192', vertical: 'grocery', customer: 'Marc Etoa', vendor: 'UrbanMart',
-    rider: null, items: 'Rice 5kg · Palm oil · Tomatoes', total: 12600,
-    status: 'new', ...place('Bonduma'), placedAgo: '4 min ago', eta: '40 min',
-    payment: 'Orange Money',
-  },
-  {
-    id: 'P-0774', vertical: 'parcel', customer: 'Peter Samu', vendor: 'Buea Express',
-    rider: 'Sarah Ngo', items: 'Documents envelope · Molyko to Muea', total: 2500,
-    status: 'accepted', ...place('Muea'), placedAgo: '7 min ago', eta: '25 min',
-    payment: 'Cash',
-  },
-  {
-    id: 'F-2839', vertical: 'food', customer: 'Clarisse Eto', vendor: 'Pizza Palace',
-    rider: null, items: 'Large pepperoni · Garlic bread', total: 9800,
-    status: 'accepted', ...place('Great Soppo'), placedAgo: '9 min ago', eta: '28 min',
-    payment: 'Card',
-  },
-  {
-    id: 'F-2836', vertical: 'food', customer: 'Anna Mbella', vendor: 'GreenBowl',
-    rider: 'Eric Njume', items: 'Chicken salad bowl · Fresh juice', total: 6200,
-    status: 'preparing', ...place('Molyko'), placedAgo: '12 min ago', eta: '18 min',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'S-1188', vertical: 'grocery', customer: 'Sarah Ngo', vendor: 'Pharma Plus',
-    rider: 'Divine Ako', items: 'Paracetamol · Vitamin C · Bandages', total: 4300,
-    status: 'preparing', ...place('Mile 16'), placedAgo: '14 min ago', eta: '20 min',
-    payment: 'Orange Money',
-  },
-  {
-    id: 'F-2833', vertical: 'food', customer: 'Marc Etoa', vendor: 'Chez Mado',
-    rider: 'Eric Njume', items: 'Poulet DG · 2 × soft drink', total: 11200,
-    status: 'ready', ...place('Bonduma'), placedAgo: '19 min ago', eta: '12 min',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'S-1184', vertical: 'grocery', customer: 'Peter Samu', vendor: 'UrbanMart',
-    rider: 'Blaise Fon', items: 'Bread · Eggs · Milk · Sugar', total: 5900,
-    status: 'ready', ...place('Molyko'), placedAgo: '21 min ago', eta: '9 min',
-    payment: 'Cash',
-  },
-  {
-    id: 'F-2830', vertical: 'food', customer: 'Clarisse Eto', vendor: 'GreenBowl',
-    rider: 'Divine Ako', items: 'Veggie wrap · Smoothie', total: 5400,
-    status: 'on the way', ...place('Great Soppo'), placedAgo: '26 min ago', eta: '6 min',
-    payment: 'Card',
-  },
-  {
-    id: 'P-0769', vertical: 'parcel', customer: 'Anna Mbella', vendor: 'Buea Express',
-    rider: 'Sarah Ngo', items: 'Small package · Bonduma to Mile 16', total: 3200,
-    status: 'delivered', ...place('Mile 16'), placedAgo: '48 min ago', eta: 'done',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'F-2827', vertical: 'food', customer: 'Sarah Ngo', vendor: 'Pizza Palace',
-    rider: 'Blaise Fon', items: 'Margherita · Wings', total: 8900,
-    status: 'delayed', ...place('Muea'), placedAgo: '52 min ago', eta: 'late 14 min',
-    payment: 'Orange Money',
-  },
-  {
-    id: 'S-1179', vertical: 'grocery', customer: 'Marc Etoa', vendor: 'UrbanMart',
-    rider: null, items: 'Detergent · Soap · Tissue', total: 4700,
-    status: 'cancelled', ...place('Bonduma'), placedAgo: '1 hr ago', eta: 'done',
-    payment: 'Cash',
-  },
-
-  {
-    id: 'F-3102', vertical: 'food', customer: 'Estelle Nana', vendor: 'Chez Wou',
-    rider: 'Landry Mbappe', items: 'Grilled chicken · Fried plantain', total: 7600,
-    status: 'on the way', ...place('Akwa'), placedAgo: '16 min ago', eta: '9 min',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'S-2044', vertical: 'grocery', customer: 'Yannick Bile', vendor: 'Douala Fresh',
-    rider: null, items: 'Plantains · Cassava · Groundnut oil', total: 9300,
-    status: 'new', ...place('Deido'), placedAgo: '3 min ago', eta: '38 min',
-    payment: 'Orange Money',
-  },
-  {
-    id: 'P-1188', vertical: 'parcel', customer: 'Aminata Sow', vendor: 'Douala Courier',
-    rider: 'Landry Mbappe', items: 'Legal documents · Bonanjo to Makepe', total: 3400,
-    status: 'preparing', ...place('Bonanjo'), placedAgo: '11 min ago', eta: '21 min',
-    payment: 'Card',
-  },
-  {
-    id: 'F-3098', vertical: 'food', customer: 'Rodrigue Fotso', vendor: 'Bastos Kitchen',
-    rider: 'Carine Awono', items: 'Poulet braisé · Miondo', total: 8800,
-    status: 'delayed', ...place('Bastos'), placedAgo: '58 min ago', eta: 'late 19 min',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'S-2039', vertical: 'grocery', customer: 'Nadege Owona', vendor: 'Yaounde Market Co',
-    rider: 'Carine Awono', items: 'Rice · Tomato paste · Onions', total: 11400,
-    status: 'delivered', ...place('Mvan'), placedAgo: '1 hr ago', eta: 'done',
-    payment: 'Cash',
-  },
-  {
-    id: 'F-3091', vertical: 'food', customer: 'Ernest Tabi', vendor: 'Bamenda Grill',
-    rider: 'Emmanuel Ndifor', items: 'Achu soup · Roast fish', total: 6900,
-    status: 'ready', ...place('Commercial Avenue'), placedAgo: '23 min ago', eta: '11 min',
-    payment: 'MTN MoMo',
-  },
-  {
-    id: 'S-2031', vertical: 'grocery', customer: 'Prisca Ndam', vendor: 'Nkwen Provisions',
-    rider: null, items: 'Maize flour · Beans · Palm oil', total: 5200,
-    status: 'accepted', ...place('Nkwen'), placedAgo: '8 min ago', eta: '30 min',
-    payment: 'Orange Money',
-  },
-  {
-    id: 'F-3084', vertical: 'food', customer: 'Serge Kamdem', vendor: 'Bafoussam Bites',
-    rider: 'Aline Tchoumi', items: 'Koki · Ripe plantain', total: 4800,
-    status: 'on the way', ...place('Kamkop'), placedAgo: '31 min ago', eta: '7 min',
-    payment: 'Cash',
-  },
-  {
-    id: 'P-1173', vertical: 'parcel', customer: 'Marthe Eyenga', vendor: 'Kribi Runners',
-    rider: null, items: 'Cooler box · Mboa Manga to Angalé', total: 5600,
-    status: 'cancelled', ...place('Mboa Manga'), placedAgo: '2 hr ago', eta: 'done',
-    payment: 'Card',
-  },
-  {
-    id: 'F-3077', vertical: 'food', customer: 'Estelle Nana', vendor: 'Limbe Seafood',
-    rider: 'Beltus Efande', items: 'Grilled prawns · Chips', total: 12400,
-    status: 'delivered', ...place('Down Beach'), placedAgo: '2 hr ago', eta: 'done',
-    payment: 'MTN MoMo',
-  },
-];
+export { orders } from './orderSeed';
 
 /* Vendors — 4 food, 3 grocery, 1 parcel. One suspended, one under review. */
 export const vendors: Vendor[] = [
