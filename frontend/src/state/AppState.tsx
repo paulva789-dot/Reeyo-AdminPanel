@@ -50,7 +50,7 @@ function describe(err: unknown): string {
 }
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const { mode, isAuthenticated } = useAuth();
+  const { mode, isAuthenticated, admin } = useAuth();
   const live = mode === 'live';
 
   const [ordersState, setOrdersState] = useState<Loaded<Order>>(idle(seedOrders));
@@ -132,22 +132,95 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [isAuthenticated, live, reloadKey]);
 
-  const cancelOrder = useCallback((id: string, reason: string) => {
+  /**
+   * Moves an order to another stage (spec 3.2).
+   *
+   * Every move writes a timeline entry with the time and the admin who made it,
+   * because "who changed this and when" is the first question asked when an
+   * order goes wrong, and an audit trail that only records some of the moves is
+   * not an audit trail.
+   */
+  const setOrderStage = useCallback((
+    id: string,
+    stage: OrderStatus,
+    detail?: { reason?: string; note?: string },
+  ) => {
+    const now = new Date().toISOString();
     setOrdersState((prev) => ({
       ...prev,
-      rows: prev.rows.map((o) => (o.id === id
-        ? { ...o, status: 'cancelled' as OrderStatus, eta: 'done' }
-        : o)),
+      rows: prev.rows.map((o) => {
+        if (o.id !== id) return o;
+        const ended = stage === 'delivered' || stage === 'cancelled' || stage === 'failed';
+        const placed = new Date(o.placedAt).getTime();
+        return {
+          ...o,
+          status: stage,
+          acknowledged: true,
+          // A terminated or completed order is no longer running late.
+          isLate: ended ? false : o.isLate,
+          eta: ended ? 'done' : o.eta,
+          fulfilmentMinutes: stage === 'delivered' && Number.isFinite(placed)
+            ? Math.max(0, Math.round((Date.now() - placed) / 60_000))
+            : o.fulfilmentMinutes,
+          timeline: [...o.timeline, {
+            stage,
+            at: now,
+            by: admin?.name ?? 'Admin',
+            reason: detail?.reason ?? null,
+            note: detail?.note ?? null,
+          }],
+        };
+      }),
     }));
-    pushToast(`${id} is now cancelled`);
+    pushToast(`${id} is now ${stage}`);
 
-    if (live) {
-      resources.cancelOrder(id, reason).catch((err) => {
+    // Cancelling is the one stage admin-api can be told about; the rest of the
+    // workflow is driven by the vendor and rider apps.
+    if (live && stage === 'cancelled') {
+      resources.cancelOrder(id, detail?.reason ?? 'Cancelled by admin').catch((err) => {
         pushToast(`${id} did not save — ${describe(err)}`);
         reload();
       });
     }
-  }, [live, pushToast, reload]);
+  }, [live, admin, pushToast, reload]);
+
+  const acknowledgeOrder = useCallback((id: string) => {
+    setOrdersState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((o) => (o.id === id ? { ...o, acknowledged: true } : o)),
+    }));
+  }, []);
+
+  const assignManualRider = useCallback((
+    id: string,
+    rider: { name: string; phone: string; vehicle: string },
+  ) => {
+    setOrdersState((prev) => ({
+      ...prev,
+      rows: prev.rows.map((o) => (o.id === id
+        ? {
+          ...o,
+          rider: rider.name,
+          riderDetail: {
+            id: null, name: rider.name, phone: rider.phone, vehicle: rider.vehicle,
+            plate: null, team: null, zone: null, photoUrl: null,
+            earnings: Math.round(o.deliveryFee * 0.9),
+          },
+          status: o.status === 'pending' || o.status === 'confirmed'
+            || o.status === 'ready for pickup'
+            ? 'rider assigned' as OrderStatus
+            : o.status,
+        }
+        : o)),
+    }));
+    pushToast(`${rider.name} is on ${id}`);
+    // Deliberately local: the assign endpoint takes a registered rider id, and
+    // an ad-hoc courier has none. The console records it; the platform cannot.
+  }, [pushToast]);
+
+  const cancelOrder = useCallback((id: string, reason: string) => {
+    setOrderStage(id, 'cancelled', { reason });
+  }, [setOrderStage]);
 
   const assignRider = useCallback((id: string, rider: string) => {
     setOrdersState((prev) => ({
@@ -558,7 +631,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value: AppStateValue = {
-    orders, ordersState, cancelOrder, assignRider,
+    orders, ordersState,
+    setOrderStage, cancelOrder, acknowledgeOrder,
+    assignRider, assignManualRider,
     vendors: scopedVendors, vendorsState,
     riders: scopedRiders, ridersState, suspendRider,
     customers: scopedCustomers, customersState,

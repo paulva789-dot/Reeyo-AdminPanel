@@ -263,3 +263,10 @@
   white-space: nowrap;
 }
 .reeyo-zone-label.leaflet-tooltip::before { display: none; }
+
+/* Both parties face each other on desktop and stack on a narrow screen —
+   specification §3.4. The drawer is 530px, so they stack well before the
+   viewport breakpoints do. */
+@media (max-width: 620px) {
+  .reeyo-parties { flex-direction: column; }
+}

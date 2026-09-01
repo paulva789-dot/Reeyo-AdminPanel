@@ -5,7 +5,7 @@
 
 import { createContext, useContext } from 'react';
 import type {
-  Order, PayoutRequest, Vendor, Rider, Customer, Payment,
+  Order, OrderStatus, PayoutRequest, Vendor, Rider, Customer, Payment,
   Offer, FeeRule, Dispute, MenuApproval, ApiKey,
   PendingVendor, PendingRider,
 } from '../data/types';
@@ -37,11 +37,21 @@ export interface AppStateValue {
   orders: Order[];
   ordersState: Loaded<Order>;
   /**
-   * Cancelling is the only order status a console can write — admin-api has no
-   * generic status endpoint — and it requires a reason.
+   * Moves an order to another stage (spec §3.2), writing a timeline entry with
+   * the time and the admin who did it. A backwards move, a cancellation and a
+   * failure all require a reason.
    */
+  setOrderStage: (id: string, stage: OrderStatus, detail?: {
+    reason?: string; note?: string;
+  }) => void;
   cancelOrder: (id: string, reason: string) => void;
+  /** Marks an order as seen, so it stops being pinned and silences the alert. */
+  acknowledgeOrder: (id: string) => void;
   assignRider: (id: string, rider: string) => void;
+  /** A courier from outside the registered pool (§3.5). */
+  assignManualRider: (id: string, rider: {
+    name: string; phone: string; vehicle: string;
+  }) => void;
 
   vendors: Vendor[];
   vendorsState: Loaded<Vendor>;

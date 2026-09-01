@@ -64,46 +64,73 @@ ws.onopen = async () => {
   await wait(1500);
   check('sample mode reaches the console', await ev(`!!document.querySelector('.reeyo-rail')`));
 
-  // --- cancelling an order moves the badge and fires a toast ---
-  // The status dropdown is gone: admin-api has no generic status endpoint, so
-  // status is read-only and cancelling is the one status a console can set.
+  // --- the Edit Status control moves an order and demands a reason (3.2) ---
   await go('Orders'); await wait(1200);
   const before = await ev(BADGE('Orders'));
-  check('order status is read-only, not a control',
+  check('order status is a badge, not an inline control',
     await ev(`document.querySelectorAll('table select').length === 0`));
 
-  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Open').click()`);
-  await wait(800);
-  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Cancel order').click()`);
-  await wait(700);
+  // The quick action on the row, which 3.2 asks for alongside the detail one.
   await ev(`(() => {
-    const b = [...document.querySelectorAll('[role=dialog] button')].filter(x => x.textContent.trim() === 'Cancel order');
-    if (b.length) b[b.length - 1].click();
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Status');
+    if (b) b.click();
+  })()`);
+  await wait(800);
+  check('the status panel opens from the list row',
+    await ev(`!!document.querySelector('[role=dialog]') && document.body.innerText.includes('Move to')`));
+
+  // Choose the terminal state, which the spec says must carry a reason.
+  await ev(`(() => {
+    const d = [...document.querySelectorAll('[role=dialog]')].pop();
+    const sel = d.querySelector('select');
+    const set = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+    set.call(sel, 'cancelled');
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
   })()`);
   await wait(500);
-  check('cancelling refuses to proceed without a reason',
-    await ev(`document.body.innerText.includes('Give a reason')`));
 
   await ev(`(() => {
-    const dialogs = [...document.querySelectorAll('[role=dialog]')];
-    const t = dialogs[dialogs.length - 1].querySelector('textarea');
-    const set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
-    set.call(t, 'Vendor closed unexpectedly.');
-    t.dispatchEvent(new Event('input', { bubbles: true }));
+    const d = [...document.querySelectorAll('[role=dialog]')].pop();
+    const b = [...d.querySelectorAll('button')].find(x => x.textContent.trim() === 'Cancel order');
+    if (b) b.click();
+  })()`);
+  await wait(500);
+  check('a cancellation refuses to proceed without a reason',
+    await ev(`document.body.innerText.includes('Choose a reason')`));
+
+  // Reasons come from a list, not free text (3.2).
+  const reasonCount = await ev(`(() => {
+    const d = [...document.querySelectorAll('[role=dialog]')].pop();
+    const sels = [...d.querySelectorAll('select')];
+    const reason = sels[sels.length - 1];
+    return reason ? reason.options.length : 0;
+  })()`);
+  check('the reason is chosen from a list', reasonCount > 1, `${reasonCount} options`);
+
+  await ev(`(() => {
+    const d = [...document.querySelectorAll('[role=dialog]')].pop();
+    const sels = [...d.querySelectorAll('select')];
+    const reason = sels[sels.length - 1];
+    const set = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+    set.call(reason, reason.options[1].value);
+    reason.dispatchEvent(new Event('change', { bubbles: true }));
   })()`);
   await wait(400);
   await ev(`(() => {
-    const b = [...document.querySelectorAll('[role=dialog] button')].filter(x => x.textContent.trim() === 'Cancel order');
-    if (b.length) b[b.length - 1].click();
+    const d = [...document.querySelectorAll('[role=dialog]')].pop();
+    const b = [...d.querySelectorAll('button')].find(x => x.textContent.trim() === 'Cancel order');
+    if (b) b.click();
   })()`);
-  await wait(900);
+  await wait(1000);
+
   const after = await ev(BADGE('Orders'));
   check('cancelling decrements the Orders badge', after === before - 1, `${before} -> ${after}`);
-  check('cancelling fires a toast', await ev(`document.body.innerText.includes('is now cancelled')`));
+  check('cancelling fires a toast',
+    await ev(`document.body.innerText.includes('is now cancelled')`));
 
   // --- filter reaches the written empty state ---
   await ev(`(() => {
-    const i = [...document.querySelectorAll('input')].find(x => x.placeholder && x.placeholder.includes('Filter'));
+    const i = [...document.querySelectorAll('input')].find(x => x.placeholder && /ID, name/.test(x.placeholder));
     const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
     set.call(i, 'zzzznothing'); i.dispatchEvent(new Event('input', { bubbles: true }));
   })()`);
