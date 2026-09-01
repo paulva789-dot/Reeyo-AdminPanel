@@ -6,7 +6,10 @@ import './styles/index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    {/* The v7_startTransition and v7_relativeSplatPath flags are gone: React
+        Router 7 makes both the default, so opting in is no longer a thing you
+        can do. Keeping them would be a type error, not a no-op. */}
+    <BrowserRouter>
       <App />
     </BrowserRouter>
   </React.StrictMode>,

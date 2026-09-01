@@ -111,8 +111,30 @@ export function feeForDistance(km: number, bands: number[], perKmBeyond: number)
 const BANDS = [500, 700, 900, 1100, 1300];
 const PER_KM_BEYOND = 250;
 
-function iso(minutesAgo: number): string {
-  return new Date(Date.now() - minutesAgo * 60_000).toISOString();
+/** The oldest order the seed describes, in minutes before now. */
+const SEED_SPAN_MINUTES = 300;
+
+/**
+ * Places a seeded order inside today, whatever the hour.
+ *
+ * The seed says how long ago each order was placed, which reads correctly at
+ * midday and falls apart just after midnight: an order "300 minutes ago" lands
+ * on yesterday, and the date filter — which defaults to Today, correctly —
+ * hides it. The console then opens looking empty for no reason a reader could
+ * work out.
+ *
+ * So the seed's span is compressed into however much of today has elapsed.
+ * Ordering and relative spacing hold; only the scale changes. Real orders come
+ * from the API with real timestamps and are untouched by this.
+ */
+function iso(minutesAgo: number, now = new Date()): string {
+  const sinceMidnight = now.getHours() * 60 + now.getMinutes();
+  // A minute of headroom, so the first order of the day is not exactly midnight.
+  const span = Math.max(sinceMidnight - 1, 1);
+  const scaled = span >= SEED_SPAN_MINUTES
+    ? minutesAgo
+    : (minutesAgo / SEED_SPAN_MINUTES) * span;
+  return new Date(now.getTime() - scaled * 60_000).toISOString();
 }
 
 function ago(minutes: number): string {
