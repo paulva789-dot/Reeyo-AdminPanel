@@ -5,18 +5,17 @@ import Button from '../components/ui/Button';
 import Pill from '../components/ui/Pill';
 import Toggle from '../components/ui/Toggle';
 import Segments from '../components/ui/Segments';
-import MetricTile, { MetricRow } from '../components/ui/MetricTile';
 import DataTable, { TableToolbar } from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { FilterInput } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
-import { Drawer, Modal, FooterSpacer } from '../components/ui/Overlay';
-import { useAppState } from '../state/useAppState';
+import { Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAuth } from '../state/useAuth';
 import { useDetail } from '../state/useDetail';
 import { platform } from '../services/platformResources';
-import OrderHistory from '../components/domain/OrderHistory';
-import ReasonModal from './approvals/ReasonModal';
+import { useAppState } from '../state/useAppState';
+import { useVendorProfiles } from '../state/useVendorProfiles';
+import VendorProfileDrawer from './vendors/VendorProfileDrawer';
 import VendorEditModal from './vendors/VendorEditModal';
 import { money, initials } from '../lib/format';
 import { menus } from '../data/seed';
@@ -288,135 +287,9 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
   );
 }
 
-function VendorDrawer({ vendor, onClose }: { vendor: Vendor; onClose: () => void }) {
-  const { orders, suspendVendor } = useAppState();
-  const [suspending, setSuspending] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const fetcher = useCallback(() => platform.vendorOrders(vendor.id), [vendor.id]);
-  const history = useDetail(vendor.id, fetcher);
-
-  // Without the endpoint, the best we can do is the orders already on screen.
-  const theirs = useMemo(
-    () => orders.filter((o) => o.vendor === vendor.name),
-    [orders, vendor.name],
-  );
-
-  return (
-    <>
-    <Drawer
-      title={vendor.name}
-      subtitle={`${vendor.category} · ${vendor.zone} · joined ${vendor.joined}`}
-      onClose={onClose}
-      footer={(
-        <>
-          {/* "Release payout" is gone: money moves through the payouts queue,
-              and there is no vendor-level route that releases anything. */}
-          <Button variant="destructive" onClick={() => setSuspending(true)}>
-            Suspend
-          </Button>
-          <FooterSpacer />
-          <Button variant="primary" onClick={() => setEditing(true)}>Edit vendor</Button>
-        </>
-      )}
-    >
-      <div style={{ marginBottom: 16 }}>
-        <Pill status={vendor.status} />
-      </div>
-
-      <MetricRow>
-        <MetricTile label="Orders" value={String(vendor.orders)} />
-        <MetricTile label="Revenue" value={money(vendor.revenue)} prefix="FCFA" />
-      </MetricRow>
-
-      <div style={{ marginTop: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 9 }}>Performance</div>
-        <div
-          style={{
-            background: 'var(--card)', border: '1px solid var(--line)',
-            borderRadius: 'var(--r-card)', padding: '10px 14px',
-          }}
-        >
-          {[
-            ['Rating', `${vendor.rating} out of 5`],
-            ['Average prep time', `${vendor.prepMinutes} min`],
-            ['Service', vendor.vertical],
-          ].map(([k, v]) => (
-            <div
-              key={k}
-              style={{
-                display: 'flex', justifyContent: 'space-between',
-                gap: 12, padding: '7px 0',
-              }}
-            >
-              <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{k}</span>
-              <span style={{ fontSize: 12.5, textTransform: 'capitalize' }}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ marginTop: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 9 }}>Account</div>
-        <div
-          style={{
-            background: 'var(--card)', border: '1px solid var(--line)',
-            borderRadius: 'var(--r-card)', padding: '10px 14px',
-          }}
-        >
-          {[
-            ['Vendor ID', vendor.id],
-            ['Joined', vendor.joined],
-            ['Zone', vendor.zone],
-          ].map(([k, v]) => (
-            <div
-              key={k}
-              style={{
-                display: 'flex', justifyContent: 'space-between',
-                gap: 12, padding: '7px 0',
-              }}
-            >
-              <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{k}</span>
-              <span className="mono" style={{ fontSize: 12 }}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ marginTop: 18 }}>
-        <div className="eyebrow" style={{ marginBottom: 9 }}>Recent orders</div>
-        <div
-          style={{
-            background: 'var(--card)', border: '1px solid var(--line)',
-            borderRadius: 'var(--r-card)', padding: '4px 14px 12px',
-          }}
-        >
-          <OrderHistory
-            history={history}
-            fallback={theirs}
-            emptyLine={`${vendor.name} has taken no orders.`}
-          />
-        </div>
-      </div>
-    </Drawer>
-
-    {editing && <VendorEditModal vendor={vendor} onClose={() => setEditing(false)} />}
-
-    {suspending && (
-      <ReasonModal
-        title="Suspend this vendor"
-        subtitle={`${vendor.name} · ${vendor.zone}`}
-        explain="They stop taking orders immediately. A Super Admin can lift it later."
-        placeholder="Repeated cancellations after accepting orders."
-        confirmLabel="Suspend vendor"
-        cancelLabel="Leave trading"
-        onConfirm={(reason) => { suspendVendor(vendor.id, reason); setSuspending(false); onClose(); }}
-        onClose={() => setSuspending(false)}
-      />
-    )}
-    </>
-  );
-}
-
 export default function Vendors() {
+  const { profiles, save, credit, debit, reverse } = useVendorProfiles();
+  const [editing, setEditing] = useState<Vendor | null>(null);
   const { vendors } = useAppState();
   const [vertical, setVertical] = useState('all');
   const [query, setQuery] = useState('');
@@ -490,7 +363,8 @@ export default function Vendors() {
       render: (v) => (
         <div style={{ display: 'inline-flex', gap: 6 }}>
           <Button variant="soft" onClick={() => setMenuFor(v)}>Menu</Button>
-          <Button variant="soft" onClick={() => setOpenFor(v)}>Open</Button>
+          <Button variant="soft" onClick={() => setEditing(v)}>Edit</Button>
+          <Button variant="outline" onClick={() => setOpenFor(v)}>Open</Button>
         </div>
       ),
     },
@@ -535,7 +409,26 @@ export default function Vendors() {
       </Card>
 
       {menuFor && <MenuModal vendor={menuFor} onClose={() => setMenuFor(null)} />}
-      {openFor && <VendorDrawer vendor={openFor} onClose={() => setOpenFor(null)} />}
+      {editing && (
+        <VendorEditModal vendor={editing} onClose={() => setEditing(null)} />
+      )}
+
+      {openFor && (() => {
+        const profile = profiles.find(
+          (p) => p.businessName === openFor.name || p.id === openFor.id,
+        );
+        if (!profile) return null;
+        return (
+          <VendorProfileDrawer
+            profile={profile}
+            onSave={save}
+            onCredit={(move) => credit(profile.id, move)}
+            onDebit={(move) => debit(profile.id, move)}
+            onReverse={(entryId) => reverse(profile.id, entryId)}
+            onClose={() => setOpenFor(null)}
+          />
+        );
+      })()}
     </>
   );
 }

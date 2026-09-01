@@ -11,6 +11,8 @@ import { FilterInput, TextArea } from '../components/ui/Field';
 import EmptyState from '../components/ui/EmptyState';
 import { Modal, FooterSpacer } from '../components/ui/Overlay';
 import { useAppState } from '../state/useAppState';
+import { useDateRange, withinRange } from '../state/useDateRange';
+import SettlementsTable from './payments/SettlementsTable';
 import { usePlatformAdmin } from '../state/usePlatformAdmin';
 import { money } from '../lib/format';
 
@@ -79,14 +81,21 @@ function Deduction({ label, value }: { label: string; value: number }) {
 
 function Ledger() {
   const { payments } = useAppState();
+  const { range } = useDateRange();
   const [query, setQuery] = useState('');
 
   const rows = useMemo(() => {
+    // The ledger honours the shared date range (section 8.2). Payment dates are
+    // stored as plain days, so they are read as local midnight.
+    const inPeriod = payments.filter((p) => withinRange(
+      /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? `${p.date}T12:00:00` : p.date,
+      range,
+    ));
     const q = query.trim().toLowerCase();
-    if (!q) return payments;
-    return payments.filter((p) => [p.id, p.from, p.to, p.method, p.reason]
+    if (!q) return inPeriod;
+    return inPeriod.filter((p) => [p.id, p.from, p.to, p.method, p.reason]
       .join(' ').toLowerCase().includes(q));
-  }, [query, payments]);
+  }, [query, payments, range]);
 
   const columns: Column<Payment>[] = [
     {
@@ -131,73 +140,6 @@ function Ledger() {
         }}
       />
     </Card>
-  );
-}
-
-function VendorSettlements() {
-  const { vendors } = useAppState();
-  const rates = useRates();
-  const settleable = vendors.filter((v) => v.status === 'active');
-
-  if (settleable.length === 0) {
-    return (
-      <Card>
-        <EmptyState
-          heading="No vendor is ready to settle"
-          line="Only active vendors are settled. Suspended and in-review vendors are held back."
-        />
-      </Card>
-    );
-  }
-
-  return (
-    <>
-    <RateSource live={rates.live} error={rates.error} />
-    <div
-      style={{
-        display: 'grid', gap: 14,
-        gridTemplateColumns: 'repeat(auto-fit, minmax(268px, 1fr))',
-      }}
-    >
-      {settleable.map((v) => {
-        const commission = Math.round(v.revenue * rates.commission);
-        const service = Math.round(v.revenue * rates.serviceFee);
-        const net = v.revenue - commission - service;
-        return (
-          <Card key={v.id} title={v.name}>
-            <div
-              style={{
-                display: 'flex', justifyContent: 'space-between',
-                gap: 12, paddingBottom: 5,
-              }}
-            >
-              <span style={{ fontSize: 12, color: 'var(--text-2)' }}>Gross</span>
-              <span className="mono" style={{ fontSize: 12 }}>{money(v.revenue)}</span>
-            </div>
-            <Deduction
-              label={`Commission ${Math.round(rates.commission * 1000) / 10}%`}
-              value={commission}
-            />
-            <Deduction
-              label={`Service fee ${Math.round(rates.serviceFee * 1000) / 10}%`}
-              value={service}
-            />
-            <div style={{ height: 1, background: 'var(--line-soft)', margin: '6px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--forest)' }}>Net</span>
-              <span
-                className="mono"
-                style={{ fontSize: 13, fontWeight: 700, color: 'var(--forest)' }}
-              >
-                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>FCFA </span>
-                {money(net)}
-              </span>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-    </>
   );
 }
 
@@ -450,7 +392,7 @@ export default function Payments() {
       </div>
 
       {tab === 'ledger' && <Ledger />}
-      {tab === 'vendor' && <VendorSettlements />}
+      {tab === 'vendor' && <SettlementsTable />}
       {tab === 'rider' && <RiderSettlements />}
       {tab === 'requests' && <Requests />}
     </>

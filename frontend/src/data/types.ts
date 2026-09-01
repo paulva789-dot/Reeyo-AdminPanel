@@ -564,3 +564,83 @@ export interface ParcelDetails {
   signedBy: string | null;
   proofPhotoUrl: string | null;
 }
+
+/* ---- Vendor management, specification section 4 ---------------------- */
+
+/** One open/close window. A day can have several, for a lunch break. */
+export interface HourSlot {
+  opens: string;   // "08:00"
+  closes: string;  // "14:30"
+}
+
+export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+
+export const WEEKDAYS: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export interface DayHours {
+  day: Weekday;
+  closed: boolean;
+  slots: HourSlot[];
+}
+
+/** A one-off closure that overrides the weekly pattern (section 4.2). */
+export interface SpecialDate {
+  date: string;      // yyyy-mm-dd
+  closed: boolean;
+  note: string;
+}
+
+/**
+ * Commission is either a percentage of the subtotal or a flat amount per
+ * order — never both at once, which is why this is a discriminated union
+ * rather than two nullable fields that could disagree.
+ */
+export type CommissionRule =
+  | { kind: 'percentage'; value: number }
+  | { kind: 'flat'; value: number };
+
+export type WalletSource = 'order' | 'manual adjustment' | 'settlement';
+
+export interface WalletEntry {
+  id: string;
+  at: string;              // ISO 8601
+  /** Positive credits, negative debits. */
+  amount: number;
+  balanceAfter: number;
+  source: WalletSource;
+  reason: string;
+  reference: string | null;
+  note: string | null;
+  /** Who performed it. Nothing here can be edited or deleted, only reversed. */
+  by: string;
+  /** Set on the entry that reverses another. */
+  reverses: string | null;
+}
+
+/** The full vendor record of section 4.1. */
+export interface VendorProfile {
+  id: string;
+  businessName: string;
+  adminName: string;
+  adminNumber: string;
+  shortAddress: string;
+  mapsAddress: string;
+  lat: number;
+  lng: number;
+  zone: Zone;
+  city: string;
+  region: Region;
+  category: string;
+  service: Vertical;
+  imageUrl: string | null;
+  packagingFee: number | null;
+  hours: DayHours[];
+  specialDates: SpecialDate[];
+  paymentName: string;
+  paymentNumber: string;
+  commission: CommissionRule;
+  walletBalance: number;
+  wallet: WalletEntry[];
+  joined: string;          // yyyy-mm-dd
+  status: 'active' | 'paused' | 'suspended';
+}
