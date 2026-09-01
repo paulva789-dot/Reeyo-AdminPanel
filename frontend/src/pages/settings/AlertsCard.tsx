@@ -99,6 +99,7 @@ export default function AlertsCard() {
           <input
             id="alert-volume"
             type="range"
+            aria-label={t('sound.volume')}
             min={0}
             max={100}
             value={settings.volume}

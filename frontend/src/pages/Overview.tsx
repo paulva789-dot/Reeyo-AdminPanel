@@ -104,13 +104,18 @@ export default function Overview() {
     orders, payouts, vendors, riders, sampleOnly,
   } = useAppState();
   const [stage, setStage] = useState<Stage | null>(null);
+  const [service, setService] = useState<string | null>(null);
   const [open, setOpen] = useState<Order | null>(null);
 
-  // The rail filters everything below it — section 8.1a
-  const scoped = useMemo(
-    () => (stage ? orders.filter((o) => matchesStage(o, stage)) : orders),
-    [orders, stage],
-  );
+  // The rail filters everything below it (section 8.1a), and so does the
+  // service wheel (spec section 9.2) — the two narrow the same set together.
+  const scoped = useMemo(() => {
+    let rows = stage ? orders.filter((o) => matchesStage(o, stage)) : orders;
+    if (service) {
+      rows = rows.filter((o) => o.vertical === service.toLowerCase());
+    }
+    return rows;
+  }, [orders, stage, service]);
 
   const attention = useMemo(() => scoped.filter(needsDecision), [scoped]);
 
@@ -126,6 +131,19 @@ export default function Overview() {
   );
 
   const revenue = useMemo(() => revenueByVertical(scoped), [scoped]);
+
+  // Section 9.2 splits activity by order count, not by value: the wheel answers
+  // "how much of what we do is each service", which is a count question.
+  const serviceSplit = useMemo(() => {
+    const base = stage ? orders.filter((o) => matchesStage(o, stage)) : orders;
+    return (['food', 'grocery', 'parcel'] as const)
+      .map((v) => ({
+        label: v.charAt(0).toUpperCase() + v.slice(1),
+        value: base.filter((o) => o.vertical === v).length,
+        token: v,
+      }))
+      .filter((slice) => slice.value > 0);
+  }, [orders, stage]);
 
   const columns: Column<Order>[] = [
     {
@@ -246,14 +264,21 @@ export default function Overview() {
           </Card>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Card title="Revenue by service">
+            <Card title="Service wheel">
               {revenue.length === 0 ? (
                 <EmptyState
                   heading="No revenue to split yet"
                   line="Once orders start completing, the share each service takes shows here."
                 />
               ) : (
-                <Donut slices={revenue} format={(v) => money(v)} />
+                <Donut
+                  slices={serviceSplit}
+                  format={(v) => String(v)}
+                  centreValue={String(scoped.length)}
+                  centreLabel="orders"
+                  selected={service}
+                  onSelect={(label) => setService((now) => (now === label ? null : label))}
+                />
               )}
             </Card>
 

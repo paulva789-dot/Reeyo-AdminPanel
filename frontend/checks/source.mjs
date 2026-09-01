@@ -27,8 +27,8 @@ const read = (rel) => (existsSync(join(SRC, rel)) ? readFileSync(join(SRC, rel),
 // sample mode and must not show in live mode, which NoEndpoint enforces.
 const WITHHELD = [
   ['pages/Dispatch.tsx', 'Zone capacity'],
-  ['pages/Dispatch.tsx', 'Delivery teams'],
-  ['pages/Dispatch.tsx', 'Delivery fee rules'],
+  ['pages/dispatch/TeamsPanel.tsx', 'Delivery teams'],
+  ['pages/dispatch/FeesPanel.tsx', 'Delivery fee rules'],
   ['pages/Marketing.tsx', 'Promo codes and offers'],
   ['pages/Storefront.tsx', 'Home section ordering'],
   ['pages/Settings.tsx', 'Payment method availability'],

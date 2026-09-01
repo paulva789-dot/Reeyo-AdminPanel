@@ -3,6 +3,13 @@ interface ColumnChartProps {
   labels?: string[];
   colour?: string;
   height?: number;
+  /**
+   * Print each bar's value above it (section 9.1). Off by default: on a
+   * thirty-bar series the numbers collide into a grey smear and the chart is
+   * harder to read than it was without them, so the caller decides.
+   */
+  showValues?: boolean;
+  format?: (v: number) => string;
 }
 
 /**
@@ -11,7 +18,11 @@ interface ColumnChartProps {
  */
 export default function ColumnChart({
   data, labels, colour = 'var(--forest-400)', height = 168,
+  showValues, format = (v) => String(v),
 }: ColumnChartProps) {
+  // Values are printed when asked for, and also whenever the series is short
+  // enough that they will not collide.
+  const withValues = showValues ?? data.length <= 12;
   const max = Math.max(...data) || 1;
   const min = Math.min(...data);
   const span = max - min || 1;
@@ -32,17 +43,33 @@ export default function ColumnChart({
         {data.map((v, i) => (
           <div
             key={i}
-            title={String(v)}
+            title={format(v)}
             style={{
-              flex: 1,
-              minWidth: 0,
-              height: `${Math.max(4, ((v - min) / span) * 88 + 12)}%`,
-              background: colour,
-              // Opacity carries magnitude so the eye finds the peak without axes
-              opacity: 0.45 + ((v - min) / span) * 0.55,
-              borderRadius: '3px 3px 0 0',
+              flex: 1, minWidth: 0, height: '100%',
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
             }}
-          />
+          >
+            {withValues && (
+              <span
+                className="mono"
+                style={{
+                  fontSize: 9.5, color: 'var(--text-2)', textAlign: 'center',
+                  marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden',
+                }}
+              >
+                {format(v)}
+              </span>
+            )}
+            <div
+              style={{
+                height: `${Math.max(4, ((v - min) / span) * 88 + 12)}%`,
+                background: colour,
+                // Opacity carries magnitude so the eye finds the peak without axes
+                opacity: 0.45 + ((v - min) / span) * 0.55,
+                borderRadius: '3px 3px 0 0',
+              }}
+            />
+          </div>
         ))}
       </div>
 
