@@ -9,10 +9,10 @@ import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import NoEndpoint from '../components/ui/NoEndpoint';
 import { useAppState } from '../state/useAppState';
-import { useEngagement } from '../state/useEngagement';
 import { money } from '../lib/format';
 import BroadcastPanel from './marketing/BroadcastPanel';
-import SpinWheelPanel from './engagement/SpinWheelPanel';
+import SpinWheelBuilder from './marketing/SpinWheelBuilder';
+import { BannersPanel, PopupsPanel, AislesPanel } from './marketing/CampaignPanels';
 import type { Offer } from '../data/types';
 
 function Offers() {
@@ -94,7 +94,6 @@ function Offers() {
 
 export default function Marketing() {
   const [tab, setTab] = useState('offers');
-  const engagement = useEngagement(['spinWheels']);
 
   return (
     <>
@@ -112,8 +111,11 @@ export default function Marketing() {
           onChange={setTab}
           segments={[
             { value: 'offers', label: 'Offers' },
-            { value: 'broadcast', label: 'Push' },
+            { value: 'banners', label: 'Banners' },
+            { value: 'popups', label: 'Pop-ups' },
+            { value: 'aisles', label: 'Aisles' },
             { value: 'wheel', label: 'Spin wheel' },
+            { value: 'broadcast', label: 'Push' },
           ]}
         />
       </div>
@@ -127,7 +129,10 @@ export default function Marketing() {
         </NoEndpoint>
       )}
       {tab === 'broadcast' && <BroadcastPanel />}
-      {tab === 'wheel' && <SpinWheelPanel engagement={engagement} />}
+      {tab === 'banners' && <BannersPanel />}
+      {tab === 'popups' && <PopupsPanel />}
+      {tab === 'aisles' && <AislesPanel />}
+      {tab === 'wheel' && <SpinWheelBuilder />}
     </>
   );
 }
