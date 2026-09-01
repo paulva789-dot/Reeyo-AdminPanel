@@ -23,6 +23,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     server: {
+      // Pinned because checks/*.mjs drive the app at this exact address. Vite's
+      // default is 5173, so the two only ever agreed when something else
+      // happened to be holding the lower ports — and when they disagreed the
+      // suites navigated to nothing and hung until their 45s timeout.
+      port: 5180,
+      strictPort: true,
       watch: {
         // The checks are Node scripts that drive the app, not part of it.
         // Watching them means editing a test triggers a full page reload in the

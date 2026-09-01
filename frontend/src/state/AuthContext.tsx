@@ -4,10 +4,25 @@ import type { Admin, AuthValue, LoginResult, Mode } from './useAuth';
 import { apiClient, ApiError, setUnauthorizedHandler } from '../services/apiClient';
 import { ENDPOINTS } from '../services/endpoints';
 
+/**
+ * Set `VITE_UI_ONLY=true` to boot straight into sample data and make no network
+ * calls at all — no `/auth/me`, no sign-in screen, no backend of any kind.
+ *
+ * This exists so the interface can be worked on without the API in the way. It
+ * is a switch rather than a deletion on purpose: the console reaches every
+ * screen and every state on seed data already, so unplugging the service layer
+ * would throw away the wiring and change nothing an admin can see.
+ */
+const UI_ONLY = import.meta.env.VITE_UI_ONLY === 'true';
+
+const SAMPLE_ADMIN: Admin = {
+  name: 'Adrian Nkeng', role: 'Platform admin', email: 'sample@reeyo.local',
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [admin, setAdmin] = useState<Admin | null>(null);
-  const [mode, setMode] = useState<Mode | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [admin, setAdmin] = useState<Admin | null>(UI_ONLY ? SAMPLE_ADMIN : null);
+  const [mode, setMode] = useState<Mode | null>(UI_ONLY ? 'sample' : null);
+  const [isLoading, setIsLoading] = useState(!UI_ONLY);
 
   /**
    * Set as soon as a session is established by an explicit act — signing in, or
@@ -36,6 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // on its boot screen. On timeout we fall through to the sign-in page, which
   // is the honest outcome — we could not establish a session.
   useEffect(() => {
+    // UI-only: the session is already sample, so asking the server who we are
+    // would be the one request this mode exists to avoid.
+    if (UI_ONLY) return;
+
     let cancelled = false;
     apiClient
       .get<Admin>(ENDPOINTS.me, undefined, { signal: AbortSignal.timeout(8000) })
@@ -84,11 +103,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const useSampleData = useCallback(() => {
     sessionClaimed.current = true;
-    setAdmin({ name: 'Adrian Nkeng', role: 'Platform admin', email: 'sample@reeyo.local' });
+    setAdmin(SAMPLE_ADMIN);
     setMode('sample');
   }, []);
 
   const logout = useCallback(async () => {
+    // Signing out of UI-only mode would strand the console on a sign-in screen
+    // it is configured never to use, so it stays put.
+    if (UI_ONLY) return;
     if (mode === 'live') {
       try {
         await apiClient.post(ENDPOINTS.logout);

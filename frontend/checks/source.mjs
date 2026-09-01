@@ -94,5 +94,18 @@ check(
   !contract.includes('reorderBanners') && !contract.includes('moveBanner'),
 );
 
+/* ---- UI-only never reaches production ---------------------------------- */
+
+// VITE_UI_ONLY makes the console skip sign-in entirely and run on seed data.
+// That is exactly right on a laptop and catastrophic on the deployed admin
+// tool, where it would hand anyone who loads the page a full console.
+const prodEnv = existsSync(join(SRC, '..', '.env.production'))
+  ? readFileSync(join(SRC, '..', '.env.production'), 'utf8')
+  : '';
+check(
+  'UI-only mode is not enabled in the production build',
+  !/^\s*VITE_UI_ONLY\s*=\s*true/m.test(prodEnv),
+);
+
 console.log(failed === 0 ? '\nAll source checks pass.' : `\n${failed} failing.`);
 process.exit(failed ? 1 : 0);

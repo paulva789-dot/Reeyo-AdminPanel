@@ -1,4 +1,26 @@
 // End-to-end auth flow against the real backend.
+//
+// VITE_UI_ONLY removes the sign-in gate on purpose, so this suite has nothing
+// to test in that mode. It skips on the *configuration* rather than on what the
+// page looks like: "no sign-in screen appeared" is also what a completely
+// broken gate looks like, and this suite exists to catch exactly that.
+import { readFileSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const uiOnly = ['.env.local', '.env'].some((f) => {
+  const path = join(ROOT, f);
+  return existsSync(path)
+    && /^\s*VITE_UI_ONLY\s*=\s*true\s*$/m.test(readFileSync(path, 'utf8'));
+});
+
+if (uiOnly) {
+  console.log('SKIP  VITE_UI_ONLY=true removes the sign-in gate, so there is none to test.');
+  console.log('      Unset it in frontend/.env.local to run these checks.');
+  process.exit(0);
+}
+
 const [, , wsUrl] = process.argv;
 const ws = new WebSocket(wsUrl);
 let id = 0;

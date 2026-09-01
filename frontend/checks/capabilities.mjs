@@ -68,7 +68,12 @@ ws.onopen = async () => {
     if (await ev(`!!document.querySelector('.reeyo-rail')`)) { sampleBtn = 'already in'; break; }
     await wait(1000);
   }
-  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('sample data')).click()`);
+  // UI-only mode boots straight into the console, so there is no button to
+  // click. Guard rather than assume a sign-in screen exists.
+  await ev(`(() => {
+    const b = [...document.querySelectorAll('button')].find(x => x.textContent.includes('sample data'));
+    if (b) b.click();
+  })()`);
   await wait(2000);
 
   /* ---------------- Menu approvals ---------------- */
