@@ -15,6 +15,7 @@ import ReasonModal from './approvals/ReasonModal';
 import { platform } from '../services/platformResources';
 import { useDetail } from '../state/useDetail';
 import { useAppState } from '../state/useAppState';
+import { useDateRange, withinRange } from '../state/useDateRange';
 import { money } from '../lib/format';
 
 import type { Rider } from '../data/types';
@@ -192,7 +193,22 @@ function RiderDrawer({ rider, onClose }: { rider: Rider; onClose: () => void }) 
 }
 
 export default function Riders() {
-  const { riders, sampleOnly } = useAppState();
+  const { riders, orders, sampleOnly } = useAppState();
+  const { range } = useDateRange();
+
+  /**
+   * Deliveries each rider carried inside the date range — a column, not a
+   * filter. Hiding a rider who was off yesterday would make the fleet list
+   * useless for the one thing it is for: finding a rider.
+   */
+  const inPeriod = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const o of orders) {
+      if (!o.rider || !withinRange(o.placedAt, range)) continue;
+      counts.set(o.rider, (counts.get(o.rider) ?? 0) + 1);
+    }
+    return counts;
+  }, [orders, range]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Rider | null>(null);
 
@@ -233,6 +249,21 @@ export default function Riders() {
     {
       key: 'trips', header: 'Trips', align: 'right',
       render: (r) => <span className="mono" style={{ fontSize: 12 }}>{r.trips}</span>,
+    },
+    {
+      // Scoped by the date range in the topbar (spec 2.3).
+      key: 'period', header: 'In period', align: 'right',
+      render: (r) => {
+        const count = inPeriod.get(r.name) ?? 0;
+        return (
+          <span
+            className="mono"
+            style={{ fontSize: 12, color: count > 0 ? 'var(--forest)' : 'var(--text-3)' }}
+          >
+            {count}
+          </span>
+        );
+      },
     },
     {
       key: 'rating', header: 'Rating', align: 'right',

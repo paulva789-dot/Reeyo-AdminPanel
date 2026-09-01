@@ -14,6 +14,7 @@ import { platform } from '../services/platformResources';
 import { useDetail } from '../state/useDetail';
 import { money } from '../lib/format';
 import { useAppState } from '../state/useAppState';
+import { useDateRange, withinRange } from '../state/useDateRange';
 import type { Customer } from '../data/types';
 
 function CustomerDrawer({ customer, onClose }: { customer: Customer; onClose: () => void }) {
@@ -129,7 +130,25 @@ const SEGMENT_TOKEN: Record<string, string> = {
 };
 
 export default function Customers() {
-  const { customers, sampleOnly } = useAppState();
+  const { customers, orders, sampleOnly } = useAppState();
+  const { range } = useDateRange();
+
+  /**
+   * Orders each customer placed inside the date range.
+   *
+   * Deliberately a column and not a filter. A directory that hides everyone who
+   * did not order today is a directory an operator cannot look someone up in —
+   * and looking someone up is what it is for. The range scopes the activity
+   * figure; the list stays whole.
+   */
+  const inPeriod = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const o of orders) {
+      if (!withinRange(o.placedAt, range)) continue;
+      counts.set(o.customer, (counts.get(o.customer) ?? 0) + 1);
+    }
+    return counts;
+  }, [orders, range]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState<Customer | null>(null);
 
@@ -168,6 +187,21 @@ export default function Customers() {
     {
       key: 'orders', header: 'Orders', align: 'right',
       render: (c) => <span className="mono" style={{ fontSize: 12 }}>{c.orders}</span>,
+    },
+    {
+      // Scoped by the date range in the topbar (spec 2.3).
+      key: 'period', header: 'In period', align: 'right',
+      render: (c) => {
+        const count = inPeriod.get(c.name) ?? 0;
+        return (
+          <span
+            className="mono"
+            style={{ fontSize: 12, color: count > 0 ? 'var(--forest)' : 'var(--text-3)' }}
+          >
+            {count}
+          </span>
+        );
+      },
     },
     {
       key: 'spend', header: 'Lifetime spend', align: 'right',

@@ -8,6 +8,7 @@ import ColumnChart from '../components/charts/ColumnChart';
 import BarList from '../components/charts/BarList';
 import Donut from '../components/charts/Donut';
 import { useAppState } from '../state/useAppState';
+import DashboardMetrics from './analytics/DashboardMetrics';
 import { useAnalytics } from '../state/useAnalytics';
 import type { AnalyticsBundle, Loadable } from '../state/useAnalytics';
 import { ALL_REGIONS } from '../data/geography';
@@ -344,7 +345,7 @@ function Experience({ isSample }: { isSample: boolean }) {
 
 export default function Analytics() {
   const { isSample } = useAppState();
-  const [tab, setTab] = useState('money');
+  const [tab, setTab] = useState('dashboard');
   // Every tab but Experience reads at least one of these, and the hook caches
   // per mount, so asking once here beats five hooks that refetch on each tab.
   const analytics = useAnalytics(['stats', 'revenue', 'topVendors', 'topRiders', 'orderStatus']);
@@ -359,6 +360,7 @@ export default function Analytics() {
           value={tab}
           onChange={setTab}
           segments={[
+            { value: 'dashboard', label: 'Dashboard' },
             { value: 'money', label: 'Money' },
             { value: 'growth', label: 'Growth' },
             { value: 'operations', label: 'Operations' },
@@ -367,6 +369,7 @@ export default function Analytics() {
         />
       </div>
 
+      {tab === 'dashboard' && <DashboardMetrics />}
       {tab === 'money' && <Money analytics={analytics} />}
       {tab === 'growth' && <Growth analytics={analytics} isSample={isSample} />}
       {tab === 'operations' && <Operations analytics={analytics} />}

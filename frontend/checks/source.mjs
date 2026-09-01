@@ -107,5 +107,60 @@ check(
   !/^\s*VITE_UI_ONLY\s*=\s*true/m.test(prodEnv),
 );
 
+/* ---- Functional specification v1.0 ------------------------------------- */
+
+// Each row is a deliverable from the acceptance checklist (section 10), paired
+// with the file that has to carry it. These are structural assertions: they
+// catch a deliverable being deleted or renamed away, not whether it is pretty.
+const SPEC = [
+  ['3.2 status workflow', 'components/domain/EditStatusModal.tsx', 'ORDER_FLOW'],
+  ['3.2 reasons on cancel and fail', 'components/domain/EditStatusModal.tsx', 'CANCEL_REASONS'],
+  ['3.3 full basket', 'components/domain/OrderDetailBlocks.tsx', 'BasketBlock'],
+  ['3.4 both parties', 'components/domain/OrderDetailBlocks.tsx', 'PartiesBlock'],
+  ['3.5 rider with manual entry', 'components/domain/RiderBlock.tsx', 'assignManualRider'],
+  ['3.6 pickup and drop-off', 'components/domain/OrderDetailBlocks.tsx', 'RouteBlock'],
+  ['3.7 timeline', 'components/domain/OrderTimeline.tsx', 'fulfilmentMinutes'],
+  ['3.8 sender, receiver, recipient', 'components/domain/orderVocabulary.ts', 'Recipient'],
+  ['2.1 French and English', 'i18n/strings.ts', 'nav.orders'],
+  ['2.2 dark theme', 'styles/tokens.css', 'data-theme="dark"'],
+  ['2.3 date range', 'components/ui/DateFilter.tsx', 'date.custom'],
+  ['2.4 alert tones', 'lib/tones.ts', 'PRIORITY_TONE'],
+  ['4.1 vendor profile', 'pages/vendors/VendorProfileDrawer.tsx', 'paymentNumber'],
+  ['4.2 operating hours', 'pages/vendors/HoursEditor.tsx', 'Copy to all days'],
+  ['4.3 commission toggle', 'pages/vendors/VendorProfileDrawer.tsx', 'CommissionField'],
+  ['4.4 vendor wallet', 'pages/vendors/WalletPanel.tsx', 'Reverse entry'],
+  ['5.2 teams with multi-select', 'pages/dispatch/TeamsPanel.tsx', 'Create team'],
+  ['6.1 distance bands', 'data/deliveryFees.ts', 'BAND_COUNT'],
+  ['6.2 per-zone and per-service fees', 'pages/dispatch/FeesPanel.tsx', 'Add delivery fee'],
+  ['7.1 zones on banners', 'pages/marketing/CampaignPanels.tsx', 'BannersPanel'],
+  ['7.2 pop-up occurrence rules', 'pages/marketing/CampaignPanels.tsx', 'frequencyCap'],
+  ['7.3 horizontal aisles', 'pages/marketing/CampaignPanels.tsx', 'AislesPanel'],
+  ['7.4 spin wheel builder', 'pages/marketing/SpinWheelBuilder.tsx', 'probabilityTotal'],
+  ['8.1 the four payment methods', 'data/types.ts', 'PAYMENT_METHOD_LIST'],
+  ['8.3 settlements as a table', 'pages/payments/SettlementsTable.tsx', 'Net payable'],
+  ['9.2 service wheel', 'pages/Overview.tsx', 'serviceSplit'],
+  ['9.3 dashboard metrics', 'pages/analytics/DashboardMetrics.tsx', 'Zone performance'],
+];
+
+for (const [item, file, needle] of SPEC) {
+  const src = read(file);
+  check(`spec ${item}`, src !== null && src.includes(needle),
+    src === null ? `${file} missing` : undefined);
+}
+
+// 8.1 retires two methods. They must not come back by accident.
+const paymentTypes = read('data/types.ts') ?? '';
+check(
+  'spec 8.1 bank transfer and pay-for-me are gone',
+  !/bank transfer|pay.for.me/i.test(paymentTypes),
+);
+
+// 3.2 makes lateness a flag, not a stage. A "delayed" status would silently
+// lose the stage the order was actually at.
+check(
+  'spec 3.2 lateness is not a status',
+  !/'delayed'/.test(read('data/types.ts') ?? ''),
+);
+
 console.log(failed === 0 ? '\nAll source checks pass.' : `\n${failed} failing.`);
 process.exit(failed ? 1 : 0);
