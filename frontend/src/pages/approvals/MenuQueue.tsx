@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -57,6 +58,7 @@ function PriceChange({ approval }: { approval: MenuApproval }) {
 }
 
 export default function MenuQueue() {
+  const t = useT();
   const { approvals, approveMenu, rejectMenu } = useAppState();
   const [status, setStatus] = useState('pending');
   const [query, setQuery] = useState('');
@@ -84,7 +86,7 @@ export default function MenuQueue() {
 
   const columns: Column<MenuApproval>[] = [
     {
-      key: 'item', header: 'Item',
+      key: 'item', header: t('Item'),
       render: (a) => (
         <div>
           <div style={{ fontWeight: 600 }}>{a.itemName}</div>
@@ -92,30 +94,30 @@ export default function MenuQueue() {
         </div>
       ),
     },
-    { key: 'vendor', header: 'Vendor', render: (a) => a.vendor },
+    { key: 'vendor', header: t('Vendor'), render: (a) => a.vendor },
     {
-      key: 'change', header: 'Change',
+      key: 'change', header: t('Change'),
       render: (a) => <Pill status={a.changeType} />,
     },
     {
-      key: 'price', header: 'Price', align: 'right',
+      key: 'price', header: t('Price'), align: 'right',
       render: (a) => <PriceChange approval={a} />,
     },
     {
-      key: 'reason', header: 'Reason given',
+      key: 'reason', header: t('Reason given'),
       render: (a) => (
         <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{a.reason}</span>
       ),
     },
     {
-      key: 'submitted', header: 'Submitted', align: 'right',
+      key: 'submitted', header: t('Submitted'), align: 'right',
       render: (a) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {a.submittedAgo}
         </span>
       ),
     },
-    { key: 'status', header: 'Status', render: (a) => <Pill status={a.status} /> },
+    { key: 'status', header: t('Status'), render: (a) => <Pill status={a.status} /> },
     {
       key: 'actions', header: '', align: 'right',
       render: (a) => (a.status === 'pending' ? (
@@ -148,10 +150,10 @@ export default function MenuQueue() {
           value={status}
           onChange={setStatus}
           segments={[
-            { value: 'pending', label: 'Waiting', count: count('pending') },
-            { value: 'approved', label: 'Approved', count: count('approved') },
-            { value: 'rejected', label: 'Rejected', count: count('rejected') },
-            { value: 'all', label: 'All', count: count('all') },
+            { value: 'pending', label: t('Waiting'), count: count('pending') },
+            { value: 'approved', label: t('Approved'), count: count('approved') },
+            { value: 'rejected', label: t('Rejected'), count: count('rejected') },
+            { value: 'all', label: t('All'), count: count('all') },
           ]}
         />
       </div>

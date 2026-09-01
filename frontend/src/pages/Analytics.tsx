@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Segments from '../components/ui/Segments';
@@ -344,6 +345,7 @@ function Experience({ isSample }: { isSample: boolean }) {
 }
 
 export default function Analytics() {
+  const t = useT();
   const { isSample } = useAppState();
   const [tab, setTab] = useState('dashboard');
   // Every tab but Experience reads at least one of these, and the hook caches
@@ -352,7 +354,7 @@ export default function Analytics() {
 
   return (
     <>
-      <PageTitle>Analytics</PageTitle>
+      <PageTitle>{t('Analytics')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <Segments
@@ -360,11 +362,11 @@ export default function Analytics() {
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'dashboard', label: 'Dashboard' },
-            { value: 'money', label: 'Money' },
-            { value: 'growth', label: 'Growth' },
-            { value: 'operations', label: 'Operations' },
-            { value: 'experience', label: 'Experience' },
+            { value: 'dashboard', label: t('Dashboard') },
+            { value: 'money', label: t('Money') },
+            { value: 'growth', label: t('Growth') },
+            { value: 'operations', label: t('Operations') },
+            { value: 'experience', label: t('Experience') },
           ]}
         />
       </div>

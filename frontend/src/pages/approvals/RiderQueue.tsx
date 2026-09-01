@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -36,6 +37,7 @@ function DocumentProgress({ docs }: { docs: RiderDocument[] }) {
 type Ask = { kind: 'reject'; rider: PendingRider };
 
 export default function RiderQueue() {
+  const t = useT();
   const {
     pendingRiders, approveRider, rejectRider, verifyRiderDocuments,
   } = useAppState();
@@ -67,7 +69,7 @@ export default function RiderQueue() {
 
   const columns: Column<PendingRider>[] = [
     {
-      key: 'rider', header: 'Rider',
+      key: 'rider', header: t('Rider'),
       render: (r) => (
         <div>
           <div style={{ fontWeight: 600 }}>{r.name}</div>
@@ -76,7 +78,7 @@ export default function RiderQueue() {
       ),
     },
     {
-      key: 'vehicle', header: 'Vehicle',
+      key: 'vehicle', header: t('Vehicle'),
       render: (r) => (
         <div>
           <div>{r.vehicle}</div>
@@ -85,7 +87,7 @@ export default function RiderQueue() {
       ),
     },
     {
-      key: 'where', header: 'Where',
+      key: 'where', header: t('Where'),
       render: (r) => (
         <div>
           <div>{r.zone}</div>
@@ -94,18 +96,18 @@ export default function RiderQueue() {
       ),
     },
     {
-      key: 'documents', header: 'Documents', align: 'right',
+      key: 'documents', header: t('Documents'), align: 'right',
       render: (r) => <DocumentProgress docs={r.documents} />,
     },
     {
-      key: 'submitted', header: 'Applied', align: 'right',
+      key: 'submitted', header: t('Applied'), align: 'right',
       render: (r) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {r.submittedAgo}
         </span>
       ),
     },
-    { key: 'status', header: 'Status', render: (r) => <Pill status={r.status} /> },
+    { key: 'status', header: t('Status'), render: (r) => <Pill status={r.status} /> },
     {
       key: 'actions', header: '', align: 'right',
       render: (r) => (
@@ -158,10 +160,10 @@ export default function RiderQueue() {
           value={status}
           onChange={setStatus}
           segments={[
-            { value: 'pending', label: 'Waiting', count: count('pending') },
-            { value: 'approved', label: 'Approved', count: count('approved') },
-            { value: 'rejected', label: 'Rejected', count: count('rejected') },
-            { value: 'all', label: 'All', count: count('all') },
+            { value: 'pending', label: t('Waiting'), count: count('pending') },
+            { value: 'approved', label: t('Approved'), count: count('approved') },
+            { value: 'rejected', label: t('Rejected'), count: count('rejected') },
+            { value: 'all', label: t('All'), count: count('all') },
           ]}
         />
       </div>

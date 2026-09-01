@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -288,6 +289,7 @@ function MenuModal({ vendor, onClose }: { vendor: Vendor; onClose: () => void })
 }
 
 export default function Vendors() {
+  const t = useT();
   const { profiles, save, credit, debit, reverse } = useVendorProfiles();
   const [editing, setEditing] = useState<Vendor | null>(null);
   const { vendors } = useAppState();
@@ -308,7 +310,7 @@ export default function Vendors() {
   const columns: Column<Vendor>[] = [
     {
       key: 'name',
-      header: 'Vendor',
+      header: t('Vendor'),
       render: (v) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <Avatar name={v.name} token={v.vertical} />
@@ -320,7 +322,7 @@ export default function Vendors() {
       ),
     },
     {
-      key: 'zone', header: 'Zone',
+      key: 'zone', header: t('Zone'),
       render: (v) => (
         <div>
           <div>{v.zone}</div>
@@ -331,23 +333,23 @@ export default function Vendors() {
       ),
     },
     {
-      key: 'joined', header: 'Joined',
+      key: 'joined', header: t('Joined'),
       render: (v) => <span className="mono" style={{ fontSize: 12 }}>{v.joined}</span>,
     },
     {
-      key: 'orders', header: 'Orders', align: 'right',
+      key: 'orders', header: t('Orders'), align: 'right',
       render: (v) => <span className="mono" style={{ fontSize: 12 }}>{v.orders}</span>,
     },
     {
-      key: 'revenue', header: 'Revenue', align: 'right',
+      key: 'revenue', header: t('Revenue'), align: 'right',
       render: (v) => <span className="mono" style={{ fontSize: 12 }}>{money(v.revenue)}</span>,
     },
     {
-      key: 'prep', header: 'Prep', align: 'right',
+      key: 'prep', header: t('Prep'), align: 'right',
       render: (v) => <span className="mono" style={{ fontSize: 12 }}>{v.prepMinutes}m</span>,
     },
     {
-      key: 'rating', header: 'Rating', align: 'right',
+      key: 'rating', header: t('Rating'), align: 'right',
       render: (v) => (
         <span
           className="mono"
@@ -357,7 +359,7 @@ export default function Vendors() {
         </span>
       ),
     },
-    { key: 'status', header: 'Status', render: (v) => <Pill status={v.status} /> },
+    { key: 'status', header: t('Status'), render: (v) => <Pill status={v.status} /> },
     {
       key: 'actions', header: '', align: 'right',
       render: (v) => (
@@ -383,10 +385,10 @@ export default function Vendors() {
           value={vertical}
           onChange={setVertical}
           segments={[
-            { value: 'all', label: 'All', count: count('all') },
-            { value: 'food', label: 'Food', count: count('food') },
-            { value: 'grocery', label: 'Grocery', count: count('grocery') },
-            { value: 'parcel', label: 'Parcel', count: count('parcel') },
+            { value: 'all', label: t('All'), count: count('all') },
+            { value: 'food', label: t('Food'), count: count('food') },
+            { value: 'grocery', label: t('Grocery'), count: count('grocery') },
+            { value: 'parcel', label: t('Parcel'), count: count('parcel') },
           ]}
         />
       </div>

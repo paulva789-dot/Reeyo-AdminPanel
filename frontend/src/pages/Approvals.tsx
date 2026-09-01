@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Segments from '../components/ui/Segments';
 import { useAppState } from '../state/useAppState';
@@ -12,6 +13,7 @@ import RiderQueue from './approvals/RiderQueue';
  * counts are what the rail badge adds up to.
  */
 export default function Approvals() {
+  const t = useT();
   const { approvals, pendingVendors, pendingRiders } = useAppState();
   const [queue, setQueue] = useState('menus');
 
@@ -20,7 +22,7 @@ export default function Approvals() {
 
   return (
     <>
-      <PageTitle>Approvals</PageTitle>
+      <PageTitle>{t('Approvals')}</PageTitle>
 
       <div style={{ marginBottom: 16 }}>
         <Segments
@@ -28,9 +30,9 @@ export default function Approvals() {
           value={queue}
           onChange={setQueue}
           segments={[
-            { value: 'menus', label: 'Menu changes', count: waiting(approvals) },
-            { value: 'vendors', label: 'Vendors', count: waiting(pendingVendors) },
-            { value: 'riders', label: 'Riders', count: waiting(pendingRiders) },
+            { value: 'menus', label: t('Menu changes'), count: waiting(approvals) },
+            { value: 'vendors', label: t('Vendors'), count: waiting(pendingVendors) },
+            { value: 'riders', label: t('Riders'), count: waiting(pendingRiders) },
           ]}
         />
       </div>

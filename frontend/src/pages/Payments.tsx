@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -80,6 +81,7 @@ function Deduction({ label, value }: { label: string; value: number }) {
 }
 
 function Ledger() {
+  const t = useT();
   const { payments } = useAppState();
   const { range } = useDateRange();
   const [query, setQuery] = useState('');
@@ -99,7 +101,7 @@ function Ledger() {
 
   const columns: Column<Payment>[] = [
     {
-      key: 'id', header: 'Transaction',
+      key: 'id', header: t('Transaction'),
       render: (p) => (
         <div>
           <div className="mono" style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600 }}>
@@ -110,17 +112,17 @@ function Ledger() {
       ),
     },
     {
-      key: 'date', header: 'Date',
+      key: 'date', header: t('Date'),
       render: (p) => <span className="mono" style={{ fontSize: 12 }}>{p.date}</span>,
     },
-    { key: 'from', header: 'From', render: (p) => p.from },
-    { key: 'to', header: 'To', render: (p) => p.to },
-    { key: 'method', header: 'Method', render: (p) => p.method },
+    { key: 'from', header: t('From'), render: (p) => p.from },
+    { key: 'to', header: t('To'), render: (p) => p.to },
+    { key: 'method', header: t('Method'), render: (p) => p.method },
     {
-      key: 'amount', header: 'Amount', align: 'right',
+      key: 'amount', header: t('Amount'), align: 'right',
       render: (p) => <span className="mono" style={{ fontSize: 12 }}>{money(p.amount)}</span>,
     },
-    { key: 'status', header: 'Status', render: (p) => <Pill status={p.status} /> },
+    { key: 'status', header: t('Status'), render: (p) => <Pill status={p.status} /> },
   ];
 
   return (
@@ -205,6 +207,7 @@ function RiderSettlements() {
 }
 
 function Requests() {
+  const t = useT();
   const { payouts, approvePayout, declinePayout } = useAppState();
   const [confirm, setConfirm] = useState<PayoutRequest | null>(null);
   const [declining, setDeclining] = useState<PayoutRequest | null>(null);
@@ -213,7 +216,7 @@ function Requests() {
 
   const columns: Column<PayoutRequest>[] = [
     {
-      key: 'id', header: 'Request',
+      key: 'id', header: t('Request'),
       render: (p) => (
         <div>
           <div className="mono" style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600 }}>
@@ -223,13 +226,13 @@ function Requests() {
         </div>
       ),
     },
-    { key: 'who', header: 'Who', render: (p) => p.who },
+    { key: 'who', header: t('Who'), render: (p) => p.who },
     {
-      key: 'date', header: 'Requested',
+      key: 'date', header: t('Requested'),
       render: (p) => <span className="mono" style={{ fontSize: 12 }}>{p.date}</span>,
     },
     {
-      key: 'method', header: 'Destination',
+      key: 'method', header: t('Destination'),
       render: (p) => (
         <div>
           <div style={{ fontSize: 12.5 }}>{p.method}</div>
@@ -238,10 +241,10 @@ function Requests() {
       ),
     },
     {
-      key: 'amount', header: 'Amount', align: 'right',
+      key: 'amount', header: t('Amount'), align: 'right',
       render: (p) => <span className="mono" style={{ fontSize: 12 }}>{money(p.amount)}</span>,
     },
-    { key: 'status', header: 'Status', render: (p) => <Pill status={p.status} /> },
+    { key: 'status', header: t('Status'), render: (p) => <Pill status={p.status} /> },
     {
       key: 'actions', header: '', align: 'right',
       render: (p) => (p.status === 'pending' ? (
@@ -351,6 +354,7 @@ function Requests() {
 }
 
 export default function Payments() {
+  const t = useT();
   const { payouts, payments, sampleOnly } = useAppState();
   const [tab, setTab] = useState('ledger');
 
@@ -363,7 +367,7 @@ export default function Payments() {
 
   return (
     <>
-      <PageTitle>Payments</PageTitle>
+      <PageTitle>{t('Payments')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
@@ -383,10 +387,10 @@ export default function Payments() {
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'ledger', label: 'Ledger' },
-            { value: 'vendor', label: 'Vendor settlements' },
-            { value: 'rider', label: 'Rider settlements' },
-            { value: 'requests', label: 'Payout requests', count: pending.length },
+            { value: 'ledger', label: t('Ledger') },
+            { value: 'vendor', label: t('Vendor settlements') },
+            { value: 'rider', label: t('Rider settlements') },
+            { value: 'requests', label: t('Payout requests'), count: pending.length },
           ]}
         />
       </div>

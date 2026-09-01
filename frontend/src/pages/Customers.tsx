@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -130,6 +131,7 @@ const SEGMENT_TOKEN: Record<string, string> = {
 };
 
 export default function Customers() {
+  const t = useT();
   const { customers, orders, sampleOnly } = useAppState();
   const { range } = useDateRange();
 
@@ -165,7 +167,7 @@ export default function Customers() {
 
   const columns: Column<Customer>[] = [
     {
-      key: 'name', header: 'Customer',
+      key: 'name', header: t('Customer'),
       render: (c) => (
         <div>
           <div style={{ fontWeight: 600 }}>{c.name}</div>
@@ -174,7 +176,7 @@ export default function Customers() {
       ),
     },
     {
-      key: 'zone', header: 'Zone',
+      key: 'zone', header: t('Zone'),
       render: (c) => (
         <div>
           <div>{c.zone}</div>
@@ -185,12 +187,12 @@ export default function Customers() {
       ),
     },
     {
-      key: 'orders', header: 'Orders', align: 'right',
+      key: 'orders', header: t('Orders'), align: 'right',
       render: (c) => <span className="mono" style={{ fontSize: 12 }}>{c.orders}</span>,
     },
     {
       // Scoped by the date range in the topbar (spec 2.3).
-      key: 'period', header: 'In period', align: 'right',
+      key: 'period', header: t('In period'), align: 'right',
       render: (c) => {
         const count = inPeriod.get(c.name) ?? 0;
         return (
@@ -204,11 +206,11 @@ export default function Customers() {
       },
     },
     {
-      key: 'spend', header: 'Lifetime spend', align: 'right',
+      key: 'spend', header: t('Lifetime spend'), align: 'right',
       render: (c) => <span className="mono" style={{ fontSize: 12 }}>{money(c.spend)}</span>,
     },
     {
-      key: 'last', header: 'Last order', align: 'right',
+      key: 'last', header: t('Last order'), align: 'right',
       render: (c) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {c.lastOrder}
@@ -216,18 +218,18 @@ export default function Customers() {
       ),
     },
     {
-      key: 'rating', header: 'Rating', align: 'right',
+      key: 'rating', header: t('Rating'), align: 'right',
       render: (c) => <span className="mono" style={{ fontSize: 12 }}>{c.rating}</span>,
     },
     {
-      key: 'segment', header: 'Segment',
+      key: 'segment', header: t('Segment'),
       render: (c) => <Pill status={c.segment} token={SEGMENT_TOKEN[c.segment]} />,
     },
   ];
 
   return (
     <>
-      <PageTitle>Customers</PageTitle>
+      <PageTitle>{t('Customers')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>

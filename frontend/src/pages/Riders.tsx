@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -193,6 +194,7 @@ function RiderDrawer({ rider, onClose }: { rider: Rider; onClose: () => void }) 
 }
 
 export default function Riders() {
+  const t = useT();
   const { riders, orders, sampleOnly } = useAppState();
   const { range } = useDateRange();
 
@@ -226,7 +228,7 @@ export default function Riders() {
 
   const columns: Column<Rider>[] = [
     {
-      key: 'name', header: 'Rider',
+      key: 'name', header: t('Rider'),
       render: (r) => (
         <div>
           <div style={{ fontWeight: 600 }}>{r.name}</div>
@@ -235,7 +237,7 @@ export default function Riders() {
       ),
     },
     {
-      key: 'zone', header: 'Zone',
+      key: 'zone', header: t('Zone'),
       render: (r) => (
         <div>
           <div>{r.zone}</div>
@@ -245,14 +247,14 @@ export default function Riders() {
         </div>
       ),
     },
-    { key: 'vehicle', header: 'Vehicle', render: (r) => r.vehicle },
+    { key: 'vehicle', header: t('Vehicle'), render: (r) => r.vehicle },
     {
-      key: 'trips', header: 'Trips', align: 'right',
+      key: 'trips', header: t('Trips'), align: 'right',
       render: (r) => <span className="mono" style={{ fontSize: 12 }}>{r.trips}</span>,
     },
     {
       // Scoped by the date range in the topbar (spec 2.3).
-      key: 'period', header: 'In period', align: 'right',
+      key: 'period', header: t('In period'), align: 'right',
       render: (r) => {
         const count = inPeriod.get(r.name) ?? 0;
         return (
@@ -266,7 +268,7 @@ export default function Riders() {
       },
     },
     {
-      key: 'rating', header: 'Rating', align: 'right',
+      key: 'rating', header: t('Rating'), align: 'right',
       // Below 4.2 reads red — section 8.5
       render: (r) => (
         <span
@@ -278,10 +280,10 @@ export default function Riders() {
       ),
     },
     {
-      key: 'owed', header: 'Owed', align: 'right',
+      key: 'owed', header: t('Owed'), align: 'right',
       render: (r) => <span className="mono" style={{ fontSize: 12 }}>{money(r.owed)}</span>,
     },
-    { key: 'state', header: 'State', render: (r) => <Pill status={r.state} /> },
+    { key: 'state', header: t('State'), render: (r) => <Pill status={r.state} /> },
     {
       // Releasing money happens in the payouts queue; there is no rider-level
       // route for it, so this opens what the console can actually show.
@@ -294,7 +296,7 @@ export default function Riders() {
 
   return (
     <>
-      <PageTitle>Riders</PageTitle>
+      <PageTitle>{t('Riders')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>

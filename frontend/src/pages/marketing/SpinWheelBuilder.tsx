@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -153,6 +154,7 @@ let segSeq = 0;
 
 /** The spin wheel campaign builder — specification §7.4. */
 export default function SpinWheelBuilder() {
+  const t = useT();
   const [campaigns, setCampaigns] = useState<SpinCampaign[]>(seed);
   const [activeId, setActiveId] = useState(seed[0]?.id ?? '');
   const [tab, setTab] = useState('build');
@@ -192,9 +194,9 @@ export default function SpinWheelBuilder() {
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'build', label: 'Segments' },
-            { value: 'rules', label: 'Limits and eligibility' },
-            { value: 'report', label: 'Reporting' },
+            { value: 'build', label: t('Segments') },
+            { value: 'rules', label: t('Limits and eligibility') },
+            { value: 'report', label: t('Reporting') },
           ]}
         />
       </div>
@@ -382,7 +384,7 @@ export default function SpinWheelBuilder() {
               onClick={() => update({
                 segments: [...campaign.segments, {
                   id: `WS-new-${++segSeq}`,
-                  label: 'New prize',
+                  label: t('New prize'),
                   prizeType: 'Discount',
                   value: 500,
                   colourToken: 'calm',

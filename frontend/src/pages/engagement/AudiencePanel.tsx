@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../../i18n/useT';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
 import Toggle from '../../components/ui/Toggle';
@@ -46,6 +47,7 @@ function AddTag({ onAdd }: { onAdd: (tag: string) => void }) {
 }
 
 export default function AudiencePanel({ engagement }: { engagement: EngagementState }) {
+  const t = useT();
   const {
     preferenceTags, trackingFacts, sharedCarts,
     createPreferenceTag, deletePreferenceTag,
@@ -59,13 +61,13 @@ export default function AudiencePanel({ engagement }: { engagement: EngagementSt
   const [removingTag, setRemovingTag] = useState<string | null>(null);
 
   const cartColumns: Column<SharedCart>[] = [
-    { key: 'owner', header: 'Started by', render: (c) => c.owner },
+    { key: 'owner', header: t('Started by'), render: (c) => c.owner },
     {
-      key: 'participants', header: 'People', align: 'right',
+      key: 'participants', header: t('People'), align: 'right',
       render: (c) => <span className="mono" style={{ fontSize: 12 }}>{c.participants}</span>,
     },
     {
-      key: 'total', header: 'Basket', align: 'right',
+      key: 'total', header: t('Basket'), align: 'right',
       render: (c) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--forest)' }}>
           {money(c.total)}
@@ -73,7 +75,7 @@ export default function AudiencePanel({ engagement }: { engagement: EngagementSt
       ),
     },
     {
-      key: 'created', header: 'Started', align: 'right',
+      key: 'created', header: t('Started'), align: 'right',
       render: (c) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {c.createdAgo}

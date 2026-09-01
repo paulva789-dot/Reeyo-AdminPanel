@@ -29,15 +29,15 @@ function ThemeControl() {
   const { theme, setTheme } = usePreferences();
   const t = useT();
 
-  const label = theme === 'light' ? t('top.themeLight')
-    : theme === 'dark' ? t('top.themeDark') : t('top.themeSystem');
+  const label = theme === 'light' ? t('Light')
+    : theme === 'dark' ? t('Dark') : t('System');
   const Icon = theme === 'light' ? SunIcon : theme === 'dark' ? MoonIcon : MonitorIcon;
 
   return (
     <button
       onClick={() => setTheme(THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length])}
-      aria-label={`${t('top.theme')}: ${label}`}
-      title={`${t('top.theme')}: ${label}`}
+      aria-label={`${t('Theme')}: ${label}`}
+      title={`${t('Theme')}: ${label}`}
       style={iconButton}
     >
       <Icon size={17} />
@@ -53,7 +53,7 @@ function LanguageControl() {
   return (
     <div
       role="group"
-      aria-label={t('top.language')}
+      aria-label={t('Language')}
       style={{
         display: 'flex', height: 34, borderRadius: 'var(--r-ctrl)',
         border: '1px solid var(--line)', background: 'var(--card)',
@@ -143,7 +143,7 @@ export default function Topbar({ onOpenNav }: TopbarProps) {
       <button
         className="reeyo-nav-toggle"
         onClick={onOpenNav}
-        aria-label={t('top.openNav')}
+        aria-label={t('Open navigation')}
         style={{ ...iconButton, display: 'none' }}
       >
         <MenuIcon size={17} />
@@ -172,8 +172,8 @@ export default function Topbar({ onOpenNav }: TopbarProps) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t('top.search')}
-          aria-label={t('top.searchLabel')}
+          placeholder={t('Search orders, vendors, riders')}
+          aria-label={t('Search')}
           size={1}
           style={{
             width: '100%', minWidth: 0, height: 38, paddingLeft: 34, paddingRight: 30,
@@ -202,7 +202,7 @@ export default function Topbar({ onOpenNav }: TopbarProps) {
 
       <button
         onClick={() => setAlertsOpen((open) => !open)}
-        aria-label={`${t('top.alerts')} (${alertCount})`}
+        aria-label={`${t('Alerts')} (${alertCount})`}
         aria-expanded={alertsOpen}
         style={{ ...iconButton, position: 'relative' }}
       >
@@ -222,8 +222,8 @@ export default function Topbar({ onOpenNav }: TopbarProps) {
 
       <button
         onClick={refresh}
-        aria-label={t('top.refresh')}
-        title={t('top.refresh')}
+        aria-label={t('Refresh data')}
+        title={t('Refresh data')}
         style={iconButton}
       >
         <span
@@ -265,9 +265,9 @@ function AlertMenu({
   }, [onClose]);
 
   const rows = [
-    { count: unacknowledged, label: t('nav.orders'), to: '/orders' },
-    { count: approvals, label: t('nav.approvals'), to: '/approvals' },
-    { count: disputes, label: t('nav.disputes'), to: '/disputes' },
+    { count: unacknowledged, label: t('Orders'), to: '/orders' },
+    { count: approvals, label: t('Approvals'), to: '/approvals' },
+    { count: disputes, label: t('Disputes'), to: '/disputes' },
   ].filter((row) => row.count > 0);
 
   return (
@@ -279,7 +279,7 @@ function AlertMenu({
       />
       <div
         role="dialog"
-        aria-label={t('top.alerts')}
+        aria-label={t('Alerts')}
         style={{
           position: 'absolute', top: 'calc(var(--topbar-h) - 6px)', right: 'var(--gutter)',
           zIndex: 41, width: 260, padding: 8,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -195,15 +196,16 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function ApiKeysCard() {
+  const t = useT();
   const { apiKeys, revokeApiKey } = useAppState();
   const { isSuperAdmin } = useAuth();
   const [creating, setCreating] = useState(false);
   const [confirming, setConfirming] = useState<ApiKey | null>(null);
 
   const columns: Column<ApiKey>[] = [
-    { key: 'name', header: 'Name', render: (k) => <span style={{ fontWeight: 600 }}>{k.name}</span> },
+    { key: 'name', header: t('Name'), render: (k) => <span style={{ fontWeight: 600 }}>{k.name}</span> },
     {
-      key: 'prefix', header: 'Key',
+      key: 'prefix', header: t('Key'),
       render: (k) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>
           {k.prefix}…
@@ -211,7 +213,7 @@ export default function ApiKeysCard() {
       ),
     },
     {
-      key: 'scopes', header: 'Scopes',
+      key: 'scopes', header: t('Scopes'),
       render: (k) => (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {k.scopes.map((s) => (
@@ -230,7 +232,7 @@ export default function ApiKeysCard() {
       ),
     },
     {
-      key: 'lastUsed', header: 'Last used', align: 'right',
+      key: 'lastUsed', header: t('Last used'), align: 'right',
       render: (k) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {k.lastUsed ?? 'Never'}
@@ -238,7 +240,7 @@ export default function ApiKeysCard() {
       ),
     },
     {
-      key: 'status', header: 'Status',
+      key: 'status', header: t('Status'),
       render: (k) => <Pill status={k.revoked ? 'archived' : 'active'} />,
     },
     {

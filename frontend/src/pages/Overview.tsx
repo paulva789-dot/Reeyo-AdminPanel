@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../i18n/useT';
 import { useNavigate } from 'react-router-dom';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
@@ -34,6 +35,7 @@ import type { Order } from '../data/types';
  * appears only in live mode — there is nothing to snapshot in sample mode.
  */
 function RightNow() {
+  const t = useT();
   const { live, sample } = useAnalytics(['live']);
   if (sample) return null;
 
@@ -48,12 +50,12 @@ function RightNow() {
 
   const s = live.value;
   const figures: { label: string; value: string }[] = [
-    { label: 'Active orders', value: String(s.activeOrders) },
-    { label: 'Riders online', value: String(s.onlineRiders) },
-    { label: 'Vendors open', value: String(s.onlineVendors) },
-    { label: 'Orders today', value: String(s.ordersToday) },
-    { label: 'Revenue today', value: money(s.revenueToday) },
-    { label: 'Awaiting approval', value: String(s.pendingApprovals) },
+    { label: t('Active orders'), value: String(s.activeOrders) },
+    { label: t('Riders online'), value: String(s.onlineRiders) },
+    { label: t('Vendors open'), value: String(s.onlineVendors) },
+    { label: t('Orders today'), value: String(s.ordersToday) },
+    { label: t('Revenue today'), value: money(s.revenueToday) },
+    { label: t('Awaiting approval'), value: String(s.pendingApprovals) },
   ];
 
   return (
@@ -99,6 +101,7 @@ function needsDecision(o: Order): boolean {
 }
 
 export default function Overview() {
+  const t = useT();
   const navigate = useNavigate();
   const {
     orders, payouts, vendors, riders, sampleOnly,
@@ -148,7 +151,7 @@ export default function Overview() {
   const columns: Column<Order>[] = [
     {
       key: 'order',
-      header: 'Order',
+      header: t('Order'),
       render: (o) => (
         <div>
           <div className="mono" style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600 }}>
@@ -160,7 +163,7 @@ export default function Overview() {
     },
     {
       key: 'customer',
-      header: 'Customer',
+      header: t('Customer'),
       render: (o) => (
         <div>
           <div>{o.customer}</div>
@@ -168,17 +171,17 @@ export default function Overview() {
         </div>
       ),
     },
-    { key: 'vendor', header: 'Vendor', render: (o) => o.vendor },
+    { key: 'vendor', header: t('Vendor'), render: (o) => o.vendor },
     {
       key: 'rider',
-      header: 'Rider',
+      header: t('Rider'),
       render: (o) => (o.rider
         ? o.rider
         : <span style={{ color: 'var(--text-3)' }}>Unassigned</span>),
     },
     {
       key: 'eta',
-      header: 'ETA',
+      header: t('ETA'),
       align: 'right',
       render: (o) => (
         <span
@@ -191,7 +194,7 @@ export default function Overview() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       render: (o) => <Pill status={o.status} />,
     },
   ];

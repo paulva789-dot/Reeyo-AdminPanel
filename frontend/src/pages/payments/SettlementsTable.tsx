@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -39,6 +40,7 @@ function commissionFor(profile: VendorProfile, order: Order): number {
  * that a scrolling exercise.
  */
 export default function SettlementsTable() {
+  const t = useT();
   const { orders } = useAppState();
   const { profiles } = useVendorProfiles();
   const { range } = useDateRange();
@@ -103,7 +105,7 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'vendor', header: 'Vendor',
+      key: 'vendor', header: t('Vendor'),
       render: (r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <span
@@ -127,15 +129,15 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'orders', header: 'Orders', align: 'right',
+      key: 'orders', header: t('Orders'), align: 'right',
       render: (r) => <span className="mono" style={{ fontSize: 12 }}>{r.orders.length}</span>,
     },
     {
-      key: 'gross', header: 'Gross sales', align: 'right',
+      key: 'gross', header: t('Gross sales'), align: 'right',
       render: (r) => <span className="mono" style={{ fontSize: 12 }}>{money(r.gross)}</span>,
     },
     {
-      key: 'commission', header: 'Commission', align: 'right',
+      key: 'commission', header: t('Commission'), align: 'right',
       render: (r) => (
         <div>
           <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
@@ -150,7 +152,7 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'packaging', header: 'Packaging', align: 'right',
+      key: 'packaging', header: t('Packaging'), align: 'right',
       render: (r) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {r.packaging > 0 ? money(r.packaging) : '—'}
@@ -158,7 +160,7 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'net', header: 'Net payable', align: 'right',
+      key: 'net', header: t('Net payable'), align: 'right',
       render: (r) => (
         <span className="mono" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--forest)' }}>
           {money(r.net)}
@@ -166,7 +168,7 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'wallet', header: 'Wallet', align: 'right',
+      key: 'wallet', header: t('Wallet'), align: 'right',
       render: (r) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {money(r.profile.walletBalance)}
@@ -174,7 +176,7 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'payTo', header: 'Pay to',
+      key: 'payTo', header: t('Pay to'),
       render: (r) => (
         <div>
           <div style={{ fontSize: 12 }}>{r.profile.paymentName}</div>
@@ -185,11 +187,11 @@ export default function SettlementsTable() {
       ),
     },
     {
-      key: 'status', header: 'Status',
+      key: 'status', header: t('Status'),
       render: (r) => <Pill status={r.status.toLowerCase()} />,
     },
     {
-      key: 'last', header: 'Last settled', align: 'right',
+      key: 'last', header: t('Last settled'), align: 'right',
       render: (r) => (
         <span className="mono" style={{ fontSize: 11.5, color: 'var(--text-3)' }}>
           {r.lastSettled ?? 'never'}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Toggle from '../components/ui/Toggle';
@@ -42,6 +43,7 @@ function PaymentMethods() {
 }
 
 export default function Settings() {
+  const t = useT();
   // One hook for the page: config, flags and admin accounts load together and
   // each card reports its own failure.
   const state = usePlatformAdmin();
@@ -51,7 +53,7 @@ export default function Settings() {
       {/* Saving is per-card now. A single page-level "Save changes" button
           could not be honest about which of three separate endpoints it wrote
           to, or which of them failed. */}
-      <PageTitle>Settings</PageTitle>
+      <PageTitle>{t('Settings')}</PageTitle>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="reeyo-split-even">

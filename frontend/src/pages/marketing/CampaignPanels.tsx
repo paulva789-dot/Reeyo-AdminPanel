@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -498,6 +499,7 @@ function AisleForm({
   onSave: (aisle: HorizontalAisle) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState<HorizontalAisle>(initial ?? {
     id: nextId('HA'), name: '', zones: [], contentType: 'Vendor',
     selection: [], backgroundToken: 'go', badge: null,
@@ -541,8 +543,8 @@ function AisleForm({
             value={draft.contentType}
             onChange={(v) => setDraft({ ...draft, contentType: v as 'Vendor' | 'Item', selection: [] })}
             options={[
-              { value: 'Vendor', label: 'Vendors' },
-              { value: 'Item', label: 'Items' },
+              { value: 'Vendor', label: t('Vendors') },
+              { value: 'Item', label: t('Items') },
             ]}
           />
           <Select

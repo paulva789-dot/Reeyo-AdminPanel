@@ -58,6 +58,13 @@ ws.onopen = async () => {
   // Start from the app, not from whatever the previous suite left behind. The
   // runner blanks the page between suites, so every suite navigates itself.
   await send('Page.navigate', { url: 'http://localhost:5180/' }, sessionId);
+
+  // French is the default (spec 2.1); these assertions are written in English.
+  // Setting it before the app boots keeps the suite testing structure rather
+  // than translation, which interactions.mjs covers on its own.
+  await ev(`try { localStorage.setItem('reeyo.language', 'en'); } catch (e) {}`);
+  await send('Page.reload', {}, sessionId);
+  await wait(700);
   const readyBy = Date.now() + 45000;
   while (Date.now() < readyBy) {
     const painted = await ev(`document.body.innerText.includes('sample data')

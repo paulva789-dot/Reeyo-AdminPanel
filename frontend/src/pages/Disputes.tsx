@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -224,6 +225,7 @@ function DisputeDrawer({ dispute, onClose }: { dispute: Dispute; onClose: () => 
 }
 
 export default function Disputes() {
+  const t = useT();
   const { disputes } = useAppState();
   const [status, setStatus] = useState('open');
   const [query, setQuery] = useState('');
@@ -246,7 +248,7 @@ export default function Disputes() {
 
   const columns: Column<Dispute>[] = [
     {
-      key: 'ticket', header: 'Ticket',
+      key: 'ticket', header: t('Ticket'),
       render: (d) => (
         <div>
           <div className="mono" style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600 }}>
@@ -257,7 +259,7 @@ export default function Disputes() {
       ),
     },
     {
-      key: 'subject', header: 'Subject',
+      key: 'subject', header: t('Subject'),
       render: (d) => (
         <div>
           <div>{d.subject}</div>
@@ -265,15 +267,15 @@ export default function Disputes() {
         </div>
       ),
     },
-    { key: 'customer', header: 'Customer', render: (d) => d.customer },
+    { key: 'customer', header: t('Customer'), render: (d) => d.customer },
     {
-      key: 'order', header: 'Order',
+      key: 'order', header: t('Order'),
       render: (d) => (d.orderId
         ? <span className="mono" style={{ fontSize: 12 }}>{d.orderId}</span>
         : <span style={{ color: 'var(--text-3)' }}>None</span>),
     },
-    { key: 'priority', header: 'Priority', render: (d) => <Pill status={d.priority} /> },
-    { key: 'status', header: 'Status', render: (d) => <Pill status={d.status} /> },
+    { key: 'priority', header: t('Priority'), render: (d) => <Pill status={d.priority} /> },
+    { key: 'status', header: t('Status'), render: (d) => <Pill status={d.status} /> },
     {
       key: 'open', header: '', align: 'right',
       // Not just "Open": the status filter above uses that word for a state,
@@ -287,7 +289,7 @@ export default function Disputes() {
 
   return (
     <>
-      <PageTitle>Disputes</PageTitle>
+      <PageTitle>{t('Disputes')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <MetricRow>
@@ -304,10 +306,10 @@ export default function Disputes() {
           value={status}
           onChange={setStatus}
           segments={[
-            { value: 'open', label: 'Open', count: count('open') },
-            { value: 'resolved', label: 'Resolved', count: count('resolved') },
-            { value: 'rejected', label: 'Rejected', count: count('rejected') },
-            { value: 'all', label: 'All', count: count('all') },
+            { value: 'open', label: t('Open'), count: count('open') },
+            { value: 'resolved', label: t('Resolved'), count: count('resolved') },
+            { value: 'rejected', label: t('Rejected'), count: count('rejected') },
+            { value: 'all', label: t('All'), count: count('all') },
           ]}
         />
       </div>

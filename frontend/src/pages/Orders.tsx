@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useT } from '../i18n/useT';
 import { useSearchParams } from 'react-router-dom';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
@@ -34,6 +35,7 @@ function placedOn(order: Order): string {
 }
 
 export default function Orders() {
+  const t = useT();
   const { orders, isSample, setOrderStage } = useAppState();
   const { range } = useDateRange();
   const [params, setParams] = useSearchParams();
@@ -126,7 +128,7 @@ export default function Orders() {
   const columns: Column<Order>[] = [
     {
       key: 'order',
-      header: 'Order',
+      header: t('Order'),
       render: (o) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* New and unacknowledged orders are marked until opened (§3.1). */}
@@ -153,7 +155,7 @@ export default function Orders() {
     },
     {
       key: 'service',
-      header: 'Service',
+      header: t('Service'),
       render: (o) => <Pill status={o.vertical} token={o.vertical} />,
     },
     {
@@ -171,13 +173,13 @@ export default function Orders() {
     { key: 'vendor', header: words.from, render: (o) => o.vendor },
     {
       key: 'rider',
-      header: 'Rider',
+      header: t('Rider'),
       render: (o) => (o.rider
         ? o.rider
         : <span style={{ color: 'var(--text-3)' }}>Unassigned</span>),
     },
     {
-      key: 'zone', header: 'Zone',
+      key: 'zone', header: t('Zone'),
       render: (o) => (
         <div>
           <div>{o.zone}</div>
@@ -189,13 +191,13 @@ export default function Orders() {
     },
     {
       key: 'total',
-      header: 'Total',
+      header: t('Total'),
       align: 'right',
       render: (o) => <span className="mono" style={{ fontSize: 12 }}>{money(o.total)}</span>,
     },
     {
       key: 'payment',
-      header: 'Payment',
+      header: t('Payment'),
       render: (o) => (
         <div>
           <div style={{ fontSize: 12 }}>{o.payment}</div>
@@ -207,7 +209,7 @@ export default function Orders() {
     },
     {
       key: 'eta',
-      header: 'ETA',
+      header: t('ETA'),
       align: 'right',
       render: (o) => (
         <span
@@ -223,7 +225,7 @@ export default function Orders() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       render: (o) => <Pill status={o.status} />,
     },
     {
@@ -250,7 +252,7 @@ export default function Orders() {
 
   return (
     <>
-      <PageTitle>Orders</PageTitle>
+      <PageTitle>{t('Orders')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <Segments
@@ -258,10 +260,10 @@ export default function Orders() {
           value={vertical}
           onChange={(v) => setParams(v === 'all' ? {} : { vertical: v })}
           segments={[
-            { value: 'all', label: 'All', count: count('all') },
-            { value: 'food', label: 'Food', count: count('food') },
-            { value: 'grocery', label: 'Grocery', count: count('grocery') },
-            { value: 'parcel', label: 'Parcel', count: count('parcel') },
+            { value: 'all', label: t('All'), count: count('all') },
+            { value: 'food', label: t('Food'), count: count('food') },
+            { value: 'grocery', label: t('Grocery'), count: count('grocery') },
+            { value: 'parcel', label: t('Parcel'), count: count('parcel') },
           ]}
         />
       </div>
@@ -278,7 +280,7 @@ export default function Orders() {
             value={status}
             onChange={setStatus}
             options={[
-              { value: ANY, label: 'Any status' },
+              { value: ANY, label: t('Any status') },
               ...ORDER_FLOW.map((s) => ({ value: s, label: s })),
               { value: 'cancelled', label: 'cancelled' },
               { value: 'failed', label: 'failed / returned' },
@@ -289,7 +291,7 @@ export default function Orders() {
             value={zone}
             onChange={setZone}
             options={[
-              { value: ANY, label: 'Any zone' },
+              { value: ANY, label: t('Any zone') },
               ...zones.map((z) => ({ value: z, label: z })),
             ]}
           />
@@ -298,7 +300,7 @@ export default function Orders() {
             value={payment}
             onChange={setPayment}
             options={[
-              { value: ANY, label: 'Any method' },
+              { value: ANY, label: t('Any method') },
               ...PAYMENT_METHOD_LIST.map((m) => ({ value: m, label: m })),
             ]}
           />
@@ -307,7 +309,7 @@ export default function Orders() {
             value={rider}
             onChange={setRider}
             options={[
-              { value: ANY, label: 'Any rider' },
+              { value: ANY, label: t('Any rider') },
               ...riders.map((r) => ({ value: r, label: r })),
             ]}
           />

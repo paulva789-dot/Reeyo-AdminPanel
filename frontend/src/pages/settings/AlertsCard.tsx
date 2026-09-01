@@ -26,7 +26,7 @@ export default function AlertsCard() {
   const muted = settings.volume === 0;
 
   return (
-    <Card title={t('sound.title')}>
+    <Card title={t('Incoming order alert')}>
       {!unlocked && (
         <div
           style={{
@@ -36,9 +36,9 @@ export default function AlertsCard() {
           }}
         >
           <span style={{ flex: 1, fontSize: 12.5, color: 'var(--watch)' }}>
-            {t('sound.blocked')}
+            {t('The browser blocks sound until the page is interacted with.')}
           </span>
-          <Button variant="primary" onClick={enableSound}>{t('sound.enable')}</Button>
+          <Button variant="primary" onClick={enableSound}>{t('Enable sound')}</Button>
         </div>
       )}
 
@@ -58,7 +58,7 @@ export default function AlertsCard() {
             }}
           />
           <span style={{ fontSize: 12.5, color: 'var(--stop)' }}>
-            {t('sound.muted')} — new orders will arrive silently. The toast, the
+            {t('Sound is muted')} — new orders will arrive silently. The toast, the
             tab title and the Orders badge still carry them.
           </span>
         </div>
@@ -69,7 +69,7 @@ export default function AlertsCard() {
           <div key={service.key} style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <Select
-                label={`${service.label} — ${t('sound.tone')}`}
+                label={`${service.label} — ${t('Tone')}`}
                 value={settings.tones[service.key]}
                 onChange={(v) => setTone(service.key, v as ToneId)}
                 options={OPTIONS}
@@ -79,7 +79,7 @@ export default function AlertsCard() {
               variant="outline"
               onClick={() => preview(settings.tones[service.key])}
             >
-              {t('sound.preview')}
+              {t('Preview')}
             </Button>
           </div>
         ))}
@@ -93,13 +93,13 @@ export default function AlertsCard() {
           }}
           htmlFor="alert-volume"
         >
-          {t('sound.volume')}
+          {t('Volume')}
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input
             id="alert-volume"
             type="range"
-            aria-label={t('sound.volume')}
+            aria-label={t('Volume')}
             min={0}
             max={100}
             value={settings.volume}

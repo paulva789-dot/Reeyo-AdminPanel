@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -20,6 +21,7 @@ const EVERY = '__every__';
 
 /** §6.2 — enter a test distance and see the fee before saving. */
 function Preview({ rules }: { rules: FeeRuleSet[] }) {
+  const t = useT();
   const [km, setKm] = useState('2.4');
   const [zone, setZone] = useState(GLOBAL);
   const [service, setService] = useState<string>(EVERY);
@@ -47,7 +49,7 @@ function Preview({ rules }: { rules: FeeRuleSet[] }) {
           value={zone}
           onChange={setZone}
           options={[
-            { value: GLOBAL, label: 'Anywhere' },
+            { value: GLOBAL, label: t('Anywhere') },
             ...zones.map((z) => ({ value: z, label: z })),
           ]}
         />
@@ -56,9 +58,9 @@ function Preview({ rules }: { rules: FeeRuleSet[] }) {
           value={service}
           onChange={setService}
           options={[
-            { value: EVERY, label: 'Food' },
-            { value: 'grocery', label: 'Grocery' },
-            { value: 'parcel', label: 'Parcel' },
+            { value: EVERY, label: t('Food') },
+            { value: 'grocery', label: t('Grocery') },
+            { value: 'parcel', label: t('Parcel') },
           ]}
         />
       </div>
@@ -112,6 +114,7 @@ function RuleForm({
   onSave: (rule: FeeRuleSet) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [zone, setZone] = useState(initial?.zone ?? GLOBAL);
   const [service, setService] = useState<string>(initial?.service ?? EVERY);
   const [amounts, setAmounts] = useState<string[]>(
@@ -165,7 +168,7 @@ function RuleForm({
           value={zone}
           onChange={setZone}
           options={[
-            { value: GLOBAL, label: 'Everywhere (default)' },
+            { value: GLOBAL, label: t('Everywhere (default)') },
             ...zones.map((z) => ({ value: z, label: z })),
           ]}
         />
@@ -174,10 +177,10 @@ function RuleForm({
           value={service}
           onChange={setService}
           options={[
-            { value: EVERY, label: 'Every service' },
-            { value: 'food', label: 'Food' },
-            { value: 'grocery', label: 'Grocery' },
-            { value: 'parcel', label: 'Parcel' },
+            { value: EVERY, label: t('Every service') },
+            { value: 'food', label: t('Food') },
+            { value: 'grocery', label: t('Grocery') },
+            { value: 'parcel', label: t('Parcel') },
           ]}
         />
       </div>

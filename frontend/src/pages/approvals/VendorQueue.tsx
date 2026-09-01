@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -14,6 +15,7 @@ import ReasonModal from './ReasonModal';
 type Ask = { kind: 'reject' | 'suspend'; vendor: PendingVendor };
 
 export default function VendorQueue() {
+  const t = useT();
   const { pendingVendors, approveVendor, rejectVendor, suspendVendor } = useAppState();
   const [status, setStatus] = useState('pending');
   const [query, setQuery] = useState('');
@@ -33,7 +35,7 @@ export default function VendorQueue() {
 
   const columns: Column<PendingVendor>[] = [
     {
-      key: 'vendor', header: 'Vendor',
+      key: 'vendor', header: t('Vendor'),
       render: (v) => (
         <div>
           <div style={{ fontWeight: 600 }}>{v.name}</div>
@@ -42,7 +44,7 @@ export default function VendorQueue() {
       ),
     },
     {
-      key: 'owner', header: 'Owner',
+      key: 'owner', header: t('Owner'),
       render: (v) => (
         <div>
           <div>{v.owner}</div>
@@ -51,7 +53,7 @@ export default function VendorQueue() {
       ),
     },
     {
-      key: 'where', header: 'Where',
+      key: 'where', header: t('Where'),
       render: (v) => (
         <div>
           <div>{v.zone}</div>
@@ -60,14 +62,14 @@ export default function VendorQueue() {
       ),
     },
     {
-      key: 'submitted', header: 'Applied', align: 'right',
+      key: 'submitted', header: t('Applied'), align: 'right',
       render: (v) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {v.submittedAgo}
         </span>
       ),
     },
-    { key: 'status', header: 'Status', render: (v) => <Pill status={v.status} /> },
+    { key: 'status', header: t('Status'), render: (v) => <Pill status={v.status} /> },
     {
       key: 'actions', header: '', align: 'right',
       render: (v) => {
@@ -122,10 +124,10 @@ export default function VendorQueue() {
           value={status}
           onChange={setStatus}
           segments={[
-            { value: 'pending', label: 'Waiting', count: count('pending') },
-            { value: 'approved', label: 'Approved', count: count('approved') },
-            { value: 'rejected', label: 'Rejected', count: count('rejected') },
-            { value: 'all', label: 'All', count: count('all') },
+            { value: 'pending', label: t('Waiting'), count: count('pending') },
+            { value: 'approved', label: t('Approved'), count: count('approved') },
+            { value: 'rejected', label: t('Rejected'), count: count('rejected') },
+            { value: 'all', label: t('All'), count: count('all') },
           ]}
         />
       </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useT } from '../../i18n/useT';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
 import Segments from '../../components/ui/Segments';
@@ -94,6 +95,7 @@ function CommissionField({
 export default function VendorProfileDrawer({
   profile, onSave, onCredit, onDebit, onReverse, onClose,
 }: Props) {
+  const t = useT();
   const [tab, setTab] = useState('profile');
   const [draft, setDraft] = useState<VendorProfile>(profile);
   const [error, setError] = useState('');
@@ -165,11 +167,11 @@ export default function VendorProfileDrawer({
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'profile', label: 'Profile' },
-            { value: 'hours', label: 'Hours' },
-            { value: 'money', label: 'Money' },
-            { value: 'wallet', label: 'Wallet' },
-            { value: 'orders', label: 'Orders' },
+            { value: 'profile', label: t('Profile') },
+            { value: 'hours', label: t('Hours') },
+            { value: 'money', label: t('Money') },
+            { value: 'wallet', label: t('Wallet') },
+            { value: 'orders', label: t('Orders') },
           ]}
         />
       </div>
@@ -233,9 +235,9 @@ export default function VendorProfileDrawer({
               value={draft.service}
               onChange={(v) => set('service', v as Vertical)}
               options={[
-                { value: 'food', label: 'Food' },
-                { value: 'grocery', label: 'Grocery' },
-                { value: 'parcel', label: 'Parcel' },
+                { value: 'food', label: t('Food') },
+                { value: 'grocery', label: t('Grocery') },
+                { value: 'parcel', label: t('Parcel') },
               ]}
             />
             <Select
@@ -243,9 +245,9 @@ export default function VendorProfileDrawer({
               value={draft.status}
               onChange={(v) => set('status', v as VendorProfile['status'])}
               options={[
-                { value: 'active', label: 'Active' },
-                { value: 'paused', label: 'Paused — stays visible, takes no orders' },
-                { value: 'suspended', label: 'Suspended' },
+                { value: 'active', label: t('Active') },
+                { value: 'paused', label: t('Paused — stays visible, takes no orders') },
+                { value: 'suspended', label: t('Suspended') },
               ]}
             />
           </div>

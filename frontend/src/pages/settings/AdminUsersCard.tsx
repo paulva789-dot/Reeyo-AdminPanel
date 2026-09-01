@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../../i18n/useT';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Pill from '../../components/ui/Pill';
@@ -99,6 +100,7 @@ function InviteModal({
  * team that would read as the real one, the card says who can.
  */
 export default function AdminUsersCard({ state }: { state: PlatformAdminState }) {
+  const t = useT();
   const { isSuperAdmin, admin } = useAuth();
   const { admins, adminsError, createAdmin, updateAdmin, deleteAdmin } = state;
   const [inviting, setInviting] = useState(false);
@@ -106,7 +108,7 @@ export default function AdminUsersCard({ state }: { state: PlatformAdminState })
 
   const columns: Column<AdminUser>[] = [
     {
-      key: 'name', header: 'Admin',
+      key: 'name', header: t('Admin'),
       render: (a) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <span
@@ -131,7 +133,7 @@ export default function AdminUsersCard({ state }: { state: PlatformAdminState })
       ),
     },
     {
-      key: 'role', header: 'Role',
+      key: 'role', header: t('Role'),
       render: (a) => (
         <Pill
           status={a.role === 'SUPER_ADMIN' ? 'super admin' : 'admin'}
@@ -140,11 +142,11 @@ export default function AdminUsersCard({ state }: { state: PlatformAdminState })
       ),
     },
     {
-      key: 'status', header: 'Status',
+      key: 'status', header: t('Status'),
       render: (a) => <Pill status={a.status === 'ACTIVE' ? 'active' : 'suspended'} />,
     },
     {
-      key: 'seen', header: 'Last seen', align: 'right',
+      key: 'seen', header: t('Last seen'), align: 'right',
       render: (a) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>
           {a.lastLogin ?? 'never'}

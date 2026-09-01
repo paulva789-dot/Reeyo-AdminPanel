@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -16,6 +17,7 @@ import { BannersPanel, PopupsPanel, AislesPanel } from './marketing/CampaignPane
 import type { Offer } from '../data/types';
 
 function Offers() {
+  const t = useT();
   const { offers, toggleOffer, sampleOnly } = useAppState();
 
   const live = offers.filter((o) => o.active).length;
@@ -24,7 +26,7 @@ function Offers() {
 
   const columns: Column<Offer>[] = [
     {
-      key: 'name', header: 'Offer',
+      key: 'name', header: t('Offer'),
       render: (o) => (
         <div>
           <div style={{ fontWeight: 600 }}>{o.name}</div>
@@ -33,13 +35,13 @@ function Offers() {
       ),
     },
     {
-      key: 'code', header: 'Code',
+      key: 'code', header: t('Code'),
       render: (o) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--forest)' }}>{o.code}</span>
       ),
     },
     {
-      key: 'reward', header: 'Reward',
+      key: 'reward', header: t('Reward'),
       render: (o) => (
         <div>
           <div className="mono" style={{ fontSize: 12 }}>{o.value}</div>
@@ -47,23 +49,23 @@ function Offers() {
         </div>
       ),
     },
-    { key: 'payer', header: 'Absorbed by', render: (o) => o.payer },
+    { key: 'payer', header: t('Absorbed by'), render: (o) => o.payer },
     {
-      key: 'uses', header: 'Redemptions', align: 'right',
+      key: 'uses', header: t('Redemptions'), align: 'right',
       render: (o) => <span className="mono" style={{ fontSize: 12 }}>{o.uses}</span>,
     },
     {
-      key: 'spent', header: 'Spend', align: 'right',
+      key: 'spent', header: t('Spend'), align: 'right',
       render: (o) => <span className="mono" style={{ fontSize: 12 }}>{money(o.spent)}</span>,
     },
     {
-      key: 'ends', header: 'Ends', align: 'right',
+      key: 'ends', header: t('Ends'), align: 'right',
       render: (o) => (
         <span className="mono" style={{ fontSize: 12, color: 'var(--text-2)' }}>{o.ends}</span>
       ),
     },
     {
-      key: 'live', header: 'Live', align: 'right',
+      key: 'live', header: t('Live'), align: 'right',
       render: (o) => (
         <Toggle checked={o.active} onChange={() => toggleOffer(o.id)} label={`${o.name} live`} />
       ),
@@ -93,6 +95,7 @@ function Offers() {
 }
 
 export default function Marketing() {
+  const t = useT();
   const [tab, setTab] = useState('offers');
 
   return (
@@ -110,12 +113,12 @@ export default function Marketing() {
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'offers', label: 'Offers' },
-            { value: 'banners', label: 'Banners' },
-            { value: 'popups', label: 'Pop-ups' },
-            { value: 'aisles', label: 'Aisles' },
-            { value: 'wheel', label: 'Spin wheel' },
-            { value: 'broadcast', label: 'Push' },
+            { value: 'offers', label: t('Offers') },
+            { value: 'banners', label: t('Banners') },
+            { value: 'popups', label: t('Pop-ups') },
+            { value: 'aisles', label: t('Aisles') },
+            { value: 'wheel', label: t('Spin wheel') },
+            { value: 'broadcast', label: t('Push') },
           ]}
         />
       </div>

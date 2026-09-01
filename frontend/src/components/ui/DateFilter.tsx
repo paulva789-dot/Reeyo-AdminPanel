@@ -5,13 +5,13 @@ import { usePreferences } from '../../state/usePreferences';
 import { useDateRange, describeRange, isoDay } from '../../state/useDateRange';
 import type { PresetKey } from '../../state/useDateRange';
 
-const PRESETS: { key: Exclude<PresetKey, 'custom'>; label: Parameters<ReturnType<typeof useT>>[0] }[] = [
-  { key: 'today', label: 'date.today' },
-  { key: 'yesterday', label: 'date.yesterday' },
-  { key: 'last7', label: 'date.last7' },
-  { key: 'last30', label: 'date.last30' },
-  { key: 'thisMonth', label: 'date.thisMonth' },
-  { key: 'lastMonth', label: 'date.lastMonth' },
+const PRESETS: { key: Exclude<PresetKey, 'custom'>; label: string }[] = [
+  { key: 'today', label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: 'last7', label: 'Last 7 days' },
+  { key: 'last30', label: 'Last 30 days' },
+  { key: 'thisMonth', label: 'This month' },
+  { key: 'lastMonth', label: 'Last month' },
 ];
 
 /**
@@ -47,14 +47,14 @@ export default function DateFilter() {
   const locale = language === 'fr' ? 'fr-FR' : 'en-GB';
   const activeLabel = range.preset === 'custom'
     ? describeRange(range, locale)
-    : t(PRESETS.find((p) => p.key === range.preset)?.label ?? 'date.today');
+    : t(PRESETS.find((p) => p.key === range.preset)?.label ?? 'Today');
 
   return (
     <div ref={holder} style={{ position: 'relative', flexShrink: 0 }}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label={`${t('date.range')}: ${activeLabel}`}
+        aria-label={`${t('Date range')}: ${activeLabel}`}
         style={{
           height: 34, display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '0 12px', borderRadius: 'var(--r-pill)',
@@ -63,7 +63,7 @@ export default function DateFilter() {
           fontFamily: 'var(--sans)', fontSize: 12.5, fontWeight: 600,
         }}
       >
-        <span className="eyebrow" style={{ letterSpacing: '0.12em' }}>{t('date.range')}</span>
+        <span className="eyebrow" style={{ letterSpacing: '0.12em' }}>{t('Date range')}</span>
         <span className="mono" style={{ fontSize: 12, color: 'var(--emerald-ink)' }}>
           {activeLabel}
         </span>
@@ -72,7 +72,7 @@ export default function DateFilter() {
       {open && (
         <div
           role="dialog"
-          aria-label={t('date.range')}
+          aria-label={t('Date range')}
           style={{
             position: 'absolute', top: 40, right: 0, zIndex: 42, width: 280, padding: 10,
             background: 'var(--card)', border: '1px solid var(--line)',
@@ -106,13 +106,13 @@ export default function DateFilter() {
               marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line-soft)',
             }}
           >
-            <div className="eyebrow" style={{ marginBottom: 7 }}>{t('date.custom')}</div>
+            <div className="eyebrow" style={{ marginBottom: 7 }}>{t('Custom range')}</div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                aria-label={t('date.start')}
+                aria-label={t('Start')}
                 className="mono"
                 style={dateInput}
               />
@@ -120,7 +120,7 @@ export default function DateFilter() {
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                aria-label={t('date.end')}
+                aria-label={t('End')}
                 className="mono"
                 style={dateInput}
               />
@@ -137,7 +137,7 @@ export default function DateFilter() {
                   setOpen(false);
                 }}
               >
-                {t('date.apply')}
+                {t('Apply')}
               </Button>
             </div>
           </div>

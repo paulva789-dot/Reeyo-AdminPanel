@@ -140,6 +140,17 @@ async function resetPage(wsUrl) {
         ws.send(JSON.stringify({ id: ++id, sessionId, method: 'Network.enable' }));
         ws.send(JSON.stringify({ id: ++id, sessionId, method: 'Network.clearBrowserCookies' }));
         ws.send(JSON.stringify({ id: ++id, sessionId, method: 'Network.clearBrowserCache' }));
+        // French is the default (spec 2.1), and these suites assert English
+        // strings. Pinning the language here keeps them testing structure
+        // rather than translation — which interactions.mjs covers separately.
+        ws.send(JSON.stringify({
+          id: ++id,
+          sessionId,
+          method: 'Page.addScriptToEvaluateOnNewDocument',
+          params: {
+            source: "try { localStorage.setItem('reeyo.language', 'en'); } catch (e) {}",
+          },
+        }));
         ws.send(JSON.stringify({
           id: ++id, sessionId, method: 'Page.navigate', params: { url: 'about:blank' },
         }));

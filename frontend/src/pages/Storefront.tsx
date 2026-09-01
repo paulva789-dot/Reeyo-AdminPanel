@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Toggle from '../components/ui/Toggle';
@@ -70,6 +71,7 @@ function Sections() {
 }
 
 export default function Storefront() {
+  const t = useT();
   const [tab, setTab] = useState('banners');
   // One hook for the whole page: each panel reading its own would refetch the
   // entire engagement suite every time someone changed tabs.
@@ -80,7 +82,7 @@ export default function Storefront() {
 
   return (
     <>
-      <PageTitle>Storefront</PageTitle>
+      <PageTitle>{t('Storefront')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <Segments
@@ -88,11 +90,11 @@ export default function Storefront() {
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'banners', label: 'Banners', count: engagement.banners.rows.length },
-            { value: 'popups', label: 'Popups', count: engagement.popups.rows.length },
-            { value: 'loyalty', label: 'Loyalty' },
-            { value: 'audience', label: 'Audience' },
-            { value: 'sections', label: 'Sections' },
+            { value: 'banners', label: t('Banners'), count: engagement.banners.rows.length },
+            { value: 'popups', label: t('Popups'), count: engagement.popups.rows.length },
+            { value: 'loyalty', label: t('Loyalty') },
+            { value: 'audience', label: t('Audience') },
+            { value: 'sections', label: t('Sections') },
           ]}
         />
       </div>

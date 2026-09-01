@@ -55,6 +55,13 @@ ws.onopen = async () => {
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 950, deviceScaleFactor: 1, mobile: false }, sessionId);
 
   await send('Page.navigate', { url: 'http://localhost:5180/' }, sessionId);
+
+  // French is the default (spec 2.1); these assertions are written in English.
+  // Setting it before the app boots keeps the suite testing structure rather
+  // than translation, which interactions.mjs covers on its own.
+  await ev(`try { localStorage.setItem('reeyo.language', 'en'); } catch (e) {}`);
+  await send('Page.reload', {}, sessionId);
+  await wait(700);
   // Poll rather than guess: a cold Vite start compiles on demand, so how long
   // the first paint takes varies with the size of the app.
   const readyBy = Date.now() + 45000;

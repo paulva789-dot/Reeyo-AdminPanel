@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import { useT } from '../i18n/useT';
 import PageTitle from '../components/layout/PageTitle';
 import Card from '../components/ui/Card';
 import Pill from '../components/ui/Pill';
@@ -165,12 +166,13 @@ function Capacity() {
 }
 
 export default function Dispatch() {
+  const t = useT();
   const { riders, isSample } = useAppState();
   const [tab, setTab] = useState('map');
 
   const riderColumns: Column<Rider>[] = [
     {
-      key: 'name', header: 'Rider',
+      key: 'name', header: t('Rider'),
       render: (r) => (
         <div>
           <div>{r.name}</div>
@@ -178,13 +180,13 @@ export default function Dispatch() {
         </div>
       ),
     },
-    { key: 'zone', header: 'Zone', render: (r) => r.zone },
-    { key: 'state', header: 'State', render: (r) => <Pill status={r.state} /> },
+    { key: 'zone', header: t('Zone'), render: (r) => r.zone },
+    { key: 'state', header: t('State'), render: (r) => <Pill status={r.state} /> },
   ];
 
   return (
     <>
-      <PageTitle>Live dispatch</PageTitle>
+      <PageTitle>{t('Live dispatch')}</PageTitle>
 
       <div style={{ marginBottom: 14 }}>
         <Segments
@@ -192,11 +194,11 @@ export default function Dispatch() {
           value={tab}
           onChange={setTab}
           segments={[
-            { value: 'map', label: 'Map' },
-            { value: 'zones', label: 'Zones' },
-            { value: 'capacity', label: 'Capacity' },
-            { value: 'teams', label: 'Teams' },
-            { value: 'fees', label: 'Delivery fees' },
+            { value: 'map', label: t('Map') },
+            { value: 'zones', label: t('Zones') },
+            { value: 'capacity', label: t('Capacity') },
+            { value: 'teams', label: t('Teams') },
+            { value: 'fees', label: t('Delivery fees') },
           ]}
         />
       </div>
