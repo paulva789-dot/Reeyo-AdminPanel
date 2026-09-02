@@ -165,6 +165,38 @@ history instead of derived summaries.
 
 Newest first. Every entry names what changed and why.
 
+### 2026-09-02 — the backend origin defect is fixed; production sign-in is unblocked
+
+Re-measured the origin matrix while confirming a deploy, and it has changed.
+Every origin that returned **500 with no CORS headers** on 25 August now
+returns a correct **401**:
+
+| Origin | 25 Aug | Now |
+|---|---|---|
+| `http://localhost:5173` | 500 | **401** |
+| `https://www.usereeyo.com` | 500 | **401** |
+| `https://reeyo-admin-panel-rho.vercel.app` | 500 | **401** |
+
+Somebody on the backend fixed it — either by widening `ALLOWED_ORIGINS` or by
+correcting the handler that threw on an unrecognised origin. Through the Vercel
+rewrite the console now gets `AUTH_TOKEN_INVALID / "Invalid credentials"` for a
+wrong password, which is exactly what a working sign-in looks like.
+
+**What this changes.** The DNS record for `admin.usereeyo.com` is no longer a
+blocker. It is still the better home — it is the address the platform was
+written for — but sign-in should work on the vercel.app URL today.
+
+**The one link still unverified.** The auth cookie's `Domain` attribute. The
+`/api/v1` rewrite means the browser receives the cookie from the Vercel origin
+rather than from `admin-api.usereeyo.com`, which is fine if the cookie is
+host-only or scoped to `.usereeyo.com`, and fails if the backend pins it to
+`Domain=admin-api.usereeyo.com`. The symptom would be a sign-in that appears to
+succeed and immediately returns to the login screen. It cannot be tested
+without valid credentials. If it happens, the fix is one line: point
+`VITE_API_BASE_URL` at the API directly — though note the API sends no
+`access-control-allow-origin` for the vercel.app origin, so that path needs an
+allowlisted domain, which is the DNS record again.
+
 ### 2026-09-02 — react-router 7, and seeded orders that survive midnight
 
 Asked to install missing dependencies. **Nothing was missing** — every import
@@ -854,6 +886,7 @@ must stay gone (§8.1), and lateness must never become a status again (§3.2).
 
 | Item | Owner | Detail |
 |---|---|---|
-| Production sign-in | **Reeyo** | `admin.usereeyo.com` has no DNS record. One A record to `76.76.21.21`; the origin is already on admin-api's allowlist |
+| Production sign-in | **unblocked 2026-09-02** | The backend origin defect is fixed; sign-in should work on the vercel.app URL now. The `admin.usereeyo.com` A record to `76.76.21.21` is still the better home, no longer a blocker |
+| Auth cookie `Domain` | **unverified** | Needs one successful sign-in to confirm the cookie survives the `/api/v1` rewrite. See the 2026-09-02 entry |
 | Live data verification | **Reeyo** | No test credentials have been supplied, so no live response body has ever been seen. Every adapter reads through lists of plausible field names |
 | Endpoints for §4–§7 | **Backend** | Vendor hours, wallets, teams, fee bands, aisles and spin wheels have no routes. Those screens are marked and run on seed data |
