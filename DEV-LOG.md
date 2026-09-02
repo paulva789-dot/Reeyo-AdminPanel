@@ -3,17 +3,24 @@
 Running record of what is built, what is not, and every change made against the
 verified API. **Updated on every change**, newest entry at the top of the log.
 
+- Functional requirements: **Reeyo Admin Dashboard Spec v1.0**, 1 September 2026 — tracked in section 4
 - Source of truth for the API: [`docs/ADMIN-API-ENDPOINT-REFERENCE.md`](docs/ADMIN-API-ENDPOINT-REFERENCE.md)
-- Design spec: [`CLAUDE.md`](CLAUDE.md)
+- Design system: [`CLAUDE.md`](CLAUDE.md)
 - History of how the console got here: [`audit/session-log.md`](audit/session-log.md)
+
+Two sets of phases run through this document and they are not the same thing.
+**Sections 1–2** are about wiring the console to admin-api, planned when the
+endpoint reference arrived. **Section 4** is the functional specification that
+followed it. Both are complete; the change log in section 3 covers both, newest
+first.
 
 ---
 
 ## 1. Where the console stands today
 
-> **All nine phases are complete as of 2026-08-25.** Section 1 below is the gap
-> analysis written when the reference arrived, kept as the record of what was
-> wrong and why. Section 3 is what was done about it, newest first.
+> **All nine API phases are complete as of 2026-08-25**, and the functional
+> specification as of 2026-09-01. What follows is the gap analysis written when
+> the endpoint reference arrived, kept as the record of what was wrong and why.
 
 Thirteen pages exist and render. Auth, region scoping, the design system, the
 check suites and the tooling are all in place. What follows is only about how
@@ -157,6 +164,132 @@ history instead of derived summaries.
 ## 3. Change log
 
 Newest first. Every entry names what changed and why.
+
+### 2026-09-02 — react-router 7, and seeded orders that survive midnight
+
+Asked to install missing dependencies. **Nothing was missing** — every import
+was already declared and installed, and the `UNMET OPTIONAL DEPENDENCY` lines
+npm prints are other platforms' native binaries, which is normal on Windows.
+
+What was actually wrong was two advisories in react-router 6: an open redirect
+via backslash in `<Link>` and `useNavigate`, and arbitrary constructor
+injection in SSR hydration. Neither is reachable here — every `navigate()` path
+is a literal, the one dynamic part is an encoded query string, and there is no
+SSR at all — but the fix is a version bump and the v7 migration flags were
+already on, so it was a line of deletion rather than a migration. Those flags
+are the default in 7 and passing them is now a type error. `npm audit` is clean
+including dev dependencies.
+
+**Two failures on the way, both worth recording.**
+
+`npm update` hit `EBUSY` on rollup's native binary because the dev server was
+holding it, and the aborted run left six packages missing from the tree. Stop
+the dev server before touching `node_modules` on Windows; a reinstall repaired
+it.
+
+The clock passed midnight mid-session and the region suite began reporting
+"4 nationwide" instead of 22. That was a real defect in the seed rather than a
+flake: orders are built relative to *now*, so one placed 300 minutes ago lands
+on yesterday, and the date filter — which defaults to Today, correctly — hides
+it. **Just after midnight the console would have opened looking empty**, for no
+reason a reader could work out. Seeded timestamps are now compressed into
+however much of today has elapsed, holding their order and spacing. Orders from
+the API keep their real timestamps and are untouched.
+
+### 2026-09-01 — The functional specification, in full
+
+`Reeyo_Admin_Dashboard_Spec.pdf` (v1.0, 1 September 2026) arrived and is now
+implemented end to end. Section 4 below tracks it against its own acceptance
+checklist. What follows is the shape of the work and the decisions inside it.
+
+**The order model was rebuilt first**, because §3 asks the record to answer
+things the previous fourteen-field version could not. The status set is
+replaced with the spec's nine stages — two of which the old set could not
+express at all, since "rider assigned" and "picked up" were both collapsed into
+"on the way". Lateness stopped being a status: an order running late is still
+*in transit*, and treating late as a stage lost where the order actually was.
+`Order.isLate` carries it, and the Overview rail folds it into Problem
+alongside cancelled and failed.
+
+Orders now carry a real basket with options and per-item notes, both parties
+with coordinates, the rider as a full card, every fee as its own line, payment
+method tracked separately from payment status, distance, a timeline of who
+moved the order when, and parcel cargo details. Twenty-two seeded orders are
+stated compactly in `orderSeed.ts` and expanded by `orderBuilder.ts` — writing
+them out by hand would be unreadable and would drift out of step with itself.
+
+**The shell (§2)** is inherited by every screen: dark theme applied before
+first paint so there is no white flash, French and English with French default,
+one shared date range, and five alert tones synthesised with the Web Audio API
+rather than shipped as files.
+
+**Everything else** followed the spec's own build order: orders (§3), vendors
+with wallets (§4), teams (§5), the distance-band fee engine (§6), the four
+promotional surfaces (§7), payments and settlements (§8), and the dashboard
+metrics (§9).
+
+**Six decisions where the specification and the product disagreed.** Each is
+recorded here because a reviewer will otherwise read them as oversights.
+
+1. **Lateness is a flag, not a status** — see above.
+2. **Aisle backgrounds come from the palette, not a colour picker.** §7.3 asks
+   for a picker plus a contrast warning. A picker that can emit any hex will
+   eventually emit one that fails, and the warning then argues with the
+   operator. Restricting the choice to tokens that already pair with a legible
+   text colour removes the failure instead of reporting it — and keeps §3.3's
+   rule that no fifth colour is invented.
+3. **The date range on Vendors, Riders and Customers is a column, not a
+   filter.** Built as a filter first, it emptied both pages: most order
+   customers are not in the customer seed. Hiding everyone who did not order
+   today makes a directory you cannot look anyone up in, which is what a
+   directory is for.
+4. **New signups are shown as uncountable.** §9.3 asks for them; customers
+   carry no signup date. Inferring one from order history produces a number
+   that looks precise and is not.
+5. **Dark mode contradicts `CLAUDE.md` §3**, which defines a single light
+   palette and says to ask rather than invent. The specification is newer and
+   explicitly requires it, so it is built — flagged here rather than buried.
+6. **Theme and language use `localStorage`**, which `CLAUDE.md` forbids. "Applied
+   before first paint" cannot be satisfied by a network round trip, and the API
+   has no field for either. They are per-device today; true per-user
+   persistence needs a backend column.
+
+**FR/EN is keyed by the English text itself**, not by symbolic keys. Two reasons,
+both about failure: a missing entry falls through to correct English rather
+than rendering `nav.orders` in the middle of the interface, and retrofitting
+became a wrap rather than a rename across twenty-nine files. 247 entries.
+Vendor names, item names and addresses are deliberately absent — §2.1 is
+explicit that entered data stays as entered.
+
+**A test that passed for the wrong reason.** Making French the default broke
+four browser assertions written in English — and worse, they passed *on retry*,
+because `interactions.mjs` clicks the EN switcher partway through and leaves it
+set for the next run. Each suite now pins the language immediately after
+navigating, so it tests structure rather than translation. Verified over two
+consecutive full runs.
+
+### 2026-09-01 — VITE_UI_ONLY, so the interface can be worked on with no backend
+
+Set it and the console boots straight into sample data: no `/auth/me`, no
+sign-in screen, no network calls at all. Verified zero `/api/v1` traffic.
+
+A switch rather than a deletion. Every screen and state is already reachable on
+seed data, so unplugging the service layer would have thrown away the wiring
+and changed nothing an admin can see.
+
+**Two real bugs surfaced while testing it.** The dev server and the check
+suites disagreed about the port — eight suites navigate to `:5180` while Vite
+defaults to `:5173`, so they only ever agreed when something else happened to
+be holding the lower ports, and when they did not the suites navigated to
+nothing and hung until their 45-second timeout. The port is pinned with
+`strictPort`. Three suites also clicked "Explore with sample data"
+unconditionally, having already detected they were past it.
+
+`auth.mjs` skips in UI-only mode, on the *configuration* rather than on what
+the page looks like: "no sign-in screen appeared" is also what a completely
+broken gate looks like, and that suite exists to catch exactly that.
+`source.mjs` asserts `VITE_UI_ONLY` is never enabled in a production build —
+right on a laptop, catastrophic on the deployed console.
 
 ### 2026-08-28 — Seed data no longer renders in live mode
 
@@ -673,3 +806,54 @@ Verified: typecheck, lint across 69 files, build, and all seven suites passing.
   features marked "no backend route" actually have one. Details in section 1.
 - No code changed yet — the plan above is awaiting answers to the questions
   below before Phase 0 starts.
+
+---
+
+## 4. The functional specification (v1.0, 1 September 2026)
+
+Every item in the specification's own acceptance checklist (§10), and where it
+lives. `checks/source.mjs` asserts each of these structurally, so a deliverable
+cannot be deleted or renamed away without a suite going red.
+
+| § | Deliverable | Where |
+|---|---|---|
+| 3.2 | Edit status on detail and list row | `components/domain/EditStatusModal.tsx` |
+| 3.2 | Full workflow, reasons on cancel/fail/return | same |
+| 3.3 | Complete basket with options, fees, totals | `components/domain/OrderDetailBlocks.tsx` |
+| 3.4 | Customer and vendor panels, click to call | same |
+| 3.5 | Rider information, incl. off-fleet couriers | `components/domain/RiderBlock.tsx` |
+| 3.6 | Pickup and drop-off with contacts and distance | `OrderDetailBlocks.tsx` |
+| 3.7 | Timestamps and the full timeline | `components/domain/OrderTimeline.tsx` |
+| 3.8 | Sender / Receiver / Recipient for parcels | `components/domain/orderVocabulary.ts` |
+| 2.1 | French / English across the interface | `i18n/strings.ts` |
+| 2.2 | Dark / light theme, persisted | `styles/tokens.css`, `state/PreferencesContext.tsx` |
+| 2.3 | Date filter on list and report screens | `components/ui/DateFilter.tsx` |
+| 2.4 | Ringtone with per-service variations | `lib/tones.ts`, `state/AlertsContext.tsx` |
+| 4.1 | Every vendor field, all editable | `pages/vendors/VendorProfileDrawer.tsx` |
+| 4.2 | Operating hours, multiple slots per day | `pages/vendors/HoursEditor.tsx` |
+| 4.3 | Commission as percentage **or** flat rate | `VendorProfileDrawer.tsx` |
+| 4.4 | Wallet, add and remove funds, reversals | `pages/vendors/WalletPanel.tsx` |
+| 5.2 | Create team, multi-select riders, zone move | `pages/dispatch/TeamsPanel.tsx` |
+| 6.1 | Distance bands replacing long distance | `data/deliveryFees.ts` |
+| 6.2 | Add, edit, delete; per-zone and per-service | `pages/dispatch/FeesPanel.tsx` |
+| 7.1 | Zone selector on banners | `pages/marketing/CampaignPanels.tsx` |
+| 7.2 | Zone and occurrence rule on pop-ups | same |
+| 7.3 | Horizontal aisle replacing Section | same |
+| 7.4 | Spin wheel builder, segments and odds | `pages/marketing/SpinWheelBuilder.tsx` |
+| 8.1 | The four payment methods only | `data/types.ts` |
+| 8.2 | Date filter on payments | `pages/Payments.tsx` |
+| 8.3 | Settlements as a table | `pages/payments/SettlementsTable.tsx` |
+| 9.1 | Values printed on every chart | `components/charts/` |
+| 9.2 | Service wheel with the total in the centre | `pages/Overview.tsx` |
+| 9.3 | Dashboard metrics | `pages/analytics/DashboardMetrics.tsx` |
+
+Two negative assertions guard retired behaviour: bank transfer and pay-for-me
+must stay gone (§8.1), and lateness must never become a status again (§3.2).
+
+### What is still outstanding, and whose it is
+
+| Item | Owner | Detail |
+|---|---|---|
+| Production sign-in | **Reeyo** | `admin.usereeyo.com` has no DNS record. One A record to `76.76.21.21`; the origin is already on admin-api's allowlist |
+| Live data verification | **Reeyo** | No test credentials have been supplied, so no live response body has ever been seen. Every adapter reads through lists of plausible field names |
+| Endpoints for §4–§7 | **Backend** | Vendor hours, wallets, teams, fee bands, aisles and spin wheels have no routes. Those screens are marked and run on seed data |
