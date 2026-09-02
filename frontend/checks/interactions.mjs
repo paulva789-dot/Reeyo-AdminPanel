@@ -163,19 +163,66 @@ ws.onopen = async () => {
   await wait(600);
   check('veil click closes the drawer', await ev(`!document.querySelector('[role=dialog]')`));
 
-  // --- rail stage filters, dims, and clears ---
+  // --- the rail counts real stages, filters, dims, and clears ---
   await go('Overview'); await wait(1300);
+
+  // Every stage on the rail has to be one an order can actually be in. This
+  // list drifted out of step with the workflow once, and the five stages that
+  // no longer existed read 00 for ever - which the old assertion could not
+  // see, because filtering to a stage that matches nothing still changes the
+  // row count.
+  const rail = await ev(`(() => {
+    const stages = [...document.querySelectorAll('button')]
+      .map(b => b.innerText.trim())
+      .filter(t => /^[0-9][0-9]/.test(t))
+      .map(t => {
+        const [count, ...rest] = t.split(String.fromCharCode(10));
+        return { label: rest.join(' ').trim(), count: Number(count) };
+      });
+    return stages;
+  })()`);
+
+  check('the rail draws a stage for each step of the workflow',
+    Array.isArray(rail) && rail.length === 8, `${rail && rail.length} stages`);
+
+  const railLabels = (rail || []).map(s => s.label).join(', ');
+  check('the rail uses the current workflow vocabulary',
+    /Pending/.test(railLabels) && /In transit/.test(railLabels)
+      && !/Preparing/.test(railLabels) && !/On the way/.test(railLabels),
+    railLabels);
+
+  // At least half the stages should hold something. A rail where nearly every
+  // counter is zero is the signature of stage keys that match no order.
+  const populated = (rail || []).filter(s => s.count > 0).length;
+  check('the rail counters actually find orders',
+    populated >= 3, `${populated} of ${rail && rail.length} stages hold orders`);
+
   const rowsAll = await ev(`document.querySelectorAll('table tbody tr').length`);
-  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('Preparing')).click()`);
+
+  // Filter by a stage that is known to hold something, so the assertion cannot
+  // be satisfied by a stage that matches nothing.
+  const busiest = (rail || []).filter(s => s.label !== 'Problem')
+    .sort((a, b) => b.count - a.count)[0];
+  await ev(`(() => {
+    const b = [...document.querySelectorAll('button')]
+      .find(x => x.innerText.includes(${JSON.stringify(busiest ? busiest.label : 'Delivered')}));
+    if (b) b.click();
+  })()`);
   await wait(800);
   const rowsFiltered = await ev(`document.querySelectorAll('table tbody tr').length`);
-  const dimmed = await ev(`[...document.querySelectorAll('button')].filter(b => b.textContent.includes('New')).some(b => Number(getComputedStyle(b).opacity) < 0.5)`);
-  check('rail stage click filters the content below', rowsFiltered !== rowsAll, `${rowsAll} -> ${rowsFiltered} rows`);
+  const dimmed = await ev(`[...document.querySelectorAll('button')].filter(b => b.innerText.includes('Pending')).some(b => Number(getComputedStyle(b).opacity) < 0.5)`);
+  check('rail stage click filters the content below', rowsFiltered !== rowsAll,
+    `${rowsAll} -> ${rowsFiltered} rows via ${busiest && busiest.label}`);
   check('other stages dim when one is selected', dimmed === true);
-  await ev(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('Preparing')).click()`);
-  await wait(700);
-  check('clicking the stage again clears the filter',
-    await ev(`document.querySelectorAll('table tbody tr').length`) === rowsAll);
+
+  await ev(`(() => {
+    const b = [...document.querySelectorAll('button')]
+      .find(x => x.innerText.includes(${JSON.stringify(busiest ? busiest.label : 'Delivered')}));
+    if (b) b.click();
+  })()`);
+  await wait(800);
+  const rowsCleared = await ev(`document.querySelectorAll('table tbody tr').length`);
+  check('clicking the stage again clears the filter', rowsCleared === rowsAll);
 
   // --- alerts are derived, not hardcoded seed names ---
   const alertText = await ev(`(() => {
